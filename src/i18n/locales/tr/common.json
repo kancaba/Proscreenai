@@ -1,0 +1,20 @@
+{
+  "app": {
+    "name": "Pro Screen AI",
+    "editorTitle": "Pro Screen AI Editör",
+    "subtitle": "Ekran kaydı ve video düzenleme",
+    "manageRecordings": "Kayıt klasörü",
+    "language": "Dil"
+  },
+  "actions": {
+    "cancel": "Vazgeç",
+    "save": "Kaydet",
+    "delete": "Sil",
+    "done": "Tamam"
+  },
+  "errors": {
+    "invalidFileType": "Geçersiz dosya türü",
+    "failedToUploadImage": "Görsel yüklenemedi",
+    "fileReadError": "Dosya okunurken bir hata oluştu."
+  }
+}

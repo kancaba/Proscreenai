@@ -1,0 +1,113 @@
+{
+	"recording": {
+		"disableSystemAudio": "Desactivar audio del sistema",
+		"enableSystemAudio": "Activar audio del sistema",
+		"disableMicrophone": "Desactivar micrófono",
+		"enableMicrophone": "Activar micrófono",
+		"countdownDelay": "Retraso de cuenta regresiva",
+		"noDelay": "Sin retraso",
+		"record": "Grabar",
+		"recordingFolder": "Carpeta de grabaciones: {{path}}",
+		"chooseRecordingsFolder": "Elegir carpeta de grabaciones",
+		"folderPath": "Ruta: /{{name}}/",
+		"openVideoFile": "Abrir archivo de video",
+		"openProject": "Abrir proyecto",
+		"hideHud": "Ocultar HUD",
+		"closeApp": "Cerrar aplicación",
+		"stop": "Stop recording",
+		"pause": "Pausar grabación",
+		"resume": "Reanudar grabación",
+		"paused": "En pausa",
+		"pauseUnavailable": "Este motor aún no permite pausar",
+		"finalizing": "Preparando la grabación",
+		"keepOpen": "Guardando vídeo y audio. Mantén la ventana abierta.",
+		"starting": "Preparando…"
+	},
+	"sourceSelector": {
+		"loadingSources": "Cargando fuentes...",
+		"screens": "Pantallas",
+		"windows": "Ventanas",
+		"windowsNote": "Solo se pueden grabar las ventanas visibles (no minimizadas).",
+		"windowPlaceholder": "Ventana",
+		"cancel": "Cancelar",
+		"share": "Compartir"
+	},
+	"permissions": {
+		"screenRecordingNeeded": "Pro Screen AI necesita permiso de grabación de pantalla antes de comenzar. Se ha abierto Configuración del sistema. Después de habilitarlo, cierra y vuelve a abrir Pro Screen AI.",
+		"screenRecordingMissing": "El permiso de grabación de pantalla aún falta. Se ha abierto Configuración del sistema nuevamente. Habilítalo, luego cierra y vuelve a abrir Pro Screen AI antes de grabar.",
+		"accessibilityNeeded": "Pro Screen AI también necesita permiso de accesibilidad para el seguimiento del cursor. Se ha abierto Configuración del sistema. Después de habilitarlo, cierra y vuelve a abrir Pro Screen AI.",
+		"accessibilityMissing": "El permiso de accesibilidad aún falta. Se ha abierto Configuración del sistema nuevamente. Habilítalo, luego cierra y vuelve a abrir Pro Screen AI antes de grabar.",
+		"selectSource": "Por favor selecciona una fuente para grabar",
+		"systemAudioUnavailable": "El audio del sistema no está disponible para esta fuente. La grabación continuará sin audio del sistema.",
+		"microphoneDenied": "Se denegó el acceso al micrófono. La grabación continuará sin audio del micrófono.",
+		"failedToStart": "Error al iniciar la grabación: {{error}}",
+		"failedToStartGeneric": "Error al iniciar la grabación",
+		"clickTrackingOff": "Zoom por clic desactivado",
+		"clickTrackingAllow": "Permitir",
+		"clickTrackingTitle": "El zoom automático en los clics necesita el permiso de accesibilidad. Puedes grabar sin él, pero los clics no se registran.",
+		"clickTrackingPrompt": {
+			"message": "El seguimiento de clics está desactivado",
+			"detail": "En esta grabación no se registrarán los clics, así que el zoom automático no podrá seguirlos, y no se puede añadir después. Tras permitirlo, pulsa Grabar de nuevo.",
+			"allow": "Permitir",
+			"recordAnyway": "Grabar sin él",
+			"cancel": "Cancelar",
+			"dontAsk": "No volver a preguntar"
+		}
+	},
+	"welcome": {
+		"eyebrow": "Bring your ideas to the screen",
+		"headlineFirst": "Your screen.",
+		"headlineSecond": "A little cinema.",
+		"description": "Record, bring the important moments closer, and add your own style. Turn everyday screen recordings into videos worth watching.",
+		"newRecording": "Start a recording",
+		"local": "Your recordings stay on this Mac.",
+		"autoZoom": "Automatic zoom",
+		"start": "Get started",
+		"recordTitle": "Record your screen",
+		"recordDescription": "Choose a display or a window",
+		"importTitle": "Import a video",
+		"importDescription": "Start with an existing video",
+		"openTitle": "Open a project",
+		"openDescription": "Pick up where you left off",
+		"recent": "Recent projects",
+		"projectCount": "projects",
+		"yourSpace": "A space for your creativity",
+		"emptyTitle": "Your first beautiful recording starts here.",
+		"emptyDescription": "Saved projects appear here. Start a recording or choose a video.",
+		"chooseVideo": "Choose a video",
+		"footer": "Local recording · No account needed",
+		"footerRight": "From idea to video.",
+		"libraryError": "Recent projects could not be loaded. Use Open a project to select your file.",
+		"openError": "The file could not be opened. Please try again."
+	},
+	"regionSelector": {
+		"hint": "Arrastra para seleccionar el área que quieres grabar",
+		"keys": "Esc: cancelar · Intro: confirmar · Flechas: mover",
+		"free": "Libre",
+		"fullScreen": "Pantalla completa",
+		"cancel": "Cancelar",
+		"confirm": "Grabar esta área",
+		"ratio": "Proporción",
+		"selectArea": "Área",
+		"selectAreaTitle": "Selecciona la parte de la pantalla que quieres grabar",
+		"selectAreaOnScreen": "Seleccionar área en pantalla",
+		"areaSelected": "Área seleccionada: {{width}} × {{height}} px",
+		"toolbar": "Herramientas de selección de área",
+		"selection": "Área de grabación seleccionada"
+	},
+	"permissionSetup": {
+		"title": "Empieza con dos permisos",
+		"description": "Para el zoom automático en los clics, los clics se registran durante la grabación. Permítelo antes de grabar; no se pueden añadir clics a una grabación después.",
+		"screen": {
+			"title": "Grabación de pantalla",
+			"description": "Necesario para grabar la pantalla y el audio del sistema."
+		},
+		"clicks": {
+			"title": "Seguimiento de clics (Accesibilidad)",
+			"description": "Registra los clics y el cursor para el zoom automático y el agente de IA. No se graban las teclas ni el texto escrito."
+		},
+		"allow": "Permitir",
+		"granted": "Permitido",
+		"restartNote": "Activa Pro Screen AI en Configuración del Sistema. Tras permitir la grabación de pantalla, macOS puede pedirte que reinicies la app."
+	}
+}

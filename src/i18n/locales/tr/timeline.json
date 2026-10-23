@@ -1,0 +1,62 @@
+{
+  "zoom": {
+    "cannotPlace": "Buraya zoom eklenemiyor",
+    "existsOrNoSpace": "Bu konumda zoom var veya yeterli boşluk yok.",
+    "suggestHandlerUnavailable": "Zoom önerileri kullanılamıyor",
+    "noTelemetry": "Cursor verisi bulunamadı",
+    "recordFirst": "Cursor tabanlı öneriler için önce bir ekran kaydı oluşturun.",
+    "noUsableTelemetry": "Kullanılabilir cursor verisi yok",
+    "notEnoughMovement": "Kayıtta yeterli cursor hareketi yok.",
+    "noInteractionMoments": "Belirgin etkileşim bulunamadı",
+    "tryRecording": "Önemli noktalarda tıklama ve duraklamalar içeren bir kayıt deneyin.",
+    "noAutoZoomSlots": "Otomatik zoom için boşluk yok",
+    "dwellPointsOverlap": "Algılanan odaklar mevcut zoom bölgeleriyle çakışıyor.",
+    "addedSuggestions": "{{count}} zoom önerisi eklendi",
+    "label": "Zoom {{index}}",
+    "addZoom": "Zoom ekle (Z)",
+    "suggestZooms": "Otomatik zoom öner"
+  },
+  "trim": {
+    "cannotPlace": "Buraya kesme eklenemiyor",
+    "existsOrNoSpace": "Bu konumda kesme var veya yeterli boşluk yok.",
+    "label": "Kesme {{index}}",
+    "addTrim": "Kesme ekle (C)"
+  },
+  "speed": {
+    "cannotPlace": "Buraya hız bölgesi eklenemiyor",
+    "existsOrNoSpace": "Bu konumda hız bölgesi var veya yeterli boşluk yok.",
+    "label": "Hız"
+  },
+  "annotation": {
+    "label": "Anotasyon",
+    "image": "Görsel",
+    "addAnnotation": "Anotasyon ekle (A)"
+  },
+  "addSpeed": "Hız ekle (S)",
+  "resizeLeft": "Sol kenarı boyutlandır",
+  "resizeRight": "Sağ kenarı boyutlandır",
+  "audioEmptyHint": "Ses ekle düğmesiyle bir ses dosyası seç",
+  "emptyVideoTitle": "Henüz video yüklenmedi",
+  "emptyVideoHint": "Başlamak için bir video içe aktar",
+  "regionMenu": {
+    "copy": "Kopyala",
+    "paste": "Oynatma imlecine yapıştır",
+    "duplicate": "Çoğalt",
+    "split": "Oynatma imlecinde böl",
+    "delete": "Sil",
+    "noSpace": "Oynatma imlecinde bu öğe için boş yer yok.",
+    "cannotSplit": "Bölmek için oynatma imlecini öğenin içine getirin.",
+    "copied": "Kopyalandı. Cmd/Ctrl + V ile oynatma imlecine yapıştırın."
+  },
+  "view": {
+    "zoomSlider": "Timeline yakınlaştırma",
+    "followPlayhead": "Takip et",
+    "followPlayheadHint": "Oynatırken oynatma imlecini görünür tut"
+  },
+  "clip": {
+    "segment": "Video parçası {{start}}–{{end}} sn · seçip Delete ile kesin",
+    "cut": "Kesilen {{seconds}} sn · seçip Delete ile geri getirin",
+    "cannotSplit": "İmleci bir video parçasının içine getirin (kenarlara çok yakın bölünmez).",
+    "keepOne": "Videonun en az bir parçası kalmalı."
+  }
+}

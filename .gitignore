@@ -1,0 +1,52 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-electron
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+release/**
+*.kiro/
+# npx electron-builder --mac --win
+.tmp/
+.history/
+
+# Native capture build artifacts
+electron/native/wgc-capture/build/
+electron/native/cursor-monitor/build/
+
+.cache/
+artifacts/
+projects/
+release-next/
+
+# Local distributions, personal projects and credentials (never publish)
+release-source-fix/
+*.app/
+*.dmg
+*.screenmovie
+*.screenimage
+*.tsbuildinfo
+.env*
+!.env.example
+*.p12
+*.p8
+*.pem

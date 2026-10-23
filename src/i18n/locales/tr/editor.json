@@ -1,0 +1,241 @@
+{
+  "playback": {
+    "play": "Oynat",
+    "pause": "Duraklat"
+  },
+  "annotations": {
+    "settings": "Anotasyon ayarları",
+    "active": "Etkin",
+    "text": "Metin",
+    "image": "Görsel",
+    "arrow": "Ok",
+    "textContent": "Metin içeriği",
+    "textPlaceholder": "Metninizi yazın…",
+    "fontStyle": "Yazı stili",
+    "selectStyle": "Stil seçin",
+    "size": "Boyut",
+    "toggleBold": "Kalın",
+    "toggleItalic": "İtalik",
+    "toggleUnderline": "Altı çizili",
+    "alignLeft": "Sola hizala",
+    "alignCenter": "Ortala",
+    "alignRight": "Sağa hizala",
+    "textColor": "Metin rengi",
+    "background": "Arka plan",
+    "none": "Yok",
+    "clearBackground": "Arka planı temizle",
+    "uploadImage": "Görsel yükle",
+    "supportedFormats": "Desteklenen formatlar: JPG, PNG, GIF, WebP",
+    "arrowDirection": "Ok yönü",
+    "strokeWidth": "Çizgi kalınlığı: {{width}}px",
+    "arrowColor": "Ok rengi",
+    "deleteAnnotation": "Anotasyonu sil",
+    "shortcutsAndTips": "Kısayollar ve ipuçları",
+    "tipSelectAnnotation": "Oynatma başlığını anotasyonun üzerine taşıyıp bir öğe seçin.",
+    "tipCycleForward": "Çakışan öğeler arasında Tab ile ilerleyin.",
+    "tipCycleBackward": "Shift+Tab ile geri gidin.",
+    "imageUploadSuccess": "Görsel yüklendi!",
+    "imageUploadError": "JPG, PNG, GIF veya WebP dosyası seçin.",
+    "effects": {
+      "presets": "Hazır stiller",
+      "markupHint": "İpucu: tek kelimeleri biçimlemek için **kalın** ya da ==vurgu== yazın.",
+      "shadow": "Gölge",
+      "none": "Yok",
+      "soft": "Hafif",
+      "strong": "Güçlü",
+      "highlightColor": "Vurgu rengi",
+      "outline": "Kontur",
+      "outlineColor": "Kontur rengi",
+      "enter": "Giriş",
+      "exit": "Çıkış",
+      "duration": "Animasyon süresi",
+      "animations": {
+        "none": "Yok",
+        "fade": "Belirme",
+        "slide-up": "Yukarı kayma",
+        "pop": "Büyüyerek",
+        "typewriter": "Daktilo",
+        "slide-down": "Aşağı kayma"
+      }
+    }
+  },
+  "fontStyles": {
+    "classic": "Klasik",
+    "editor": "Editör",
+    "strong": "Güçlü",
+    "typewriter": "Daktilo",
+    "deco": "Dekoratif",
+    "simple": "Sade",
+    "modern": "Modern",
+    "clean": "Temiz"
+  },
+  "format": {
+    "mp4Video": "MP4 video",
+    "mp4Description": "Yüksek kaliteli video dosyası",
+    "gifAnimation": "GIF animasyon",
+    "gifDescription": "Paylaşılabilir hareketli görsel"
+  },
+  "gifOptions": {
+    "frameRate": "Kare hızı",
+    "outputSize": "Çıktı boyutu",
+    "outputDimensions": "Çıktı: {{width}} × {{height}}px",
+    "loopAnimation": "Döngü",
+    "loopDescription": "GIF sürekli tekrar oynatılır"
+  },
+  "tutorial": {
+    "howTrimmingWorks": "Kesme nasıl çalışır?",
+    "title": "Kesme nasıl çalışır?",
+    "understanding": "Videonuzdaki istenmeyen bölümleri kaldırın.",
+    "descriptionP1": "Kesme aracı videonuzdan",
+    "descriptionRemove": "kaldırılacak",
+    "descriptionP2": "bölümleri belirler.",
+    "descriptionP3": "Zaman çizelgesinde kırmızıyla işaretlenen bölümler dışa aktarılan videodan çıkarılır.",
+    "visualExample": "Görsel örnek",
+    "removed": "KALDIRILDI",
+    "kept": "Korundu",
+    "finalVideo": "Son video",
+    "part": "Bölüm {{number}}",
+    "addTrimStep": "1. Kesme ekle",
+    "addTrimDesc": "C tuşuna veya makas simgesine basarak kaldırılacak bölümü işaretleyin. Bir öğe seçiliyse C onu imleçte böler.",
+    "adjustStep": "2. Ayarla",
+    "adjustDesc": "Kırmızı bölgenin kenarlarını sürükleyerek kesilecek aralığı ayarlayın."
+  },
+  "keyboardShortcuts": {
+    "title": "Klavye kısayolları",
+    "customizeTooltip": "Kısayolları düzenle",
+    "customize": "Düzenle",
+    "panTimeline": "Zaman çizelgesini kaydır",
+    "zoomTimeline": "Zaman çizelgesini yakınlaştır",
+    "cycleAnnotations": "Anotasyonlar arasında geçiş",
+    "tab": "Tab"
+  },
+  "openRecordingsFolder": "Kayıt klasörünü aç",
+  "autoZoom": {
+    "applied": "{{clicks}} tıklama bulundu, {{zooms}} zoom eklendi",
+    "appliedFromPauses": "Tıklama yok; imlecin durduğu yerlere {{zooms}} zoom eklendi",
+    "remove": "Kaldır",
+    "adjust": "Ayarla",
+    "nothingFound": "Otomatik zoom için tıklama bulunamadı",
+    "noClickData": "Bu kayıtta tıklama verisi yok",
+    "needsAccessibility": "Tıklanan yerlere otomatik zoom için Pro Screen AI'ye Erişilebilirlik izni verin; sonraki kayıtta kendiliğinden çalışır.",
+    "allow": "İzin ver",
+    "offer": "Bu projede zoom yok. Tıklamalardan {{zooms}} zoom eklensin mi?",
+    "apply": "Ekle",
+    "regenerated": "{{zooms}} zoom yeniden oluşturuldu"
+  },
+  "autoCaptions": {
+    "title": "Otomatik altyazı",
+    "description": "Videodaki konuşmayı yazıya çevirip altyazı olarak ekler. Ses bu Mac'te işlenir, internete gönderilmez.",
+    "language": "Konuşma dili",
+    "languages": {
+      "tr": "Türkçe",
+      "en": "İngilizce"
+    },
+    "generate": "Konuşmadan altyazı oluştur",
+    "replaceNote": "Önceki {{count}} otomatik altyazının yerini alır.",
+    "cancel": "Vazgeç",
+    "applied": "{{count}} altyazı eklendi",
+    "undo": "Geri al",
+    "stages": {
+      "audio": "Ses hazırlanıyor…",
+      "modelDownload": "Konuşma modeli indiriliyor (ilk kullanım)…",
+      "transcribing": "Konuşma yazıya çevriliyor: {{done}}/{{total}}"
+    },
+    "errors": {
+      "unsupported-platform": "Otomatik altyazı şimdilik yalnızca macOS'ta çalışıyor.",
+      "unsupported-os": "Otomatik altyazı için macOS 26 veya üstü gerekiyor.",
+      "unsupported-locale": "Bu Mac seçilen dilde konuşma tanımayı desteklemiyor.",
+      "assets-unavailable": "Konuşma modeli indirilemedi. İnternet bağlantısını kontrol edip tekrar deneyin.",
+      "no-audio": "Bu videoda ses yok.",
+      "no-speech": "Videoda konuşma bulunamadı.",
+      "too-long": "Otomatik altyazı en fazla iki saatlik videolarda çalışır.",
+      "failed": "Altyazı oluşturulamadı.",
+      "cancelled": "İptal edildi."
+    }
+  },
+  "agent": {
+    "title": "Yapay zeka ajanı",
+    "description": "Bilgisayarınızdaki Claude Code, Codex, Cursor veya OpenCode ile videoyu düzenleyin. Ajan yalnızca öneri yapar; siz onaylayınca uygulanır.",
+    "detecting": "Araçlar aranıyor…",
+    "toolStatus": {
+      "ready": "hazır",
+      "signed-out": "giriş gerekli",
+      "missing": "kurulu değil",
+      "error": "çalışmıyor"
+    },
+    "refresh": "Araçları yeniden tara",
+    "signIn": "{{tool}} için giriş yapılmamış. Terminalde şunu çalıştırın:",
+    "noTools": "Desteklenen bir yapay zeka aracı bulunamadı. Claude Code, Codex, Cursor Agent veya OpenCode kurun.",
+    "options": "Seçenekler",
+    "shareFrames": "Video karelerini paylaş (ajan ekranı görebilir; token kullanımı belirgin şekilde artar)",
+    "model": "Model (isteğe bağlı)",
+    "modelPlaceholder": "Aracın varsayılanı",
+    "data": "Gönderilenler: proje özeti, tıklamalar, konuşma metni ve sessizlikler, seçtiğiniz aracın sağlayıcısına gider. Video dosyası gönderilmez.",
+    "dataWithFrames": "Gönderilenler: proje özeti, tıklamalar, konuşma metni, sessizlikler ve istenen video kareleri, seçtiğiniz aracın sağlayıcısına gider. Her kare çok sayıda token tüketir. Video dosyası gönderilmez.",
+    "tasks": {
+      "smart-zoom": "Akıllı zoom",
+      "fix-captions": "Altyazıları düzelt",
+      "cut-pauses": "Sessizlikleri kes",
+      "speed-up-waits": "Beklemeleri hızlandır",
+      "chapters": "Bölüm başlıkları",
+      "short-version": "Kısa versiyon"
+    },
+    "requestPlaceholder": "Ya da isteğinizi yazın: “İlk 5 saniyeyi kes ve başa başlık ekle”",
+    "send": "Gönder",
+    "toolNames": {
+      "get_project": "Proje okunuyor",
+      "get_clicks": "Tıklamalar okunuyor",
+      "get_transcript": "Konuşma metni hazırlanıyor",
+      "get_pauses": "Sessizlikler bulunuyor",
+      "get_frame": "Kare inceleniyor",
+      "propose_zooms": "Zoom önerisi",
+      "propose_trims": "Kesme önerisi",
+      "propose_speed": "Hız önerisi",
+      "propose_captions": "Altyazı önerisi",
+      "propose_text": "Yazı önerisi",
+      "review_proposals": "Öneriler kontrol ediliyor",
+      "clear_proposals": "Öneriler temizleniyor"
+    },
+    "working": "{{tool}} çalışıyor…",
+    "stop": "Durdur",
+    "errors": {
+      "auth": "Araçta giriş yapılmamış ya da oturum süresi dolmuş. Terminalde giriş yapıp tekrar deneyin.",
+      "not-found": "Araç bulunamadı ya da başlatılamadı.",
+      "failed": "Görev tamamlanamadı.",
+      "cancelled": "Durduruldu.",
+      "timeout": "Görev çok uzun sürdü ve durduruldu.",
+      "no-proposals": "Ajan bir öneri yapmadı."
+    },
+    "noProposals": "Ajan bir değişiklik önermedi.",
+    "proposalsTitle": "{{count}} öneri",
+    "kinds": {
+      "zoom": "Zoom",
+      "caption": "Altyazı",
+      "text": "Yazı",
+      "trim": "Kesme",
+      "speed": "Hız"
+    },
+    "replaces": "mevcutların yerini alır",
+    "selectNone": "Hiçbiri",
+    "selectAll": "Hepsi",
+    "choose": "Öneriyi seç",
+    "apply": "Seçilenleri uygula ({{count}})",
+    "reject": "Reddet",
+    "followUpPlaceholder": "Devam isteği: “Zoom'ları biraz kısalt”",
+    "applied": "{{count}} öneri uygulandı",
+    "undo": "Geri al",
+    "expand": "Geniş görünüm",
+    "reviewHint": "Ajanın önerileri burada listelenecek.",
+    "usage": {
+      "task": "Bu görev: {{usage}}",
+      "conversation": "Sohbet toplamı: {{usage}}",
+      "input": "giriş",
+      "cached": "önbellekten",
+      "output": "çıkış"
+    }
+  },
+  "exportSave": {
+    "saved": "Kayıt klasörüne kaydedildi: {{name}}",
+    "showInFolder": "Finder’da göster"
+  }
+}

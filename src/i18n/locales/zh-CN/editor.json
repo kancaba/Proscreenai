@@ -1,0 +1,241 @@
+{
+	"playback": {
+		"play": "播放",
+		"pause": "暂停"
+	},
+	"annotations": {
+		"settings": "注释设置",
+		"active": "活动",
+		"text": "文本",
+		"image": "图片",
+		"arrow": "箭头",
+		"textContent": "文本内容",
+		"textPlaceholder": "输入文本...",
+		"fontStyle": "字体样式",
+		"selectStyle": "选择样式",
+		"size": "大小",
+		"toggleBold": "切换粗体",
+		"toggleItalic": "切换斜体",
+		"toggleUnderline": "切换下划线",
+		"alignLeft": "左对齐",
+		"alignCenter": "居中对齐",
+		"alignRight": "右对齐",
+		"textColor": "文本颜色",
+		"background": "背景",
+		"none": "无",
+		"clearBackground": "清除背景",
+		"uploadImage": "上传图片",
+		"supportedFormats": "支持格式：JPG、PNG、GIF、WebP",
+		"arrowDirection": "箭头方向",
+		"strokeWidth": "描边宽度：{{width}}px",
+		"arrowColor": "箭头颜色",
+		"deleteAnnotation": "删除注释",
+		"shortcutsAndTips": "快捷键与提示",
+		"tipSelectAnnotation": "将播放头移动到注释重叠区域并选择项目。",
+		"tipCycleForward": "使用 Tab 循环切换重叠项目。",
+		"tipCycleBackward": "使用 Shift+Tab 反向循环切换。",
+		"imageUploadSuccess": "图片上传成功！",
+		"imageUploadError": "请上传 JPG、PNG、GIF 或 WebP 图片文件。",
+		"effects": {
+			"presets": "预设样式",
+			"markupHint": "提示：输入 **粗体** 或 ==高亮== 可单独设置词语格式。",
+			"shadow": "阴影",
+			"none": "无",
+			"soft": "柔和",
+			"strong": "强烈",
+			"highlightColor": "高亮颜色",
+			"outline": "描边",
+			"outlineColor": "描边颜色",
+			"enter": "入场",
+			"exit": "出场",
+			"duration": "动画时长",
+			"animations": {
+				"none": "无",
+				"fade": "淡入淡出",
+				"slide-up": "向上滑入",
+				"pop": "弹出",
+				"typewriter": "打字机",
+				"slide-down": "向下滑出"
+			}
+		}
+	},
+	"fontStyles": {
+		"classic": "经典",
+		"editor": "编辑器",
+		"strong": "加粗",
+		"typewriter": "打字机",
+		"deco": "装饰",
+		"simple": "简约",
+		"modern": "现代",
+		"clean": "清爽"
+	},
+	"format": {
+		"mp4Video": "MP4 视频",
+		"mp4Description": "高质量视频文件",
+		"gifAnimation": "GIF 动画",
+		"gifDescription": "可分享的动态图片"
+	},
+	"gifOptions": {
+		"frameRate": "帧率",
+		"outputSize": "输出尺寸",
+		"outputDimensions": "输出：{{width}} × {{height}}px",
+		"loopAnimation": "循环动画",
+		"loopDescription": "GIF 将持续播放"
+	},
+	"tutorial": {
+		"howTrimmingWorks": "修剪的工作方式",
+		"title": "修剪的工作方式",
+		"understanding": "了解如何裁剪视频中不需要的部分。",
+		"descriptionP1": "修剪工具通过定义要",
+		"descriptionRemove": "移除",
+		"descriptionP2": "的片段来工作。",
+		"descriptionP3": "时间线上被红色修剪区域覆盖的部分将在导出时被剪掉。",
+		"visualExample": "视觉示例",
+		"removed": "已移除",
+		"kept": "保留",
+		"finalVideo": "最终视频",
+		"part": "第 {{number}} 部分",
+		"addTrimStep": "1. 添加修剪",
+		"addTrimDesc": "按 C 或点击剪刀图标标记要移除的部分。选中某个项目时，C 会在播放头处将其拆分。",
+		"adjustStep": "2. 调整",
+		"adjustDesc": "拖动红色区域的边缘，精确覆盖要剪掉的部分。"
+	},
+	"keyboardShortcuts": {
+		"title": "键盘快捷键",
+		"customizeTooltip": "自定义快捷键",
+		"customize": "自定义",
+		"panTimeline": "平移时间线",
+		"zoomTimeline": "缩放时间线",
+		"cycleAnnotations": "循环切换注释",
+		"tab": "Tab"
+	},
+	"openRecordingsFolder": "打开录制文件夹",
+	"autoZoom": {
+		"applied": "发现 {{clicks}} 次点击，已添加 {{zooms}} 个缩放",
+		"appliedFromPauses": "没有点击；已在光标停留处添加 {{zooms}} 个缩放",
+		"remove": "移除",
+		"adjust": "调整",
+		"nothingFound": "未找到可用于自动缩放的点击",
+		"noClickData": "此录制没有点击数据",
+		"needsAccessibility": "授予 Pro Screen AI 辅助功能权限即可自动放大点击处；从下一次录制开始生效。",
+		"allow": "允许",
+		"offer": "此项目没有缩放。要根据点击添加 {{zooms}} 个缩放吗？",
+		"apply": "添加",
+		"regenerated": "已重建 {{zooms}} 个缩放"
+	},
+	"autoCaptions": {
+		"title": "自动字幕",
+		"description": "将视频中的语音转为字幕。音频在本机处理，不会上传。",
+		"language": "语音语言",
+		"languages": {
+			"tr": "土耳其语",
+			"en": "英语"
+		},
+		"generate": "根据语音生成字幕",
+		"replaceNote": "将替换之前的 {{count}} 条自动字幕。",
+		"cancel": "取消",
+		"applied": "已添加 {{count}} 条字幕",
+		"undo": "撤销",
+		"stages": {
+			"audio": "正在准备音频…",
+			"modelDownload": "正在下载语音模型（首次使用）…",
+			"transcribing": "正在转写语音：{{done}}/{{total}}"
+		},
+		"errors": {
+			"unsupported-platform": "自动字幕目前仅支持 macOS。",
+			"unsupported-os": "自动字幕需要 macOS 26 或更高版本。",
+			"unsupported-locale": "此 Mac 不支持所选语言的语音识别。",
+			"assets-unavailable": "无法下载语音模型。请检查网络后重试。",
+			"no-audio": "此视频没有音频。",
+			"no-speech": "视频中未找到语音。",
+			"too-long": "自动字幕最多支持两小时的视频。",
+			"failed": "无法生成字幕。",
+			"cancelled": "已取消。"
+		}
+	},
+	"agent": {
+		"title": "AI 代理",
+		"description": "使用本机的 Claude Code、Codex、Cursor 或 OpenCode 编辑视频。代理只提出建议，经你确认后才会应用。",
+		"detecting": "正在查找工具…",
+		"toolStatus": {
+			"ready": "就绪",
+			"signed-out": "需要登录",
+			"missing": "未安装",
+			"error": "无法运行"
+		},
+		"refresh": "重新查找工具",
+		"signIn": "{{tool}} 尚未登录。请在终端运行：",
+		"noTools": "未找到受支持的 AI 工具。请安装 Claude Code、Codex、Cursor Agent 或 OpenCode。",
+		"options": "选项",
+		"shareFrames": "共享视频画面（代理可以看到屏幕；会明显增加令牌用量）",
+		"model": "模型（可选）",
+		"modelPlaceholder": "工具默认",
+		"data": "发送给所选工具的提供方：项目摘要、点击、语音文本和停顿。不会发送视频文件。",
+		"dataWithFrames": "发送给所选工具的提供方：项目摘要、点击、语音文本、停顿以及它请求的视频画面。每个画面都会消耗大量令牌。不会发送视频文件。",
+		"tasks": {
+			"smart-zoom": "智能缩放",
+			"fix-captions": "修正字幕",
+			"cut-pauses": "剪掉静音",
+			"speed-up-waits": "加速等待",
+			"chapters": "章节标题",
+			"short-version": "精简版"
+		},
+		"requestPlaceholder": "或描述你的需求：“剪掉前 5 秒并在开头加标题”",
+		"send": "发送",
+		"toolNames": {
+			"get_project": "读取项目",
+			"get_clicks": "读取点击",
+			"get_transcript": "准备语音文本",
+			"get_pauses": "查找静音",
+			"get_frame": "查看画面",
+			"propose_zooms": "缩放建议",
+			"propose_trims": "剪切建议",
+			"propose_speed": "速度建议",
+			"propose_captions": "字幕建议",
+			"propose_text": "文字建议",
+			"review_proposals": "检查建议",
+			"clear_proposals": "清除建议"
+		},
+		"working": "{{tool}} 正在工作…",
+		"stop": "停止",
+		"errors": {
+			"auth": "工具未登录或会话已过期。请在终端登录后重试。",
+			"not-found": "未找到工具或无法启动。",
+			"failed": "任务未能完成。",
+			"cancelled": "已停止。",
+			"timeout": "任务耗时过长，已停止。",
+			"no-proposals": "代理没有提出建议。"
+		},
+		"noProposals": "代理没有提出任何更改。",
+		"proposalsTitle": "{{count}} 条建议",
+		"kinds": {
+			"zoom": "缩放",
+			"caption": "字幕",
+			"text": "文字",
+			"trim": "剪切",
+			"speed": "速度"
+		},
+		"replaces": "替换现有内容",
+		"selectNone": "全不选",
+		"selectAll": "全选",
+		"choose": "选择建议",
+		"apply": "应用所选（{{count}}）",
+		"reject": "拒绝",
+		"followUpPlaceholder": "继续：“把缩放调短一点”",
+		"applied": "已应用 {{count}} 条建议",
+		"undo": "撤销",
+		"expand": "大视图",
+		"reviewHint": "代理的建议会显示在这里。",
+		"usage": {
+			"task": "本次任务：{{usage}}",
+			"conversation": "对话合计：{{usage}}",
+			"input": "输入",
+			"cached": "来自缓存",
+			"output": "输出"
+		}
+	},
+	"exportSave": {
+		"saved": "已保存到录制文件夹：{{name}}",
+		"showInFolder": "在访达中显示"
+	}
+}

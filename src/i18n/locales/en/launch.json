@@ -1,0 +1,113 @@
+{
+	"recording": {
+		"disableSystemAudio": "Disable system audio",
+		"enableSystemAudio": "Enable system audio",
+		"disableMicrophone": "Disable microphone",
+		"enableMicrophone": "Enable microphone",
+		"countdownDelay": "Countdown delay",
+		"noDelay": "No delay",
+		"record": "Record",
+		"recordingFolder": "Recording folder: {{path}}",
+		"chooseRecordingsFolder": "Choose recordings folder",
+		"folderPath": "Path: /{{name}}/",
+		"openVideoFile": "Open video file",
+		"openProject": "Open project",
+		"hideHud": "Hide HUD",
+		"closeApp": "Close App",
+		"stop": "Stop recording",
+		"pause": "Pause recording",
+		"resume": "Resume recording",
+		"paused": "Paused",
+		"pauseUnavailable": "Pause is not available for this capture engine yet",
+		"finalizing": "Preparing your recording",
+		"keepOpen": "Saving video and audio. Keep this window open.",
+		"starting": "Preparing…"
+	},
+	"sourceSelector": {
+		"loadingSources": "Loading sources...",
+		"screens": "Screens",
+		"windows": "Windows",
+		"windowsNote": "Only visible (non-minimized) windows can be recorded.",
+		"windowPlaceholder": "Window",
+		"cancel": "Cancel",
+		"share": "Share"
+	},
+	"permissions": {
+		"screenRecordingNeeded": "Pro Screen AI needs Screen Recording permission before you start. System Settings has been opened. After enabling it, quit and reopen Pro Screen AI.",
+		"screenRecordingMissing": "Screen Recording permission is still missing. System Settings has been opened again. Enable it, then quit and reopen Pro Screen AI before recording.",
+		"accessibilityNeeded": "Pro Screen AI also needs Accessibility permission for cursor tracking. System Settings has been opened. After enabling it, quit and reopen Pro Screen AI.",
+		"accessibilityMissing": "Accessibility permission is still missing. System Settings has been opened again. Enable it, then quit and reopen Pro Screen AI before recording.",
+		"selectSource": "Please select a source to record",
+		"systemAudioUnavailable": "System audio is not available for this source. Recording will continue without system audio.",
+		"microphoneDenied": "Microphone access was denied. Recording will continue without microphone audio.",
+		"failedToStart": "Failed to start recording: {{error}}",
+		"failedToStartGeneric": "Failed to start recording",
+		"clickTrackingOff": "Click zoom off",
+		"clickTrackingAllow": "Allow",
+		"clickTrackingTitle": "Automatic zoom on clicks needs Accessibility permission. You can record without it, but clicks are not tracked.",
+		"clickTrackingPrompt": {
+			"message": "Click tracking is off",
+			"detail": "Clicks in this recording will not be tracked, so automatic zoom cannot follow them, and this cannot be added later. After allowing it, press Record again.",
+			"allow": "Allow",
+			"recordAnyway": "Record without it",
+			"cancel": "Cancel",
+			"dontAsk": "Do not ask again"
+		}
+	},
+	"welcome": {
+		"eyebrow": "Bring your ideas to the screen",
+		"headlineFirst": "Your screen.",
+		"headlineSecond": "A little cinema.",
+		"description": "Record, bring the important moments closer, and add your own style. Turn everyday screen recordings into videos worth watching.",
+		"newRecording": "Start a recording",
+		"local": "Your recordings stay on this Mac.",
+		"autoZoom": "Automatic zoom",
+		"start": "Get started",
+		"recordTitle": "Record your screen",
+		"recordDescription": "Choose a display or a window",
+		"importTitle": "Import a video",
+		"importDescription": "Start with an existing video",
+		"openTitle": "Open a project",
+		"openDescription": "Pick up where you left off",
+		"recent": "Recent projects",
+		"projectCount": "projects",
+		"yourSpace": "A space for your creativity",
+		"emptyTitle": "Your first beautiful recording starts here.",
+		"emptyDescription": "Saved projects appear here. Start a recording or choose a video.",
+		"chooseVideo": "Choose a video",
+		"footer": "Local recording · No account needed",
+		"footerRight": "From idea to video.",
+		"libraryError": "Recent projects could not be loaded. Use Open a project to select your file.",
+		"openError": "The file could not be opened. Please try again."
+	},
+	"regionSelector": {
+		"hint": "Drag to select the area to record",
+		"keys": "Esc to cancel · Enter to confirm · Arrow keys to nudge",
+		"free": "Free",
+		"fullScreen": "Full screen",
+		"cancel": "Cancel",
+		"confirm": "Record this area",
+		"ratio": "Aspect ratio",
+		"selectArea": "Area",
+		"selectAreaTitle": "Select an area of the screen to record",
+		"selectAreaOnScreen": "Select area on screen",
+		"areaSelected": "Selected area: {{width}} × {{height}} px",
+		"toolbar": "Area selection tools",
+		"selection": "Selected recording area"
+	},
+	"permissionSetup": {
+		"title": "Start with two permissions",
+		"description": "For automatic zoom on clicks, clicks are tracked during recording. Allow it before you record; clicks cannot be added to a recording afterwards.",
+		"screen": {
+			"title": "Screen recording",
+			"description": "Needed to record the screen and system audio."
+		},
+		"clicks": {
+			"title": "Click tracking (Accessibility)",
+			"description": "Tracks clicks and the cursor for automatic zoom and the AI agent. Keys and typed text are not recorded."
+		},
+		"allow": "Allow",
+		"granted": "Allowed",
+		"restartNote": "Turn Pro Screen AI on in System Settings. After allowing screen recording, macOS may ask you to restart the app."
+	}
+}

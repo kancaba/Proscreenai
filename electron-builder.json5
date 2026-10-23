@@ -1,0 +1,81 @@
+// @see - https://www.electron.build/configuration/configuration
+{
+  "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+  "appId": "app.screenmovie.desktop",
+  "asar": true,
+  "asarUnpack": [
+    "node_modules/ffmpeg-static/**",
+    "node_modules/uiohook-napi/**",
+    "electron/native/**"
+  ],
+  "productName": "Pro Screen AI",
+  "npmRebuild": true,
+  "buildDependenciesFromSource": true,
+  "compression": "normal",
+  "directories": {
+    "output": "release-source-fix"
+  },
+  "files": [
+    "dist",
+    "dist-electron",
+    "electron/native",
+    "!*.png",
+    "!preview*.png",
+    "!*.md",
+    "!README.md",
+    "!CONTRIBUTING.md",
+    "LICENSE",
+    "LICENSE-OpenScreen",
+    "LICENSE.md",
+    "THIRD_PARTY_NOTICES.md",
+    // Wallpapers ship once, as extraResources (assets/wallpapers); the copy Vite puts in dist is unused when packaged.
+    "!dist/wallpapers/**",
+    "!dist/preview*.png",
+    "!dist/openscreen.png"
+  ],
+  // Chromium UI strings for the app's own languages only (the other ~50 add about 40 MB).
+  "electronLanguages": ["en", "tr", "es", "zh_CN"],
+  "extraResources": [
+    {
+      "from": "public/wallpapers",
+      "to": "assets/wallpapers"
+    }
+  ],
+
+  "mac": {
+    "hardenedRuntime": false,
+    "target": [
+      {
+        "target": "dmg",
+        // Native capture helpers and ffmpeg-static are built for the host arch only;
+        // add x64 back once they ship as x64/universal binaries.
+        "arch": ["arm64"]
+      }
+    ],
+    "icon": "icons/screenmovie.icns",
+    "artifactName": "Pro-Screen-AI-${version}-${arch}.dmg",
+    "extendInfo": {
+      "NSAudioCaptureUsageDescription": "Pro Screen AI needs audio capture permission to record system audio.",
+      "NSMicrophoneUsageDescription": "Pro Screen AI needs microphone access to record voice audio.",
+      "NSCameraUseContinuityCameraDeviceType": true,
+      "com.apple.security.device.audio-input": true
+    }
+  },
+  "linux": {
+    "target": [
+      "AppImage"
+    ],
+    "icon": "icons/icons/png",
+    "artifactName": "Pro-Screen-AI.AppImage",
+    "category": "AudioVideo"
+  },
+  "win": {
+    "target": [
+      "nsis"
+    ],
+    "icon": "icons/icons/win/icon.ico"
+    ,
+    "artifactName": "Pro-Screen-AI.exe"
+  }
+}
+

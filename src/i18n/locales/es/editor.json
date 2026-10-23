@@ -1,0 +1,241 @@
+{
+	"playback": {
+		"play": "Reproducir",
+		"pause": "Pausar"
+	},
+	"annotations": {
+		"settings": "Configuración de anotaciones",
+		"active": "Activo",
+		"text": "Texto",
+		"image": "Imagen",
+		"arrow": "Flecha",
+		"textContent": "Contenido de texto",
+		"textPlaceholder": "Ingresa tu texto...",
+		"fontStyle": "Estilo de fuente",
+		"selectStyle": "Seleccionar estilo",
+		"size": "Tamaño",
+		"toggleBold": "Alternar negrita",
+		"toggleItalic": "Alternar cursiva",
+		"toggleUnderline": "Alternar subrayado",
+		"alignLeft": "Alinear a la izquierda",
+		"alignCenter": "Alinear al centro",
+		"alignRight": "Alinear a la derecha",
+		"textColor": "Color de texto",
+		"background": "Fondo",
+		"none": "Ninguno",
+		"clearBackground": "Borrar fondo",
+		"uploadImage": "Subir imagen",
+		"supportedFormats": "Formatos compatibles: JPG, PNG, GIF, WebP",
+		"arrowDirection": "Dirección de flecha",
+		"strokeWidth": "Ancho de trazo: {{width}}px",
+		"arrowColor": "Color de flecha",
+		"deleteAnnotation": "Eliminar anotación",
+		"shortcutsAndTips": "Atajos y consejos",
+		"tipSelectAnnotation": "Mueve el cabezal de reproducción a la sección de anotación superpuesta y selecciona un elemento.",
+		"tipCycleForward": "Usa Tab para recorrer los elementos superpuestos.",
+		"tipCycleBackward": "Usa Shift+Tab para recorrer hacia atrás.",
+		"imageUploadSuccess": "¡Imagen subida exitosamente!",
+		"imageUploadError": "Por favor sube un archivo de imagen JPG, PNG, GIF o WebP.",
+		"effects": {
+			"presets": "Estilos predefinidos",
+			"markupHint": "Consejo: escribe **negrita** o ==resaltado== para dar formato a palabras sueltas.",
+			"shadow": "Sombra",
+			"none": "Ninguna",
+			"soft": "Suave",
+			"strong": "Fuerte",
+			"highlightColor": "Color de resaltado",
+			"outline": "Contorno",
+			"outlineColor": "Color del contorno",
+			"enter": "Entrada",
+			"exit": "Salida",
+			"duration": "Duración de la animación",
+			"animations": {
+				"none": "Ninguna",
+				"fade": "Fundido",
+				"slide-up": "Deslizar arriba",
+				"pop": "Aparecer",
+				"typewriter": "Máquina de escribir",
+				"slide-down": "Deslizar abajo"
+			}
+		}
+	},
+	"fontStyles": {
+		"classic": "Clásico",
+		"editor": "Editor",
+		"strong": "Fuerte",
+		"typewriter": "Máquina de escribir",
+		"deco": "Deco",
+		"simple": "Simple",
+		"modern": "Moderno",
+		"clean": "Limpio"
+	},
+	"format": {
+		"mp4Video": "Video MP4",
+		"mp4Description": "Archivo de video de alta calidad",
+		"gifAnimation": "Animación GIF",
+		"gifDescription": "Imagen animada para compartir"
+	},
+	"gifOptions": {
+		"frameRate": "Velocidad de cuadros",
+		"outputSize": "Tamaño de salida",
+		"outputDimensions": "Salida: {{width}} × {{height}}px",
+		"loopAnimation": "Animación en bucle",
+		"loopDescription": "El GIF se reproducirá continuamente"
+	},
+	"tutorial": {
+		"howTrimmingWorks": "Cómo funciona el recorte",
+		"title": "Cómo Funciona el Recorte",
+		"understanding": "Comprende cómo eliminar las partes no deseadas de tu video.",
+		"descriptionP1": "La herramienta de recorte funciona definiendo los segmentos que deseas",
+		"descriptionRemove": "eliminar",
+		"descriptionP2": "de tu video.",
+		"descriptionP3": "Cualquier parte de la línea de tiempo cubierta por un segmento de recorte rojo será eliminada al exportar.",
+		"visualExample": "Ejemplo visual",
+		"removed": "ELIMINADO",
+		"kept": "Conservado",
+		"finalVideo": "Video final",
+		"part": "Parte {{number}}",
+		"addTrimStep": "1. Agregar recorte",
+		"addTrimDesc": "Presiona C o haz clic en el ícono de tijeras para marcar una sección para eliminar. Con un elemento seleccionado, C lo divide en el cabezal.",
+		"adjustStep": "2. Ajustar",
+		"adjustDesc": "Arrastra los bordes de la región roja para cubrir exactamente lo que deseas eliminar."
+	},
+	"keyboardShortcuts": {
+		"title": "Atajos de teclado",
+		"customizeTooltip": "Personalizar atajos",
+		"customize": "Personalizar",
+		"panTimeline": "Desplazar línea de tiempo",
+		"zoomTimeline": "Zoom en línea de tiempo",
+		"cycleAnnotations": "Recorrer anotaciones",
+		"tab": "Tab"
+	},
+	"openRecordingsFolder": "Abrir carpeta de grabaciones",
+	"autoZoom": {
+		"applied": "{{clicks}} clics encontrados, {{zooms}} zooms añadidos",
+		"appliedFromPauses": "Sin clics; {{zooms}} zooms añadidos donde se detuvo el cursor",
+		"remove": "Quitar",
+		"adjust": "Ajustar",
+		"nothingFound": "No se encontraron clics para el zoom automático",
+		"noClickData": "Esta grabación no tiene datos de clics",
+		"needsAccessibility": "Da a Pro Screen AI el permiso de accesibilidad para hacer zoom en los clics automáticamente; funciona desde la próxima grabación.",
+		"allow": "Permitir",
+		"offer": "Este proyecto no tiene zooms. ¿Añadir {{zooms}} zooms a partir de los clics?",
+		"apply": "Añadir",
+		"regenerated": "{{zooms}} zooms rehechos"
+	},
+	"autoCaptions": {
+		"title": "Subtítulos automáticos",
+		"description": "Convierte el habla del vídeo en subtítulos. El audio se procesa en este Mac y no se sube.",
+		"language": "Idioma hablado",
+		"languages": {
+			"tr": "Turco",
+			"en": "Inglés"
+		},
+		"generate": "Crear subtítulos desde el habla",
+		"replaceNote": "Sustituye los {{count}} subtítulos automáticos anteriores.",
+		"cancel": "Cancelar",
+		"applied": "{{count}} subtítulos añadidos",
+		"undo": "Deshacer",
+		"stages": {
+			"audio": "Preparando el audio…",
+			"modelDownload": "Descargando el modelo de voz (primer uso)…",
+			"transcribing": "Transcribiendo: {{done}}/{{total}}"
+		},
+		"errors": {
+			"unsupported-platform": "Los subtítulos automáticos solo están disponibles en macOS por ahora.",
+			"unsupported-os": "Los subtítulos automáticos requieren macOS 26 o posterior.",
+			"unsupported-locale": "Este Mac no admite reconocimiento de voz en el idioma elegido.",
+			"assets-unavailable": "No se pudo descargar el modelo de voz. Revisa la conexión e inténtalo de nuevo.",
+			"no-audio": "Este vídeo no tiene audio.",
+			"no-speech": "No se encontró habla en el vídeo.",
+			"too-long": "Los subtítulos automáticos funcionan con vídeos de hasta dos horas.",
+			"failed": "No se pudieron crear los subtítulos.",
+			"cancelled": "Cancelado."
+		}
+	},
+	"agent": {
+		"title": "Agente de IA",
+		"description": "Edita el vídeo con Claude Code, Codex, Cursor u OpenCode de este ordenador. El agente solo propone; nada cambia hasta que lo apruebas.",
+		"detecting": "Buscando herramientas…",
+		"toolStatus": {
+			"ready": "lista",
+			"signed-out": "requiere iniciar sesión",
+			"missing": "no instalada",
+			"error": "no funciona"
+		},
+		"refresh": "Buscar herramientas de nuevo",
+		"signIn": "{{tool}} no tiene la sesión iniciada. Ejecuta esto en un terminal:",
+		"noTools": "No se encontró ninguna herramienta de IA compatible. Instala Claude Code, Codex, Cursor Agent u OpenCode.",
+		"options": "Opciones",
+		"shareFrames": "Compartir fotogramas (el agente puede ver la pantalla; usa bastantes más tokens)",
+		"model": "Modelo (opcional)",
+		"modelPlaceholder": "Predeterminado de la herramienta",
+		"data": "Se envía al proveedor de la herramienta: resumen del proyecto, clics, texto hablado y pausas. El archivo de vídeo no se envía.",
+		"dataWithFrames": "Se envía al proveedor de la herramienta: resumen del proyecto, clics, texto hablado, pausas y los fotogramas que pida. Cada fotograma usa muchos tokens. El archivo de vídeo no se envía.",
+		"tasks": {
+			"smart-zoom": "Zoom inteligente",
+			"fix-captions": "Corregir subtítulos",
+			"cut-pauses": "Cortar silencios",
+			"speed-up-waits": "Acelerar esperas",
+			"chapters": "Títulos de capítulo",
+			"short-version": "Versión corta"
+		},
+		"requestPlaceholder": "O describe lo que quieres: «Corta los primeros 5 segundos y añade un título»",
+		"send": "Enviar",
+		"toolNames": {
+			"get_project": "Leyendo el proyecto",
+			"get_clicks": "Leyendo clics",
+			"get_transcript": "Preparando el texto hablado",
+			"get_pauses": "Buscando silencios",
+			"get_frame": "Mirando un fotograma",
+			"propose_zooms": "Propuesta de zoom",
+			"propose_trims": "Propuesta de corte",
+			"propose_speed": "Propuesta de velocidad",
+			"propose_captions": "Propuesta de subtítulos",
+			"propose_text": "Propuesta de texto",
+			"review_proposals": "Revisando propuestas",
+			"clear_proposals": "Borrando propuestas"
+		},
+		"working": "{{tool}} está trabajando…",
+		"stop": "Detener",
+		"errors": {
+			"auth": "La herramienta no tiene la sesión iniciada o caducó. Inicia sesión desde un terminal e inténtalo de nuevo.",
+			"not-found": "No se encontró la herramienta o no pudo iniciarse.",
+			"failed": "No se pudo completar la tarea.",
+			"cancelled": "Detenido.",
+			"timeout": "La tarea tardó demasiado y se detuvo.",
+			"no-proposals": "El agente no hizo propuestas."
+		},
+		"noProposals": "El agente no propuso cambios.",
+		"proposalsTitle": "{{count}} propuestas",
+		"kinds": {
+			"zoom": "Zoom",
+			"caption": "Subtítulos",
+			"text": "Texto",
+			"trim": "Cortes",
+			"speed": "Velocidad"
+		},
+		"replaces": "sustituye lo actual",
+		"selectNone": "Ninguno",
+		"selectAll": "Todos",
+		"choose": "Elegir propuesta",
+		"apply": "Aplicar seleccionadas ({{count}})",
+		"reject": "Rechazar",
+		"followUpPlaceholder": "Seguimiento: «Haz los zooms un poco más cortos»",
+		"applied": "{{count}} propuestas aplicadas",
+		"undo": "Deshacer",
+		"expand": "Vista amplia",
+		"reviewHint": "Aquí aparecerán las propuestas del agente.",
+		"usage": {
+			"task": "Esta tarea: {{usage}}",
+			"conversation": "Total de la conversación: {{usage}}",
+			"input": "entrada",
+			"cached": "en caché",
+			"output": "salida"
+		}
+	},
+	"exportSave": {
+		"saved": "Guardado en la carpeta de grabaciones: {{name}}",
+		"showInFolder": "Mostrar en Finder"
+	}
+}

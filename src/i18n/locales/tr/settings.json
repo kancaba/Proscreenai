@@ -1,0 +1,89 @@
+{
+  "zoom": {
+    "level": "Zoom seviyesi",
+    "selectRegion": "Düzenlemek için bir zoom bölgesi seçin",
+    "deleteZoom": "Zoom sil"
+  },
+  "trim": {
+    "deleteRegion": "Kesme bölgesini sil"
+  },
+  "speed": {
+    "playbackSpeed": "Oynatma hızı",
+    "selectRegion": "Düzenlemek için bir hız bölgesi seçin",
+    "deleteRegion": "Hız bölgesini sil"
+  },
+  "effects": {
+    "title": "Video efektleri",
+    "showCursor": "Cursor göster",
+    "loopCursor": "Cursor döngüsü",
+    "backgroundBlur": "Arka plan bulanıklığı",
+    "zoomMotionBlur": "Zoom hareket bulanıklığı",
+    "connectZooms": "Zoom geçişlerini birleştir",
+    "cursorSize": "Cursor boyutu",
+    "cursorSmoothing": "Cursor yumuşatma",
+    "off": "Kapalı",
+    "cursorMotionBlur": "Cursor hareket bulanıklığı",
+    "cursorClickBounce": "Tıklama animasyonu",
+    "shadow": "Gölge",
+    "roundness": "Köşe yuvarlaklığı",
+    "padding": "İç boşluk",
+    "zoomMotionBlurStrength": "Bulanıklık gücü",
+    "zoomMotionBlurOff": "Kapalıyken zoom geçişleri yumuşak ve net."
+  },
+  "crop": {
+    "title": "Videoyu kırp",
+    "instruction": "Kırpma alanını ayarlamak için kenarları sürükleyin"
+  },
+  "background": {
+    "title": "Arka plan",
+    "image": "Görsel",
+    "color": "Renk",
+    "gradient": "Gradyan",
+    "uploadCustom": "Görsel yükle",
+    "uploadSuccess": "Görsel yüklendi!",
+    "uploadError": "JPG veya JPEG dosyası seçin."
+  },
+  "export": {
+    "mp4": "MP4",
+    "gif": "GIF",
+    "quality": {
+      "low": "Düşük",
+      "medium": "Orta",
+      "high": "Yüksek",
+      "original": "Orijinal"
+    },
+    "loop": "Döngü",
+    "outputDimensions": "Çıktı: {{dimensions}}px",
+    "loadProject": "Proje aç",
+    "saveProject": "Projeyi kaydet",
+    "exportVideo": "{{format}} dışa aktar",
+    "reportBug": "Hata bildir",
+    "starOnGithub": "GitHub üzerinde incele"
+  },
+  "autoZoom": {
+    "title": "Otomatik zoom",
+    "description": "Yeni kayıtlarda tıklanan yerlere kendiliğinden zoom yapılır.",
+    "mode": {
+      "off": "Kapalı",
+      "clicks": "Tıklamalar",
+      "clicksAndPauses": "+ Duraklama"
+    },
+    "density": {
+      "label": "Yoğunluk",
+      "low": "Az",
+      "normal": "Normal",
+      "high": "Çok"
+    },
+    "depth": "Zoom derinliği",
+    "regenerate": "Zoom'ları bu ayarlarla yeniden oluştur",
+    "regenerateHint": "Mevcut zoom'ların yerini alır; ⌘Z ile geri alınır.",
+    "noClickData": "Bu videoda tıklama verisi yok."
+  },
+  "sourceAudio": {
+    "title": "Kaydın sesi",
+    "volume": "Ses düzeyi",
+    "mute": "Sesi kapat",
+    "unmute": "Sesi aç",
+    "hint": "Videonun kendi sesi; dışa aktarmada da bu düzey kullanılır. Eklediğiniz ses dosyaları ayrı ayarlanır."
+  }
+}

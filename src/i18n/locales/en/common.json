@@ -1,0 +1,20 @@
+{
+  "app": {
+    "name": "Pro Screen AI",
+    "editorTitle": "Pro Screen AI Editor",
+    "subtitle": "Screen recording and editing",
+    "manageRecordings": "Recordings folder",
+    "language": "Language"
+  },
+  "actions": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "done": "Done"
+  },
+  "errors": {
+    "invalidFileType": "Invalid file type",
+    "failedToUploadImage": "Failed to upload image",
+    "fileReadError": "There was an error reading the file."
+  }
+}

@@ -1,0 +1,241 @@
+{
+	"playback": {
+		"play": "Play",
+		"pause": "Pause"
+	},
+	"annotations": {
+		"settings": "Annotation Settings",
+		"active": "Active",
+		"text": "Text",
+		"image": "Image",
+		"arrow": "Arrow",
+		"textContent": "Text Content",
+		"textPlaceholder": "Enter your text...",
+		"fontStyle": "Font Style",
+		"selectStyle": "Select style",
+		"size": "Size",
+		"toggleBold": "Toggle bold",
+		"toggleItalic": "Toggle italic",
+		"toggleUnderline": "Toggle underline",
+		"alignLeft": "Align left",
+		"alignCenter": "Align center",
+		"alignRight": "Align right",
+		"textColor": "Text Color",
+		"background": "Background",
+		"none": "None",
+		"clearBackground": "Clear Background",
+		"uploadImage": "Upload Image",
+		"supportedFormats": "Supported formats: JPG, PNG, GIF, WebP",
+		"arrowDirection": "Arrow Direction",
+		"strokeWidth": "Stroke Width: {{width}}px",
+		"arrowColor": "Arrow Color",
+		"deleteAnnotation": "Delete Annotation",
+		"shortcutsAndTips": "Shortcuts & Tips",
+		"tipSelectAnnotation": "Move playhead to overlapping annotation section and select an item.",
+		"tipCycleForward": "Use Tab to cycle through overlapping items.",
+		"tipCycleBackward": "Use Shift+Tab to cycle backwards.",
+		"imageUploadSuccess": "Image uploaded successfully!",
+		"imageUploadError": "Please upload a JPG, PNG, GIF, or WebP image file.",
+		"effects": {
+			"presets": "Ready-made styles",
+			"markupHint": "Tip: write **bold** or ==highlight== to format single words.",
+			"shadow": "Shadow",
+			"none": "None",
+			"soft": "Soft",
+			"strong": "Strong",
+			"highlightColor": "Highlight colour",
+			"outline": "Outline",
+			"outlineColor": "Outline colour",
+			"enter": "Enter",
+			"exit": "Exit",
+			"duration": "Animation length",
+			"animations": {
+				"none": "None",
+				"fade": "Fade",
+				"slide-up": "Slide up",
+				"pop": "Pop",
+				"typewriter": "Typewriter",
+				"slide-down": "Slide down"
+			}
+		}
+	},
+	"fontStyles": {
+		"classic": "Classic",
+		"editor": "Editor",
+		"strong": "Strong",
+		"typewriter": "Typewriter",
+		"deco": "Deco",
+		"simple": "Simple",
+		"modern": "Modern",
+		"clean": "Clean"
+	},
+	"format": {
+		"mp4Video": "MP4 Video",
+		"mp4Description": "High quality video file",
+		"gifAnimation": "GIF Animation",
+		"gifDescription": "Animated image for sharing"
+	},
+	"gifOptions": {
+		"frameRate": "Frame Rate",
+		"outputSize": "Output Size",
+		"outputDimensions": "Output: {{width}} × {{height}}px",
+		"loopAnimation": "Loop Animation",
+		"loopDescription": "GIF will play continuously"
+	},
+	"tutorial": {
+		"howTrimmingWorks": "How trimming works",
+		"title": "How Trimming Works",
+		"understanding": "Understanding how to cut out unwanted parts of your video.",
+		"descriptionP1": "The Trim tool works by defining the segments you want to",
+		"descriptionRemove": "remove",
+		"descriptionP2": "from your video.",
+		"descriptionP3": "Any part of the timeline that is covered by a red trim segment will be cut out when you export.",
+		"visualExample": "Visual Example",
+		"removed": "REMOVED",
+		"kept": "Kept",
+		"finalVideo": "Final Video",
+		"part": "Part {{number}}",
+		"addTrimStep": "1. Add Trim",
+		"addTrimDesc": "Press C or click the scissors icon to mark a section for removal. With an item selected, C splits it at the playhead.",
+		"adjustStep": "2. Adjust",
+		"adjustDesc": "Drag the edges of the red region to cover exactly what you want to cut out."
+	},
+	"keyboardShortcuts": {
+		"title": "Keyboard Shortcuts",
+		"customizeTooltip": "Customize shortcuts",
+		"customize": "Customize",
+		"panTimeline": "Pan Timeline",
+		"zoomTimeline": "Zoom Timeline",
+		"cycleAnnotations": "Cycle Annotations",
+		"tab": "Tab"
+	},
+	"openRecordingsFolder": "Open recordings folder",
+	"autoZoom": {
+		"applied": "Found {{clicks}} clicks, added {{zooms}} zooms",
+		"appliedFromPauses": "No clicks; added {{zooms}} zooms where the cursor rested",
+		"remove": "Remove",
+		"adjust": "Adjust",
+		"nothingFound": "No clicks found for automatic zoom",
+		"noClickData": "This recording has no click data",
+		"needsAccessibility": "Give Pro Screen AI Accessibility permission to zoom in on clicks automatically; it works from the next recording.",
+		"allow": "Allow",
+		"offer": "This project has no zooms. Add {{zooms}} zooms from the clicks?",
+		"apply": "Add",
+		"regenerated": "Rebuilt {{zooms}} zooms"
+	},
+	"autoCaptions": {
+		"title": "Automatic captions",
+		"description": "Turns the speech in your video into captions. Audio is processed on this Mac and never uploaded.",
+		"language": "Spoken language",
+		"languages": {
+			"tr": "Turkish",
+			"en": "English"
+		},
+		"generate": "Create captions from speech",
+		"replaceNote": "Replaces the {{count}} earlier automatic captions.",
+		"cancel": "Cancel",
+		"applied": "Added {{count}} captions",
+		"undo": "Undo",
+		"stages": {
+			"audio": "Preparing audio…",
+			"modelDownload": "Downloading the speech model (first use)…",
+			"transcribing": "Transcribing speech: {{done}}/{{total}}"
+		},
+		"errors": {
+			"unsupported-platform": "Automatic captions are only available on macOS for now.",
+			"unsupported-os": "Automatic captions need macOS 26 or later.",
+			"unsupported-locale": "This Mac does not support speech recognition in the chosen language.",
+			"assets-unavailable": "The speech model could not be downloaded. Check your connection and try again.",
+			"no-audio": "This video has no audio.",
+			"no-speech": "No speech was found in the video.",
+			"too-long": "Automatic captions work on videos up to two hours.",
+			"failed": "Captions could not be created.",
+			"cancelled": "Cancelled."
+		}
+	},
+	"agent": {
+		"title": "AI agent",
+		"description": "Edit the video with Claude Code, Codex, Cursor or OpenCode on this computer. The agent only proposes; nothing changes until you approve.",
+		"detecting": "Looking for tools…",
+		"toolStatus": {
+			"ready": "ready",
+			"signed-out": "sign-in needed",
+			"missing": "not installed",
+			"error": "not working"
+		},
+		"refresh": "Look for tools again",
+		"signIn": "{{tool}} is not signed in. Run this in a terminal:",
+		"noTools": "No supported AI tool was found. Install Claude Code, Codex, Cursor Agent or OpenCode.",
+		"options": "Options",
+		"shareFrames": "Share video frames (the agent can see the screen; uses noticeably more tokens)",
+		"model": "Model (optional)",
+		"modelPlaceholder": "Tool default",
+		"data": "Sent to your chosen tool's provider: project summary, clicks, speech text and pauses. The video file is not sent.",
+		"dataWithFrames": "Sent to your chosen tool's provider: project summary, clicks, speech text, pauses and the video frames it asks for. Each frame uses many tokens. The video file is not sent.",
+		"tasks": {
+			"smart-zoom": "Smart zoom",
+			"fix-captions": "Fix captions",
+			"cut-pauses": "Cut silences",
+			"speed-up-waits": "Speed up waits",
+			"chapters": "Chapter titles",
+			"short-version": "Short version"
+		},
+		"requestPlaceholder": "Or describe what you want: “Cut the first 5 seconds and add a title”",
+		"send": "Send",
+		"toolNames": {
+			"get_project": "Reading the project",
+			"get_clicks": "Reading clicks",
+			"get_transcript": "Preparing the speech text",
+			"get_pauses": "Finding silences",
+			"get_frame": "Looking at a frame",
+			"propose_zooms": "Zoom proposal",
+			"propose_trims": "Cut proposal",
+			"propose_speed": "Speed proposal",
+			"propose_captions": "Caption proposal",
+			"propose_text": "Text proposal",
+			"review_proposals": "Checking proposals",
+			"clear_proposals": "Clearing proposals"
+		},
+		"working": "{{tool}} is working…",
+		"stop": "Stop",
+		"errors": {
+			"auth": "The tool is not signed in or its session expired. Sign in from a terminal and try again.",
+			"not-found": "The tool was not found or could not start.",
+			"failed": "The task could not be completed.",
+			"cancelled": "Stopped.",
+			"timeout": "The task took too long and was stopped.",
+			"no-proposals": "The agent made no proposals."
+		},
+		"noProposals": "The agent did not propose any changes.",
+		"proposalsTitle": "{{count}} proposals",
+		"kinds": {
+			"zoom": "Zoom",
+			"caption": "Captions",
+			"text": "Text",
+			"trim": "Cuts",
+			"speed": "Speed"
+		},
+		"replaces": "replaces current",
+		"selectNone": "None",
+		"selectAll": "All",
+		"choose": "Choose proposal",
+		"apply": "Apply selected ({{count}})",
+		"reject": "Reject",
+		"followUpPlaceholder": "Follow-up: “Make the zooms a bit shorter”",
+		"applied": "Applied {{count}} proposals",
+		"undo": "Undo",
+		"expand": "Large view",
+		"reviewHint": "The agent's proposals will be listed here.",
+		"usage": {
+			"task": "This task: {{usage}}",
+			"conversation": "Conversation total: {{usage}}",
+			"input": "in",
+			"cached": "cached",
+			"output": "out"
+		}
+	},
+	"exportSave": {
+		"saved": "Saved to the recordings folder: {{name}}",
+		"showInFolder": "Show in Finder"
+	}
+}

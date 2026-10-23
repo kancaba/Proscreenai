@@ -1,0 +1,113 @@
+{
+	"recording": {
+		"disableSystemAudio": "Sistem sesini kapat",
+		"enableSystemAudio": "Sistem sesini aç",
+		"disableMicrophone": "Mikrofonu kapat",
+		"enableMicrophone": "Mikrofonu aç",
+		"countdownDelay": "Geri sayım",
+		"noDelay": "Geri sayım yok",
+		"record": "Kaydet",
+		"recordingFolder": "Kayıt klasörü: {{path}}",
+		"chooseRecordingsFolder": "Kayıt klasörü seç",
+		"folderPath": "Klasör: /{{name}}/",
+		"openVideoFile": "Video içe aktar",
+		"openProject": "Proje aç",
+		"hideHud": "Kayıt çubuğunu gizle",
+		"closeApp": "Uygulamayı kapat",
+		"stop": "Kaydı durdur",
+		"pause": "Kaydı duraklat",
+		"resume": "Kayda devam et",
+		"paused": "Duraklatıldı",
+		"pauseUnavailable": "Bu kayıt motorunda duraklatma henüz desteklenmiyor",
+		"finalizing": "Kaydın hazırlanıyor",
+		"keepOpen": "Video ve ses kaydediliyor. Lütfen pencereyi açık tut.",
+		"starting": "Hazırlanıyor…"
+	},
+	"sourceSelector": {
+		"loadingSources": "Kaynaklar yükleniyor…",
+		"screens": "Ekranlar",
+		"windows": "Pencereler",
+		"windowsNote": "Yalnızca görünür (simge durumuna küçültülmemiş) pencereler kaydedilebilir.",
+		"windowPlaceholder": "Pencere",
+		"cancel": "Vazgeç",
+		"share": "Seç"
+	},
+	"permissions": {
+		"screenRecordingNeeded": "Pro Screen AI için Ekran Kaydı izni gerekiyor. Sistem Ayarları açıldı. İzni verdikten sonra Pro Screen AI uygulamasını kapatıp yeniden açın.",
+		"screenRecordingMissing": "Ekran Kaydı izni henüz verilmedi. Sistem Ayarları açıldı. İzni verip uygulamayı yeniden açın.",
+		"accessibilityNeeded": "Cursor takibi için Erişilebilirlik izni gerekiyor. Sistem Ayarları açıldı. İzni verip uygulamayı yeniden açın.",
+		"accessibilityMissing": "Erişilebilirlik izni henüz verilmedi. Sistem Ayarları açıldı. İzni verip uygulamayı yeniden açın.",
+		"selectSource": "Kaydedilecek bir kaynak seçin.",
+		"systemAudioUnavailable": "Bu kaynak için sistem sesi kullanılamıyor. Kayıt sistem sesi olmadan devam edecek.",
+		"microphoneDenied": "Mikrofon izni verilmedi. Kayıt mikrofon sesi olmadan devam edecek.",
+		"failedToStart": "Kayıt başlatılamadı: {{error}}",
+		"failedToStartGeneric": "Kayıt başlatılamadı",
+		"clickTrackingOff": "Tıklama zoom'u kapalı",
+		"clickTrackingAllow": "İzin ver",
+		"clickTrackingTitle": "Tıklanan yerlere otomatik zoom için Erişilebilirlik izni gerekli. Kayıt izin olmadan da yapılır, ama tıklamalar kaydedilmez.",
+		"clickTrackingPrompt": {
+			"message": "Tıklama takibi kapalı",
+			"detail": "Bu kayıtta tıklamalar takip edilmeyecek; tıklanan yerlere otomatik zoom yapılamaz ve bu sonradan eklenemez. İzin verdikten sonra Kaydet'e yeniden basın.",
+			"allow": "İzin ver",
+			"recordAnyway": "İzinsiz kaydet",
+			"cancel": "Vazgeç",
+			"dontAsk": "Bir daha sorma"
+		}
+	},
+	"welcome": {
+		"eyebrow": "Fikrini ekrana taşı",
+		"headlineFirst": "Ekran kaydın.",
+		"headlineSecond": "Biraz sinema.",
+		"description": "Kaydet, önemli anlara yaklaş ve kendi stilini ekle. Sıradan ekran kayıtlarını izlemeye değer videolara dönüştür.",
+		"newRecording": "Yeni kayıt başlat",
+		"local": "Kayıtların bu Mac üzerinde kalır.",
+		"autoZoom": "Otomatik zoom",
+		"start": "Başlangıç işlemleri",
+		"recordTitle": "Ekran kaydet",
+		"recordDescription": "Ekranını veya bir pencereyi seç",
+		"importTitle": "Video içe aktar",
+		"importDescription": "Var olan bir videoyla başla",
+		"openTitle": "Proje aç",
+		"openDescription": "Kaldığın yerden devam et",
+		"recent": "Son projeler",
+		"projectCount": "proje",
+		"yourSpace": "Yaratıcılığın için bir alan",
+		"emptyTitle": "İlk güzel kaydın burada başlayacak.",
+		"emptyDescription": "Kaydettiğin projeler burada görünür. Yeni kayıt başlat veya bir video seç.",
+		"chooseVideo": "Video seç",
+		"footer": "Yerel kayıt · Hesap gerekmez",
+		"footerRight": "Fikirden videoya.",
+		"libraryError": "Son projeler yüklenemedi. Dosyanı Proje aç ile seçebilirsin.",
+		"openError": "Dosya açılamadı. Lütfen yeniden deneyin."
+	},
+	"regionSelector": {
+		"hint": "Kaydedilecek alanı seçmek için sürükleyin",
+		"keys": "Esc: iptal · Enter: onayla · Ok tuşları: kaydır",
+		"free": "Serbest",
+		"fullScreen": "Tüm ekran",
+		"cancel": "İptal",
+		"confirm": "Bu alanı kaydet",
+		"ratio": "Oran",
+		"selectArea": "Alan",
+		"selectAreaTitle": "Ekranın kaydedilecek bölümünü seç",
+		"selectAreaOnScreen": "Ekranda alan seç",
+		"areaSelected": "Seçili alan: {{width}} × {{height}} px",
+		"toolbar": "Alan seçimi araçları",
+		"selection": "Seçili kayıt alanı"
+	},
+	"permissionSetup": {
+		"title": "Kuruluma iki izinle başlayın",
+		"description": "Tıklanan yerlere otomatik zoom için tıklamalar kayıt sırasında takip edilir. İzin kayda başlamadan önce verilmeli; sonradan alınan kayda tıklamalar eklenemez.",
+		"screen": {
+			"title": "Ekran kaydı",
+			"description": "Ekranı ve sistem sesini kaydetmek için gerekli."
+		},
+		"clicks": {
+			"title": "Tıklama takibi (Erişilebilirlik)",
+			"description": "Tıklamaları ve imleci takip eder; otomatik zoom ve yapay zeka ajanı bunları kullanır. Tuşlar ve yazılan metin kaydedilmez."
+		},
+		"allow": "İzin ver",
+		"granted": "Verildi",
+		"restartNote": "Sistem Ayarları'nda Pro Screen AI'yi açın. Ekran kaydı izni verildikten sonra macOS uygulamayı yeniden başlatmanızı isteyebilir."
+	}
+}

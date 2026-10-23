@@ -1,0 +1,62 @@
+{
+  "zoom": {
+    "cannotPlace": "No se puede colocar zoom aquí",
+    "existsOrNoSpace": "Ya existe un zoom en esta ubicación o no hay suficiente espacio.",
+    "suggestHandlerUnavailable": "Manejador de sugerencias de zoom no disponible",
+    "noTelemetry": "No hay telemetría de cursor disponible",
+    "recordFirst": "Graba una captura de pantalla primero para generar sugerencias basadas en el cursor.",
+    "noUsableTelemetry": "No hay telemetría de cursor utilizable",
+    "notEnoughMovement": "La grabación no incluye suficientes datos de movimiento del cursor.",
+    "noInteractionMoments": "No se encontraron momentos de interacción claros",
+    "tryRecording": "Intenta una grabación con pausas o clics alrededor de acciones importantes.",
+    "noAutoZoomSlots": "No hay espacios de auto-zoom disponibles",
+    "dwellPointsOverlap": "Los puntos de permanencia detectados se superponen con regiones de zoom existentes.",
+    "addedSuggestions": "Se agregaron {{count}} sugerencia(s) de zoom basadas en interacción",
+    "label": "Zoom {{index}}",
+    "addZoom": "Agregar Zoom (Z)",
+    "suggestZooms": "Sugerir zooms desde cursor"
+  },
+  "trim": {
+    "cannotPlace": "No se puede colocar recorte aquí",
+    "existsOrNoSpace": "Ya existe un recorte en esta ubicación o no hay suficiente espacio.",
+    "label": "Recorte {{index}}",
+    "addTrim": "Agregar corte (C)"
+  },
+  "speed": {
+    "cannotPlace": "No se puede colocar velocidad aquí",
+    "existsOrNoSpace": "Ya existe una región de velocidad en esta ubicación o no hay suficiente espacio.",
+    "label": "Velocidad"
+  },
+  "annotation": {
+    "label": "Anotación",
+    "image": "Imagen",
+    "addAnnotation": "Agregar Anotación (A)"
+  },
+  "addSpeed": "Agregar Velocidad (S)",
+  "resizeLeft": "Redimensionar izquierda",
+  "resizeRight": "Redimensionar derecha",
+  "audioEmptyHint": "Elige un archivo con Añadir audio",
+  "emptyVideoTitle": "No hay vídeo cargado",
+  "emptyVideoHint": "Importa un vídeo para empezar",
+  "regionMenu": {
+    "copy": "Copiar",
+    "paste": "Pegar en el cabezal",
+    "duplicate": "Duplicar",
+    "split": "Dividir en el cabezal",
+    "delete": "Eliminar",
+    "noSpace": "No hay espacio libre en el cabezal para este elemento.",
+    "cannotSplit": "Coloca el cabezal dentro del elemento para dividirlo.",
+    "copied": "Copiado. Pega en el cabezal con Cmd/Ctrl + V."
+  },
+  "view": {
+    "zoomSlider": "Zoom de la línea de tiempo",
+    "followPlayhead": "Seguir",
+    "followPlayheadHint": "Mantener visible el cabezal durante la reproducción"
+  },
+  "clip": {
+    "segment": "Parte del vídeo {{start}}–{{end}} s · selecciónala y pulsa Supr para cortarla",
+    "cut": "Corte de {{seconds}} s · selecciónalo y pulsa Supr para recuperarlo",
+    "cannotSplit": "Coloca el cabezal dentro de una parte del vídeo (no justo en su borde).",
+    "keepOne": "Debe quedar al menos una parte del vídeo."
+  }
+}

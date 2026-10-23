@@ -1,0 +1,73 @@
+.electronDrag {
+  -webkit-app-region: drag;
+}
+
+.hudBar {
+  isolation: isolate;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+}
+
+.electronNoDrag {
+  -webkit-app-region: no-drag;
+}
+
+
+.folderButton {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.folderText {
+  color: #cbd5e1;
+  transition: text-decoration 0.15s;
+}
+
+.folderButton:hover .folderText {
+  text-decoration: underline;
+}
+
+.hudOverlayButton {
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: #fff;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+.hudOverlayButton:hover {
+  opacity: 0.7;
+  background: none !important;
+}
+
+.micSelect {
+  color-scheme: dark;
+}
+
+.micSelect option {
+  background-color: #131722;
+  color: #e5e7eb;
+}
+
+.compactContainer { display:flex;align-items:center;justify-content:center;height:100%;padding:6px; }
+.compactBar { display:flex;align-items:center;gap:9px;padding:8px 10px;background:rgba(24,23,29,.98);border:1px solid rgba(255,255,255,.12);border-radius:14px;box-shadow:0 3px 12px #0003;height:44px; }
+.recordingLight { width:6px;height:6px;background:#fb7185;border-radius:50%;box-shadow:0 0 8px #fb718530;flex-shrink:0; }
+.recordingTime { color:#eeeaf4;font-size:12px;font-weight:550;font-variant-numeric:tabular-nums;min-width:39px; }
+.compactStop { display:grid;place-items:center;width:26px;height:26px;background:#fb71851a;border:1px solid #fb71852b;color:#fda4af;border-radius:7px;cursor:pointer; }
+.compactStop:hover { background:#fb718536; }
+.compactStop:focus-visible { outline:2px solid #fda4af;outline-offset:2px; }
+
+.compactPause { display:grid;place-items:center;width:28px;height:28px;background:#ffffff0a;border:1px solid #ffffff15;color:#d9d2ed;border-radius:7px;cursor:pointer;flex-shrink:0; }
+.compactPause:hover { background:#c7b9ff22; }
+.compactPause[aria-pressed="true"] { color:#fbbf24;background:#fbbf2412;border-color:#fbbf2433; }
+.compactPause:focus-visible { outline:2px solid #c7b9ff;outline-offset:2px; }
+.compactPause:disabled,.compactStop:disabled { opacity:.45;cursor:wait; }
+.pausedLight { background:#fbbf24;box-shadow:0 0 8px #fbbf2420; }
+.pausedTime { color:#fcd783; }
+.processingContainer { height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#ddd5ef;background:#181820;border:1px solid #ffffff15;border-radius:18px;padding:16px; }
+.processingContainer strong { font-size:13px; }
+.processingContainer span { font-size:11px;color:#9c90b0; }
+.spinner { animation:hud-spin 1s linear infinite;flex-shrink:0; }
+@keyframes hud-spin { to { transform:rotate(360deg); } }
+@media(prefers-reduced-motion:reduce) { .spinner { animation:none; } }

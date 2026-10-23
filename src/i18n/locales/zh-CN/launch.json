@@ -1,0 +1,113 @@
+{
+	"recording": {
+		"disableSystemAudio": "禁用系统音频",
+		"enableSystemAudio": "启用系统音频",
+		"disableMicrophone": "禁用麦克风",
+		"enableMicrophone": "启用麦克风",
+		"countdownDelay": "倒计时延迟",
+		"noDelay": "无延迟",
+		"record": "录制",
+		"recordingFolder": "录制文件夹：{{path}}",
+		"chooseRecordingsFolder": "选择录制文件夹",
+		"folderPath": "路径：/{{name}}/",
+		"openVideoFile": "打开视频文件",
+		"openProject": "打开项目",
+		"hideHud": "隐藏 HUD",
+		"closeApp": "关闭应用",
+		"stop": "Stop recording",
+		"pause": "暂停录制",
+		"resume": "继续录制",
+		"paused": "已暂停",
+		"pauseUnavailable": "此录制引擎暂不支持暂停",
+		"finalizing": "正在处理录制",
+		"keepOpen": "正在保存视频和音频，请保持窗口开启。",
+		"starting": "正在准备…"
+	},
+	"sourceSelector": {
+		"loadingSources": "正在加载源...",
+		"screens": "屏幕",
+		"windows": "窗口",
+		"windowsNote": "仅可录制可见（非最小化）窗口。",
+		"windowPlaceholder": "窗口",
+		"cancel": "取消",
+		"share": "共享"
+	},
+	"permissions": {
+		"screenRecordingNeeded": "Pro Screen AI 需要屏幕录制权限才能开始。系统设置已打开。启用后请退出并重新打开 Pro Screen AI。",
+		"screenRecordingMissing": "屏幕录制权限仍然缺失。系统设置已再次打开。请启用权限，然后退出并重新打开 Pro Screen AI。",
+		"accessibilityNeeded": "Pro Screen AI 还需要辅助功能权限以跟踪光标。系统设置已打开。启用后请退出并重新打开 Pro Screen AI。",
+		"accessibilityMissing": "辅助功能权限仍然缺失。系统设置已再次打开。请启用权限，然后退出并重新打开 Pro Screen AI。",
+		"selectSource": "请选择要录制的源",
+		"systemAudioUnavailable": "此源不支持系统音频。将继续录制但不包含系统音频。",
+		"microphoneDenied": "麦克风访问被拒绝。将继续录制但不包含麦克风音频。",
+		"failedToStart": "录制启动失败：{{error}}",
+		"failedToStartGeneric": "录制启动失败",
+		"clickTrackingOff": "点击缩放已关闭",
+		"clickTrackingAllow": "允许",
+		"clickTrackingTitle": "点击处自动缩放需要辅助功能权限。没有该权限也可以录制，但不会记录点击。",
+		"clickTrackingPrompt": {
+			"message": "点击跟踪已关闭",
+			"detail": "此次录制不会记录点击，因此自动缩放无法跟随点击，之后也无法补充。授予权限后，请再次点击录制。",
+			"allow": "允许",
+			"recordAnyway": "不跟踪直接录制",
+			"cancel": "取消",
+			"dontAsk": "不再询问"
+		}
+	},
+	"welcome": {
+		"eyebrow": "Bring your ideas to the screen",
+		"headlineFirst": "Your screen.",
+		"headlineSecond": "A little cinema.",
+		"description": "Record, bring the important moments closer, and add your own style. Turn everyday screen recordings into videos worth watching.",
+		"newRecording": "Start a recording",
+		"local": "Your recordings stay on this Mac.",
+		"autoZoom": "Automatic zoom",
+		"start": "Get started",
+		"recordTitle": "Record your screen",
+		"recordDescription": "Choose a display or a window",
+		"importTitle": "Import a video",
+		"importDescription": "Start with an existing video",
+		"openTitle": "Open a project",
+		"openDescription": "Pick up where you left off",
+		"recent": "Recent projects",
+		"projectCount": "projects",
+		"yourSpace": "A space for your creativity",
+		"emptyTitle": "Your first beautiful recording starts here.",
+		"emptyDescription": "Saved projects appear here. Start a recording or choose a video.",
+		"chooseVideo": "Choose a video",
+		"footer": "Local recording · No account needed",
+		"footerRight": "From idea to video.",
+		"libraryError": "Recent projects could not be loaded. Use Open a project to select your file.",
+		"openError": "The file could not be opened. Please try again."
+	},
+	"regionSelector": {
+		"hint": "拖动以选择要录制的区域",
+		"keys": "Esc 取消 · Enter 确认 · 方向键微调",
+		"free": "自由",
+		"fullScreen": "全屏",
+		"cancel": "取消",
+		"confirm": "录制此区域",
+		"ratio": "比例",
+		"selectArea": "区域",
+		"selectAreaTitle": "选择要录制的屏幕区域",
+		"selectAreaOnScreen": "在屏幕上选择区域",
+		"areaSelected": "已选区域：{{width}} × {{height}} 像素",
+		"toolbar": "区域选择工具",
+		"selection": "已选录制区域"
+	},
+	"permissionSetup": {
+		"title": "先授予两项权限",
+		"description": "为了在点击处自动缩放，录制时会记录点击。请在录制前授予该权限；录制完成后无法再补充点击数据。",
+		"screen": {
+			"title": "屏幕录制",
+			"description": "录制屏幕和系统音频所需。"
+		},
+		"clicks": {
+			"title": "点击跟踪（辅助功能）",
+			"description": "记录点击和光标，用于自动缩放和 AI 代理。不会记录按键或输入的文字。"
+		},
+		"allow": "允许",
+		"granted": "已允许",
+		"restartNote": "请在“系统设置”中开启 Pro Screen AI。允许屏幕录制后，macOS 可能会要求重新启动应用。"
+	}
+}

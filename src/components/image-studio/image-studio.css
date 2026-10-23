@@ -1,0 +1,451 @@
+.image-studio {
+	height: 100vh;
+	background: #15151b;
+	color: #e9e7f2;
+	font: 13px system-ui;
+	display: flex;
+	flex-direction: column;
+}
+.image-studio button,
+.image-studio input,
+.image-studio select,
+.image-studio textarea {
+	font: inherit;
+	color: inherit;
+	background: #24242e;
+	border: 1px solid #ffffff16;
+	border-radius: 7px;
+	padding: 8px;
+	min-width: 0;
+}
+.image-studio button {
+	cursor: pointer;
+	text-align: left;
+}
+.image-studio button:hover {
+	background: #353341;
+}
+.image-studio button:disabled {
+	opacity: 0.4;
+	cursor: default;
+}
+.image-studio button:focus-visible,
+.image-studio input:focus-visible {
+	outline: 2px solid #baa5ff;
+}
+.image-studio > header {
+	padding: 48px 18px 14px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	border-bottom: 1px solid #ffffff12;
+	flex-wrap: wrap;
+}
+.image-wordmark {
+	font-weight: 700;
+	font-size: 17px;
+	margin-right: auto;
+	color: #cdbdff;
+}
+.image-studio > header input {
+	width: 150px;
+}
+.image-primary {
+	background: #b9a2f7 !important;
+	color: #1d162e !important;
+	font-weight: 700 !important;
+}
+.image-layout {
+	display: grid;
+	grid-template-columns: 185px minmax(0, 1fr) 235px;
+	flex: 1;
+	min-height: 0;
+}
+.image-tools,
+.image-inspector {
+	padding: 18px 12px;
+	overflow: auto;
+	background: #1a1a22;
+}
+.image-tools {
+	border-right: 1px solid #ffffff12;
+}
+.image-inspector {
+	border-left: 1px solid #ffffff12;
+}
+.image-studio h2 {
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 1.1px;
+	color: #b6adcb;
+	margin: 8px 0 16px;
+}
+.image-studio h2 small {
+	float: right;
+}
+.image-tools > button {
+	display: block;
+	width: 100%;
+	margin-bottom: 8px;
+}
+.image-layer-list {
+	margin-top: 12px;
+}
+.image-layer-list > div {
+	display: flex;
+	margin: 5px 0;
+	border-radius: 7px;
+}
+.image-layer-list .selected {
+	outline: 1px solid #b9a2f7;
+}
+.image-layer-list button {
+	padding: 7px 4px;
+	border: 0;
+	background: transparent;
+}
+.image-layer-list button:first-child {
+	flex: 1;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+.image-hint {
+	color: #9992aa;
+	font-size: 11px;
+	line-height: 1.8;
+	margin-top: 20px;
+}
+.image-workspace {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	min-width: 0;
+	background: #111116;
+}
+.image-canvas-bar {
+	padding: 12px 18px;
+	display: flex;
+	gap: 10px;
+	justify-content: space-between;
+	color: #aaa2bb;
+	font-size: 11px;
+}
+.image-canvas-bar label {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.image-canvas-bar input {
+	width: 85px;
+}
+.image-canvas-scroll {
+	flex: 1;
+	overflow: auto;
+	padding: 30px;
+	display: grid;
+	align-items: safe center;
+	justify-items: safe center;
+	background-image: radial-gradient(#ffffff12 1px, transparent 1px);
+	background-size: 16px 16px;
+}
+.image-canvas-scroll svg {
+	flex-shrink: 0;
+	touch-action: none;
+	box-shadow: 0 12px 55px #0006;
+}
+.image-workspace footer {
+	min-height: 36px;
+	padding: 10px 16px;
+	color: #aaa2bb;
+	font-size: 11px;
+}
+.image-inspector label {
+	display: flex;
+	flex-direction: column;
+	gap: 7px;
+	margin: 12px 0;
+	font-size: 11px;
+	color: #bcb5cd;
+}
+.image-inspector input,
+.image-inspector textarea,
+.image-inspector select {
+	width: 100%;
+}
+.image-inspector input[type="color"] {
+	height: 35px;
+	padding: 3px;
+}
+.image-inspector > button {
+	width: 100%;
+	margin: 5px 0;
+}
+.image-pair {
+	display: flex;
+	gap: 6px;
+}
+.image-pair > * {
+	flex: 1;
+}
+.image-ai-note {
+	border: 1px solid #b9a2f733;
+	background: #b9a2f709;
+	border-radius: 10px;
+	padding: 12px;
+	margin-top: 24px;
+	color: #c6b6e9;
+}
+.image-ai-note p {
+	font-size: 11px;
+	line-height: 1.7;
+	color: #a49ab7;
+}
+@media (max-width: 1000px) {
+	.image-layout {
+		grid-template-columns: 150px minmax(0, 1fr) 205px;
+	}
+	.image-studio > header {
+		gap: 5px;
+	}
+	.image-wordmark {
+		font-size: 14px;
+	}
+}
+.image-tabs {
+	display: flex;
+	gap: 8px;
+	padding: 8px 18px;
+	background: #1a1a22;
+	border-bottom: 1px solid #ffffff12;
+	align-items: center;
+}
+.image-tabs span {
+	flex: 1;
+	font-size: 11px;
+	color: #aaa2bb;
+}
+.image-tabs button[aria-pressed="true"],
+.image-pair button[aria-pressed="true"] {
+	background: #c7b9ff30;
+	border-color: #c7b9ff80;
+}
+.image-ai-panel button {
+	width: 100%;
+	margin: 5px 0;
+}
+.image-ai-panel .image-pair button {
+	width: auto;
+}
+.image-studio fieldset {
+	border: 1px solid #ffffff18;
+	border-radius: 8px;
+	padding: 10px;
+	margin: 10px 0;
+}
+.image-studio legend {
+	font-size: 11px;
+	color: #c7b9ff;
+}
+.image-studio .image-checkbox {
+	flex-direction: row;
+	align-items: center;
+	gap: 7px;
+}
+.image-checkbox input {
+	width: auto !important;
+}
+.image-ai-versions {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 6px;
+}
+.image-ai-versions img {
+	width: 100%;
+	aspect-ratio: 1;
+	object-fit: cover;
+}
+.image-ai-versions small {
+	font-size: 9px;
+}
+.image-library-entry {
+	display: flex;
+	margin: 10px 0;
+}
+.image-library-entry button:first-child {
+	flex: 1;
+}
+.image-library-entry small {
+	display: block;
+	font-size: 10px;
+	color: #aaa2bb;
+	margin-top: 6px;
+}
+.image-advanced {
+	margin-bottom: 18px !important;
+}
+.image-studio [hidden] {
+	display: none !important;
+}
+.image-inspector:has(.image-ai-panel) {
+	min-width: 0;
+}
+.image-advanced > summary {
+	cursor: pointer;
+	color: #c7b9ff;
+	font-size: 12px;
+	padding: 10px 0;
+}
+.image-compare {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 6px;
+}
+.image-compare figure {
+	margin: 0;
+}
+.image-compare img {
+	width: 100%;
+}
+.image-compare figcaption {
+	text-align: center;
+	font-size: 10px;
+}
+.image-ai-simple h2 {
+	font-size: 14px;
+	text-transform: none;
+	letter-spacing: 0;
+	margin-bottom: 8px;
+}
+.image-ai-intro {
+	font-size: 12px;
+	line-height: 1.7;
+	color: #a9a2ba;
+	margin: 0 0 16px;
+}
+.image-ai-engine {
+	display: flex;
+	gap: 6px;
+	margin-bottom: 12px;
+}
+.image-ai-engine select {
+	flex: 1;
+	width: 100%;
+}
+.image-ai-engine button {
+	width: auto;
+	margin: 0;
+}
+.image-ai-request {
+	width: 100%;
+	min-height: 185px;
+	resize: vertical;
+	font-size: 13px !important;
+	line-height: 1.7;
+	background: #20202b !important;
+	border-color: #c7b9ff35 !important;
+	padding: 12px !important;
+}
+.image-ai-request:focus {
+	outline: 2px solid #b9a2f788;
+}
+.image-ai-attachments {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+	margin: 10px 0;
+}
+.image-ai-attachments > div {
+	width: 76px;
+	position: relative;
+	background: #24242e;
+	border-radius: 9px;
+	overflow: hidden;
+}
+.image-ai-attachments img {
+	width: 76px;
+	height: 66px;
+	object-fit: contain;
+}
+.image-ai-attachments span {
+	display: block;
+	padding: 4px;
+	font-size: 9px;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	overflow: hidden;
+}
+.image-ai-attachments button {
+	position: absolute;
+	top: 0;
+	right: 0;
+	width: 20px;
+	height: 20px;
+	padding: 0;
+	text-align: center;
+	margin: 0;
+	background: #111c;
+}
+.image-ai-generate {
+	padding: 13px !important;
+	text-align: center !important;
+	font-size: 14px !important;
+	margin: 14px 0 6px !important;
+}
+.image-ai-status {
+	font-size: 12px;
+	line-height: 1.7;
+	overflow-wrap: anywhere;
+	color: #d3c7ef;
+}
+.image-ai-options {
+	margin: 20px 0;
+	color: #b7adc9;
+	font-size: 11px;
+}
+.image-ai-options summary {
+	cursor: pointer;
+	padding: 8px 0;
+}
+.image-ai-settings {
+	width: min(450px, 90vw);
+	max-height: 85vh;
+	overflow: auto;
+	background: #1c1c26;
+	color: #ece8f7;
+	border: 1px solid #c7b9ff40;
+	border-radius: 16px;
+	padding: 24px;
+	box-shadow: 0 24px 90px #000a;
+}
+.image-ai-settings::backdrop {
+	background: #08080bb8;
+	backdrop-filter: blur(6px);
+}
+.image-ai-settings header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 20px;
+}
+.image-ai-settings header button {
+	width: 28px;
+}
+.image-ai-settings h3 {
+	margin: 0;
+	font-size: 17px;
+}
+.image-ai-settings h4 {
+	margin: 18px 0 8px;
+	color: #c7b9ff;
+}
+.image-ai-settings p {
+	line-height: 1.7;
+	font-size: 12px;
+}
+.image-ai-settings input,
+.image-ai-settings > button {
+	display: block;
+	width: 100%;
+	margin: 8px 0;
+}
