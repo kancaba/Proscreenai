@@ -10,7 +10,7 @@ Son güncelleme: **19 Ekim 2026**. Bu dosya, geliştirmeyi daha sonra başka bir
 
 ## 1. Başlangıç noktası ve korunacak kararlar
 
-- Proje: `/Users/kaancanbayraktar/Desktop/screenmovie`.
+- Proje: `<project-root>`.
 - Electron ile devam edilecek; Tauri veya başka framework'e geçiş istenmiyor.
 - Ürün adı ScreenMovie. Kullanıcıya görünen alanlarda başka projenin markası gösterilmeyecek; gerekli lisans ve atıflar `THIRD_PARTY_NOTICES.md` içinde korunacak.
 - Kullanıcı çok sayıda uygulama kopyası istemiyor. Kullanılacak sabit uygulama konumu: `release-source-fix/mac-arm64/ScreenMovie.app`.
@@ -140,7 +140,7 @@ Orijinal hata (video 5,11 sn'de durdu, -16341) hangi koşulda oluştuğu bilinme
 - `artifacts/native-pause-initial-failure.json`
 - `artifacts/native-video-writer-test.log`
 - `artifacts/native-video-writer-1080-test.log`
-- `/Users/kaancanbayraktar/Desktop/recording-1792329923684.mp4`
+- `<demo-recording>.mp4`
 - Aynı dosyanın `.system.m4a` ve `.capture.json` yan dosyaları.
 - Gerçek uygulama recovery dizinindeki ilgili journal. Rapor oturum kimliği: `c6699226-a1d2-452e-9c1c-d266b9d3a3b1`.
 
@@ -294,7 +294,7 @@ Browser testinin görüntü/ses kaynağı canvas + WebAudio fixture'dır. Gerçe
 Önce bu belgeyi ve onaylı planı oku; varsa geçerli `AGENTS.md` talimatlarını kontrol et. Ardından mevcut değişiklikleri incele. Aşağıdaki kontroller kaynak kodu doğrular; native fiziksel testin yerine geçmez.
 
 ```sh
-cd /Users/kaancanbayraktar/Desktop/screenmovie
+cd <project-root>
 git status --short
 npm run typecheck
 npm test

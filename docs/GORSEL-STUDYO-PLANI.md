@@ -12,7 +12,7 @@ Ekteki kampanya örneği ScreenMovie içinde üretilecek iş akışına örnekti
 
 ## İncelenen kaynaklar
 
-- Kullanıcının `/Users/kaancanbayraktar/Downloads/marka-gorsel-studyo-v1.skill` arşivindeki `marka-gorsel-studyo/SKILL.md` okundu. Arşiv kurulmadı veya çalıştırılmadı.
+- Kullanıcının `~/Downloads/marka-gorsel-studyo-v1.skill` arşivindeki `marka-gorsel-studyo/SKILL.md` okundu. Arşiv kurulmadı veya çalıştırılmadı.
 - Bu dosya prompt hazırlama yöntemini tarif eder, görsel üretim motoru içermez. İçindeki motor sürümü/özellik iddiaları entegrasyon öncesinde resmi belgelerden ayrıca doğrulanmalı.
 - `electron/agents/agentRunner.ts`: mevcut video ajanında dosya/shell araçları kısıtlı; Codex başlatılırken `image_generation` kapatılıyor. Mevcut runner'ı gevşeterek bütün video görevlerine görsel üretim yetkisi açmak yerine ayrı görsel oturumu tasarlanmalı.
 
