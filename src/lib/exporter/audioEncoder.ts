@@ -3,6 +3,8 @@ import type { SpeedRegion, TrimRegion, AudioRegion } from '@/components/video-ed
 import { toFileUrl } from '@/components/video-editor/projectPersistence'
 import { audioFileOffsetSeconds, isAudioActive } from '@/components/video-editor/audioRegionSpan'
 import { createCutMap, toOutputMs } from '@/components/video-editor/timeline/editedTime'
+import { fadeAmount, type Fades, hasFades } from '@/lib/fades'
+import { CUT_CROSSFADE_MS } from '@/lib/cutTransitions'
 import type { VideoMuxer } from './muxer'
 
 const AUDIO_BITRATE = 128_000
@@ -26,6 +28,7 @@ export class AudioProcessor {
     readEndSec?: number,
     audioRegions?: AudioRegion[],
     sourceVolume = 1,
+    fades?: Fades & { totalMs: number },
   ): Promise<void> {
     const sortedTrims = trimRegions ? [...trimRegions].sort((a, b) => a.startMs - b.startMs) : []
     const sortedSpeedRegions = speedRegions
@@ -38,14 +41,17 @@ export class AudioProcessor {
       : []
 
     const volume = Math.max(0, Math.min(1, sourceVolume))
-    // Audio regions, speed edits or a changed recording volume need the AudioContext mixing path.
-    if (sortedSpeedRegions.length > 0 || sortedAudioRegions.length > 0 || volume < 1) {
+    const activeFades = fades && hasFades(fades) ? fades : undefined
+    const hasCrossfades = sortedTrims.some((trim) => trim.crossfade)
+    // Audio regions, speed edits, fades, crossfade cuts or a changed recording volume need the AudioContext mixing path.
+    if (sortedSpeedRegions.length > 0 || sortedAudioRegions.length > 0 || volume < 1 || activeFades || hasCrossfades) {
       const renderedAudioBlob = await this.renderMixedTimelineAudio(
         videoUrl,
         sortedTrims,
         sortedSpeedRegions,
         sortedAudioRegions,
         volume,
+        activeFades,
       )
       if (!this.cancelled) {
         await this.muxRenderedAudioBlob(renderedAudioBlob, muxer)
@@ -177,6 +183,7 @@ export class AudioProcessor {
     speedRegions: SpeedRegion[],
     audioRegions: AudioRegion[],
     sourceVolume = 1,
+    fades?: Fades & { totalMs: number },
   ): Promise<Blob> {
     const media = document.createElement('audio')
     media.src = videoUrl
@@ -198,13 +205,49 @@ export class AudioProcessor {
 
     const audioContext = new AudioContext()
     const destinationNode = audioContext.createMediaStreamDestination()
+    // Everything passes through one master gain, which follows the fade in/out over the output's real time.
+    const masterGain = audioContext.createGain()
+    masterGain.gain.value = fades ? 1 - fadeAmount(0, fades.totalMs, fades) : 1
+    masterGain.connect(destinationNode)
 
     // Connect original video audio at the chosen volume (the element still plays to keep time)
     const sourceNode = audioContext.createMediaElementSource(media)
     const sourceGain = audioContext.createGain()
     sourceGain.gain.value = sourceVolume
     sourceNode.connect(sourceGain)
-    sourceGain.connect(destinationNode)
+    sourceGain.connect(masterGain)
+
+    // For crossfade cuts, a second player lets the sound before the cut run on and fade out
+    // while the sound after it fades in.
+    const crossfadeTail = trimRegions.some((trim) => trim.crossfade) && sourceVolume > 0 ? document.createElement('audio') : null
+    let tailGain: GainNode | null = null
+    if (crossfadeTail) {
+      crossfadeTail.src = videoUrl
+      crossfadeTail.preload = 'auto'
+      try {
+        await this.waitForLoadedMetadata(crossfadeTail)
+        tailGain = audioContext.createGain()
+        tailGain.gain.value = 0
+        audioContext.createMediaElementSource(crossfadeTail).connect(tailGain)
+        tailGain.connect(masterGain)
+      } catch {
+        console.warn('[AudioProcessor] Crossfade player could not load; cuts will jump.')
+      }
+    }
+    const crossfadeCut = (cutStartMs: number) => {
+      if (!crossfadeTail || !tailGain) return
+      const now = audioContext.currentTime
+      const seconds = CUT_CROSSFADE_MS / 1000
+      crossfadeTail.currentTime = cutStartMs / 1000
+      crossfadeTail.play().catch(() => undefined)
+      tailGain.gain.cancelScheduledValues(now)
+      tailGain.gain.setValueAtTime(sourceVolume, now)
+      tailGain.gain.linearRampToValueAtTime(0, now + seconds)
+      sourceGain.gain.cancelScheduledValues(now)
+      sourceGain.gain.setValueAtTime(0, now)
+      sourceGain.gain.linearRampToValueAtTime(sourceVolume, now + seconds)
+      window.setTimeout(() => crossfadeTail.pause(), CUT_CROSSFADE_MS + 50)
+    }
 
     // Prepare external audio region elements
     const audioRegionElements: {
@@ -230,7 +273,7 @@ export class AudioProcessor {
       const gainNode = audioContext.createGain()
       gainNode.gain.value = Math.max(0, Math.min(1, region.volume))
       regionSource.connect(gainNode)
-      gainNode.connect(destinationNode)
+      gainNode.connect(masterGain)
 
       audioRegionElements.push({ media: audioEl, sourceNode: regionSource, gainNode, region })
     }
@@ -247,6 +290,7 @@ export class AudioProcessor {
 
       await this.seekTo(media, 0)
       await media.play()
+      const playStartedAt = audioContext.currentTime
 
       await new Promise<void>((resolve, reject) => {
         const cleanup = () => {
@@ -277,6 +321,9 @@ export class AudioProcessor {
 
           const currentTimeMs = media.currentTime * 1000
           const activeTrimRegion = this.findActiveTrimRegion(currentTimeMs, trimRegions)
+          if (fades) {
+            masterGain.gain.value = 1 - fadeAmount((audioContext.currentTime - playStartedAt) * 1000, fades.totalMs, fades)
+          }
 
           if (activeTrimRegion && !media.paused && !media.ended) {
             const skipToTime = activeTrimRegion.endMs / 1000
@@ -286,6 +333,7 @@ export class AudioProcessor {
               resolve()
               return
             }
+            if (activeTrimRegion.crossfade) crossfadeCut(activeTrimRegion.startMs)
             media.currentTime = skipToTime
           } else {
             const activeSpeedRegion = this.findActiveSpeedRegion(currentTimeMs, speedRegions)

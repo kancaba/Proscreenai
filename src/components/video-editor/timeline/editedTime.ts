@@ -13,6 +13,8 @@ export interface CutRange {
   id: string;
   startMs: number;
   endMs: number;
+  /** Dissolve across this cut instead of jumping (see `TrimRegion.crossfade`). */
+  crossfade?: boolean;
 }
 
 export interface CutMap {
@@ -30,8 +32,11 @@ export function createCutMap(trims: CutRange[], sourceMs: number): CutMap {
   const cuts: CutRange[] = [];
   for (const trim of sorted) {
     const previous = cuts[cuts.length - 1];
-    if (previous && trim.startMs <= previous.endMs) previous.endMs = Math.max(previous.endMs, trim.endMs);
-    else cuts.push({ ...trim });
+    if (previous && trim.startMs <= previous.endMs) {
+      previous.endMs = Math.max(previous.endMs, trim.endMs);
+      // Overlapping cuts become one; it dissolves if any of them does.
+      if (trim.crossfade) previous.crossfade = true;
+    } else cuts.push({ ...trim });
   }
   const removed = cuts.reduce((sum, cut) => sum + (cut.endMs - cut.startMs), 0);
   return { cuts, sourceMs, outputMs: Math.max(0, sourceMs - removed) };

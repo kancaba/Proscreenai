@@ -92,6 +92,7 @@ import { RegionInspector } from './RegionInspector';
 import { DEFAULT_ZOOM_SPAN_MS, findAvailableSpan, validRegionSpan, type TimeSpan } from './editingTools';
 import { KIND_ALLOWS_OVERLAP, nudgeRegion, placeCopy, type RegionCommand, type RegionKind, type RegionTarget, splitRegion, type TimedRegion } from './timeline/regionCommands';
 import { getAnnotationText } from './annotationText';
+import { fadeAmount, type Fades, NO_FADES } from '@/lib/fades';
 import { applyAudioTimelineChange, audioFileOffsetSeconds, audioTimelineSpan, firstFreeAudioTrack, isAudioActive, MAX_AUDIO_TRACKS, splitAudioRegion } from './audioRegionSpan';
 import type { EditorAppearance } from './appearancePresets';
 
@@ -105,6 +106,7 @@ type EditorHistorySnapshot = {
   annotationRegions: AnnotationRegion[];
   audioRegions: AudioRegion[];
   sourceAudioVolume: number;
+  fades: Fades;
   clipSplits: number[];
   selectedZoomId: string | null;
   selectedTrimId: string | null;
@@ -186,10 +188,14 @@ export default function VideoEditor() {
   const [audioRegions, setAudioRegions] = useState<AudioRegion[]>([]);
   /** Volume of the recording's own sound, 0 (muted) to 1. */
   const [sourceAudioVolume, setSourceAudioVolume] = useState(1);
+  /** Optional fade from/to black at the video's start and end. */
+  const [fades, setFades] = useState<Fades>(NO_FADES);
   /** Points (source ms) where the video track is split into parts that can be cut. */
   const [clipSplits, setClipSplits] = useState<number[]>([]);
   const totalSourceMs = Math.round(duration * 1000);
   const cutMap = useMemo(() => createCutMap(trimRegions, totalSourceMs), [trimRegions, totalSourceMs]);
+  /** Fade darkening at the playhead, shown over the preview and applied to the preview's sound. */
+  const previewFade = fadeAmount(toOutputMs(cutMap, currentTime * 1000), cutMap.outputMs, fades);
   /** The selected video part, by its source start. */
   const [selectedClipStart, setSelectedClipStart] = useState<number | null>(null);
   const [selectedAudioId, setSelectedAudioId] = useState<string | null>(null);
@@ -292,6 +298,7 @@ export default function VideoEditor() {
       annotationRegions: JSON.parse(JSON.stringify(snapshot.annotationRegions)),
       audioRegions: JSON.parse(JSON.stringify(snapshot.audioRegions)),
       sourceAudioVolume: snapshot.sourceAudioVolume,
+      fades: { ...snapshot.fades },
       clipSplits: [...(snapshot.clipSplits ?? [])],
       selectedZoomId: snapshot.selectedZoomId,
       selectedTrimId: snapshot.selectedTrimId,
@@ -310,6 +317,7 @@ export default function VideoEditor() {
       annotationRegions,
       audioRegions,
       sourceAudioVolume,
+      fades,
       clipSplits,
       selectedZoomId,
       selectedTrimId,
@@ -325,6 +333,7 @@ export default function VideoEditor() {
     annotationRegions,
     audioRegions,
     sourceAudioVolume,
+    fades,
     clipSplits,
     selectedZoomId,
     selectedTrimId,
@@ -343,6 +352,7 @@ export default function VideoEditor() {
     setAnnotationRegions(cloned.annotationRegions);
     setAudioRegions(cloned.audioRegions);
     setSourceAudioVolume(cloned.sourceAudioVolume ?? 1);
+    setFades(cloned.fades ?? NO_FADES);
     setClipSplits(cloned.clipSplits ?? []);
     setSelectedClipStart(null);
     setSelectedZoomId(cloned.selectedZoomId);
@@ -441,6 +451,7 @@ export default function VideoEditor() {
     setAnnotationRegions(normalizedEditor.annotationRegions);
     setAudioRegions(normalizedEditor.audioRegions);
     setSourceAudioVolume(normalizedEditor.sourceAudioVolume);
+    setFades(normalizedEditor.fades);
     setClipSplits(normalizedEditor.clipSplits);
     setSelectedClipStart(null);
     setExportResolution(normalizedEditor.exportResolution ?? 'legacy');
@@ -502,6 +513,7 @@ export default function VideoEditor() {
         annotationRegions,
         audioRegions,
         sourceAudioVolume,
+        fades,
         clipSplits,
         aspectRatio,
         exportQuality, exportResolution, exportFps, exportCustomWidth, exportCustomHeight,
@@ -533,6 +545,7 @@ export default function VideoEditor() {
     speedRegions,
     audioRegions,
     sourceAudioVolume,
+    fades,
     clipSplits,
     annotationRegions,
     aspectRatio,
@@ -710,6 +723,7 @@ export default function VideoEditor() {
       annotationRegions,
       audioRegions,
       sourceAudioVolume,
+      fades,
       clipSplits,
       aspectRatio,
       exportQuality, exportResolution, exportFps, exportCustomWidth, exportCustomHeight,
@@ -770,6 +784,7 @@ export default function VideoEditor() {
     annotationRegions,
     audioRegions,
     sourceAudioVolume,
+    fades,
     clipSplits,
     aspectRatio,
     exportQuality, exportResolution, exportFps, exportCustomWidth, exportCustomHeight,
@@ -1424,9 +1439,9 @@ export default function VideoEditor() {
   useEffect(() => {
     const video = videoPlaybackRef.current?.video;
     if (!video) return;
-    video.volume = sourceAudioVolume;
+    video.volume = sourceAudioVolume * (1 - previewFade);
     video.muted = sourceAudioVolume === 0;
-  }, [sourceAudioVolume, videoPath, duration]);
+  }, [sourceAudioVolume, videoPath, duration, previewFade]);
 
   const agentVideoPath = videoSourcePath ?? (videoPath ? fromFileUrl(videoPath) : null);
   /** What an AI agent is told about the project when a task starts. */
@@ -1835,6 +1850,7 @@ export default function VideoEditor() {
       // Added audio follows the edited timeline, so it plays on without gaps where the video is cut.
       const timelineMs = toOutputMs(cutMap, currentTime * 1000);
       const isInRegion = isAudioActive(region, timelineMs, cutMap);
+      audio.volume = Math.max(0, Math.min(1, region.volume * (1 - previewFade)));
 
       if (isPlaying && isInRegion) {
         audio.playbackRate = videoPlaybackRef.current?.video?.playbackRate ?? 1;
@@ -1852,7 +1868,7 @@ export default function VideoEditor() {
         }
       }
     }
-  }, [isPlaying, currentTime, audioRegions, cutMap]);
+  }, [isPlaying, currentTime, audioRegions, cutMap, previewFade]);
 
   /** "Project name 2026-10-19 17.42" for the exported file (saved in the recordings folder). */
   const exportFileBase = useCallback(() => {
@@ -1928,6 +1944,7 @@ export default function VideoEditor() {
         // GIF Export
         const gifExporter = new GifExporter({
           videoUrl: videoPath,
+          fades,
           width: settings.gifConfig.width,
           height: settings.gifConfig.height,
           frameRate: settings.gifConfig.frameRate,
@@ -2021,6 +2038,7 @@ export default function VideoEditor() {
           cursorClickBounce,
           audioRegions,
           sourceAudioVolume,
+          fades,
           previewWidth,
           previewHeight,
           onProgress: (progress: ExportProgress) => {
@@ -2076,7 +2094,7 @@ export default function VideoEditor() {
       setShowExportDialog(keepExportDialogOpen);
       setExportProgress(null);
     }
-  }, [exportFileBase, sourceAudioVolume, videoPath, wallpaper, zoomRegions, trimRegions, speedRegions, shadowIntensity, backgroundBlur, zoomMotionBlur, connectZooms, showCursor, effectiveCursorTelemetry, cursorSize, cursorSmoothing, cursorMotionBlur, cursorClickBounce, borderRadius, padding, cropRegion, annotationRegions, audioRegions, isPlaying, aspectRatio, exportQuality, exportResolution, exportFps, exportCustomWidth, exportCustomHeight,showExportSuccessToast]);
+  }, [exportFileBase, sourceAudioVolume, fades, videoPath, wallpaper, zoomRegions, trimRegions, speedRegions, shadowIntensity, backgroundBlur, zoomMotionBlur, connectZooms, showCursor, effectiveCursorTelemetry, cursorSize, cursorSmoothing, cursorMotionBlur, cursorClickBounce, borderRadius, padding, cropRegion, annotationRegions, audioRegions, isPlaying, aspectRatio, exportQuality, exportResolution, exportFps, exportCustomWidth, exportCustomHeight,showExportSuccessToast]);
 
   const handleStartExport = useCallback(() => {
     if (!videoPath) {
@@ -2200,7 +2218,7 @@ export default function VideoEditor() {
     const span = spanToOutput(cutMap, { start: region.startMs, end: region.endMs });
     return span ? [{ id: region.id, speed: region.speed, outStart: span.start, outEnd: span.end }] : [];
   }), [speedRegions, cutMap]);
-  const timelineMarkers = useMemo(() => cutMarkers(cutMap).map((marker) => ({ outMs: marker.outMs, cutId: marker.cut.id, lengthMs: marker.cut.endMs - marker.cut.startMs })), [cutMap]);
+  const timelineMarkers = useMemo(() => cutMarkers(cutMap).map((marker) => ({ outMs: marker.outMs, cutId: marker.cut.id, lengthMs: marker.cut.endMs - marker.cut.startMs, crossfade: marker.cut.crossfade })), [cutMap]);
   const toTimeline = useCallback(<T extends { startMs: number; endMs: number }>(regions: T[]): T[] => regions.flatMap((region) => {
     const span = spanToOutput(cutMap, { start: region.startMs, end: region.endMs });
     return span ? [{ ...region, startMs: Math.round(span.start), endMs: Math.round(span.end) }] : [];
@@ -2415,6 +2433,7 @@ export default function VideoEditor() {
                     {compositionGuides && <div className="workspace-guides" aria-hidden="true"><div/><div/><div/><div/><span/></div>}
                     <VideoPlayback
                       key={videoPath || 'no-video'}
+                      fadeAmount={previewFade}
                       aspectRatio={aspectRatio}
                       ref={videoPlaybackRef}
                       videoPath={videoPath || ''}
@@ -2546,6 +2565,8 @@ export default function VideoEditor() {
           hasSelectedClipPart={selectedPart !== null}
           sourceAudioVolume={sourceAudioVolume}
           onSourceAudioVolumeChange={setSourceAudioVolume}
+          fades={fades}
+          onFadeChange={(key, ms) => setFades((previous) => ({ ...previous, [key]: ms }))}
           autoZoomControls={<AutoZoomControls settings={autoZoomSettings} onChange={updateAutoZoomSettings} onRegenerate={normalizedCursorTelemetry.length >= 2 && duration > 0 ? handleRegenerateAutoZoom : undefined} />}
           presets={<StylePresets appearance={appearance} onApply={applyAppearance} />}
           selectedAudioId={selectedAudioId}
@@ -2555,7 +2576,12 @@ export default function VideoEditor() {
               canCut={clipParts.length > 1} onSpeedChange={handleSetPartSpeed} onCut={handleDeleteClipPart} />}
             {activeRegion && <RegionInspector region={activeRegion}
               label={activeRegionKind === 'zoom' ? 'Zoom' : activeRegionKind === 'trim' ? t('timeline.trim.label', undefined, { index: '' }) : activeRegionKind === 'audio' && selectedAudio ? audioClipName(selectedAudio.audioPath, locale === 'tr') : t('timeline.speed.label')}
-              onChange={updateActiveRegion} onDelete={deleteActiveRegion}>
+              onChange={updateActiveRegion} onDelete={deleteActiveRegion}
+              crossfade={activeRegionKind === 'trim' ? { enabled: Boolean((activeRegion as TrimRegion).crossfade), onChange: (on) => setTrimRegions((previous) => previous.map((region) => {
+                if (region.id !== activeRegion.id) return region;
+                const { crossfade: _previous, ...rest } = region;
+                return on ? { ...rest, crossfade: true } : rest;
+              })) } : undefined}>
               {activeRegionKind === 'audio' && selectedAudio && <AudioClipControls region={selectedAudio}
                 trackCount={Math.min(MAX_AUDIO_TRACKS, Math.max(...audioRegions.map((region) => (region.track ?? 0) + 2)))}
                 isTrackFree={isTrackFreeForSelectedAudio}

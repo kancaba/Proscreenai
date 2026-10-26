@@ -3,11 +3,13 @@ import { Trash2 } from 'lucide-react'
 import { useI18n } from '@/contexts/I18nContext'
 import type { TimeSpan } from './editingTools'
 
-export function RegionInspector({ region, label, onChange, onDelete, children }: {
+export function RegionInspector({ region, label, onChange, onDelete, crossfade, children }: {
   region: TimeSpan
   label: string
   onChange: (span: TimeSpan) => boolean
   onDelete: () => void
+  /** Cuts only: dissolve across the cut instead of jumping. */
+  crossfade?: { enabled: boolean; onChange: (enabled: boolean) => void }
   /** Kind-specific controls shown under the timing, e.g. an audio clip's volume and track. */
   children?: React.ReactNode
 }) {
@@ -32,6 +34,15 @@ export function RegionInspector({ region, label, onChange, onDelete, children }:
         <div className="mt-2 flex items-center justify-between"><span className="text-[10px] text-slate-500">{((region.endMs - region.startMs) / 1000).toFixed(2)} {tr ? 'saniye' : 'seconds'}</span><button type="submit" className="rounded bg-violet-300/15 px-2 py-1 text-[10px] text-violet-200 hover:bg-violet-300/25">{tr ? 'Uygula' : 'Apply'}</button></div>
       </form>
       {children}
+      {crossfade && (
+        <label className="mt-3 flex cursor-pointer items-center justify-between gap-2 border-t border-white/5 pt-3">
+          <span>
+            <span className="block text-[11px] text-slate-200">{tr ? 'Çapraz geçiş' : 'Crossfade'}</span>
+            <span className="block text-[9px] leading-snug text-slate-500">{tr ? 'Sahneler tak diye atlamak yerine 0,3 sn içinde birbirine karışır.' : 'Scenes blend over 0.3 sec instead of jumping.'}</span>
+          </span>
+          <input type="checkbox" data-testid="cut-crossfade-toggle" checked={crossfade.enabled} onChange={(event) => crossfade.onChange(event.target.checked)} className="h-4 w-4 accent-violet-300" />
+        </label>
+      )}
     </section>
   )
 }

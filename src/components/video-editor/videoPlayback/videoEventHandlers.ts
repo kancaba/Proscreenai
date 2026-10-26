@@ -12,6 +12,8 @@ interface VideoEventHandlersParams {
   onTimeUpdate: (time: number) => void;
   trimRegionsRef: React.MutableRefObject<TrimRegion[]>;
   speedRegionsRef: React.MutableRefObject<SpeedRegion[]>;
+  /** Called just before playback jumps over a cut, while the frame before it is still shown. */
+  onCutSkip?: (cut: TrimRegion) => void;
 }
 
 export function createVideoEventHandlers(params: VideoEventHandlersParams) {
@@ -26,6 +28,7 @@ export function createVideoEventHandlers(params: VideoEventHandlersParams) {
     onTimeUpdate,
     trimRegionsRef,
     speedRegionsRef,
+    onCutSkip,
   } = params;
 
   const emitTime = (timeValue: number) => {
@@ -62,6 +65,7 @@ export function createVideoEventHandlers(params: VideoEventHandlersParams) {
       if (skipToTime >= video.duration) {
         video.pause();
       } else {
+        onCutSkip?.(activeTrimRegion);
         video.currentTime = skipToTime;
         emitTime(skipToTime);
       }

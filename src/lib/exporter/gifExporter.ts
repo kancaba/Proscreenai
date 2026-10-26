@@ -2,12 +2,17 @@ import GIF from 'gif.js';
 import type { ExportProgress, ExportResult, GifFrameRate, GifSizePreset, GIF_SIZE_PRESETS } from './types';
 import { StreamingVideoDecoder } from './streamingDecoder';
 import { FrameRenderer } from './frameRenderer';
+import { fadeAmount, type Fades, NO_FADES } from '@/lib/fades';
+import { CutCrossfadeTracker } from '@/lib/cutTransitions';
+import { createCutMap } from '@/components/video-editor/timeline/editedTime';
 import type { ZoomRegion, CropRegion, TrimRegion, AnnotationRegion, SpeedRegion, CursorTelemetryPoint } from '@/components/video-editor/types';
 
 const GIF_WORKER_URL = new URL('gif.js/dist/gif.worker.js', import.meta.url).toString();
 
 interface GifExporterConfig {
   videoUrl: string;
+  /** Fade from/to black at the start and end of the GIF. */
+  fades?: Fades;
   width: number;
   height: number;
   frameRate: GifFrameRate;
@@ -145,6 +150,7 @@ export class GifExporter {
 
       // Calculate frame delay in milliseconds (gif.js uses ms)
       const frameDelay = Math.round(1000 / this.config.frameRate);
+      const crossfades = new CutCrossfadeTracker(createCutMap(this.config.trimRegions ?? [], Number.MAX_SAFE_INTEGER).cuts.filter((cut) => cut.crossfade));
 
       console.log('[GifExporter] Original duration:', videoInfo.duration, 's');
       console.log('[GifExporter] Effective duration:', effectiveDuration, 's');
@@ -170,6 +176,10 @@ export class GifExporter {
           const sourceTimestampUs = sourceTimestampMs * 1000;
           await this.renderer!.renderFrame(videoFrame, sourceTimestampUs);
           videoFrame.close();
+          const crossfade = crossfades.step(sourceTimestampMs, frameIndex * frameDelay, frameDelay);
+          this.renderer!.blendTransitionFrame(crossfade.blend);
+          if (crossfade.capture) this.renderer!.captureTransitionFrame();
+          this.renderer!.applyFade(fadeAmount(frameIndex * frameDelay, Math.max(0, totalFrames - 1) * frameDelay, this.config.fades ?? NO_FADES));
 
           this.addRenderedGifFrame(frameDelay);
           frameIndex++;

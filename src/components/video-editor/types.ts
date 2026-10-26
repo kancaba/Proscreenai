@@ -41,6 +41,8 @@ export interface TrimRegion {
   id: string;
   startMs: number;
   endMs: number;
+  /** Dissolve from the scene before the cut into the scene after it instead of a hard jump. */
+  crossfade?: boolean;
 }
 
 export type AnnotationType = 'text' | 'image' | 'figure';

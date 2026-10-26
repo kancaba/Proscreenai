@@ -96,7 +96,7 @@ interface TimelineEditorProps {
 export interface ClipTrackProps {
   segments: ClipSegment[];
   /** Cut points on the edited timeline. */
-  markers: Array<{ outMs: number; cutId: string; lengthMs: number }>;
+  markers: Array<{ outMs: number; cutId: string; lengthMs: number; crossfade?: boolean }>;
   selectedStart: number | null;
   onSelectSegment: (sourceStartMs: number | null) => void;
   /** Splits the video at the playhead. */

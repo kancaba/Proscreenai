@@ -85,5 +85,12 @@
 		"mute": "Silenciar",
 		"unmute": "Activar sonido",
 		"hint": "El sonido propio del vídeo; la exportación usa este nivel. El audio añadido se ajusta aparte."
+	},
+	"fades": {
+		"title": "Fundido de entrada y salida",
+		"in": "Inicio",
+		"out": "Final",
+		"off": "No",
+		"hint": "Funde la imagen desde y hacia negro, junto con el sonido."
 	}
 }

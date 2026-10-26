@@ -86,7 +86,23 @@ const findWindow = (part) => BrowserWindow.getAllWindows().find((w) => !w.isDest
   })()`);
   check('Later items move up with the video', Math.abs(zoomPosition - 2500 / 4000) < 0.03, zoomPosition.toFixed(3));
 
-  // Export: the cut part is gone from the video.
+  // Crossfade: a selected cut can dissolve instead of jumping; it is saved and plays in the preview.
+  await renderer(win, `document.querySelector('[data-testid="cut-marker"]').click()`);
+  await waitFor(() => renderer(win, `!!document.querySelector('[data-testid="cut-crossfade-toggle"]')`));
+  await renderer(win, `document.querySelector('[data-testid="cut-crossfade-toggle"]').click()`);
+  editor = await saved((e) => e.trimRegions[0]?.crossfade === true);
+  check('A cut can be set to crossfade and is saved', editor.trimRegions[0].crossfade === true, JSON.stringify(editor.trimRegions));
+  check('The cut marker shows the crossfade', await renderer(win, `document.querySelector('[data-testid="cut-marker"]').dataset.crossfade === 'true'`));
+  await renderer(win, `(() => { const v = document.querySelector('video'); v.currentTime = 1.6; })()`);
+  await delay(400);
+  await renderer(win, `document.querySelector('button[aria-label="Oynat"]').click()`);
+  const peak = await renderer(win, `new Promise((resolve) => { let peak = 0; const end = performance.now() + 2500; const poll = () => { const c = document.querySelector('[data-testid="cut-crossfade"]'); peak = Math.max(peak, Number(getComputedStyle(c).opacity)); if (performance.now() < end) requestAnimationFrame(poll); else resolve(peak); }; poll(); })`);
+  await renderer(win, `document.querySelector('video').pause()`);
+  check('Playing across the cut dissolves the previous scene in the preview', peak > 0.3, peak.toFixed(2));
+  await renderer(win, `document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
+  await delay(300);
+
+  // Export: the cut part is gone from the video (here with the crossfade on).
   const exportStarted = Date.now();
   await renderer(win, `Array.from(document.querySelectorAll('button')).find(b => b.textContent.toLowerCase().includes('dışa aktar')).click()`);
   await waitFor(() => renderer(win, `!!document.querySelector('[data-testid="confirm-export"]')`));

@@ -1,4 +1,7 @@
 import type { ExportConfig, ExportProgress, ExportResult } from './types';
+import { fadeAmount, type Fades, NO_FADES } from '@/lib/fades';
+import { CutCrossfadeTracker } from '@/lib/cutTransitions';
+import { createCutMap } from '@/components/video-editor/timeline/editedTime';
 import { AudioProcessor } from './audioEncoder';
 import { StreamingVideoDecoder } from './streamingDecoder';
 import { FrameRenderer } from './frameRenderer';
@@ -30,6 +33,8 @@ interface VideoExporterConfig extends ExportConfig {
   audioRegions?: AudioRegion[];
   /** Volume of the recording's own sound, 0 (muted) to 1; default 1. */
   sourceAudioVolume?: number;
+  /** Fade from/to black (and silence) at the start and end of the export. */
+  fades?: Fades;
   previewWidth?: number;
   previewHeight?: number;
   onProgress?: (progress: ExportProgress) => void;
@@ -117,6 +122,9 @@ export class VideoExporter {
 
       const frameDuration = 1_000_000 / this.config.frameRate; // in microseconds
       let frameIndex = 0;
+      const fades = this.config.fades ?? NO_FADES;
+      const lastFrameMs = Math.max(0, totalFrames - 1) * frameDuration / 1000;
+      const crossfades = new CutCrossfadeTracker(createCutMap(this.config.trimRegions ?? [], Number.MAX_SAFE_INTEGER).cuts.filter((cut) => cut.crossfade));
 
       // Stream decode and process frames — no seeking!
       await this.streamingDecoder.decodeAll(
@@ -133,6 +141,11 @@ export class VideoExporter {
           const sourceTimestampUs = sourceTimestampMs * 1000;
           await this.renderer!.renderFrame(videoFrame, sourceTimestampUs);
           videoFrame.close();
+          const crossfade = crossfades.step(sourceTimestampMs, frameIndex * frameDuration / 1000, frameDuration / 1000);
+          this.renderer!.blendTransitionFrame(crossfade.blend);
+          if (crossfade.capture) this.renderer!.captureTransitionFrame();
+          // The first frame starts black and the last one ends black.
+          this.renderer!.applyFade(fadeAmount(frameIndex * frameDuration / 1000, lastFrameMs, fades));
 
           await this.encodeRenderedFrame(timestamp, frameDuration, frameIndex);
           frameIndex++;
@@ -166,6 +179,7 @@ export class VideoExporter {
               undefined,
               this.config.audioRegions,
               videoInfo.hasAudio ? sourceVolume : 0,
+              { ...(this.config.fades ?? NO_FADES), totalMs: effectiveDuration * 1000 },
             ),
             'audio processing',
           );

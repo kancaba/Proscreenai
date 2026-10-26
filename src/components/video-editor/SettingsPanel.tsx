@@ -20,6 +20,7 @@ import { AnnotationSettingsPanel } from "./AnnotationSettingsPanel";
 import { type AspectRatio } from "@/utils/aspectRatioUtils";
 import type { ExportQuality, ExportFormat, GifFrameRate, GifSizePreset } from "@/lib/exporter";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { FADE_CHOICES_MS, type Fades } from "@/lib/fades";
 const GRADIENTS = [
   "linear-gradient( 111.6deg,  rgba(114,167,232,1) 9.4%, rgba(253,129,82,1) 43.9%, rgba(253,129,82,1) 54.8%, rgba(249,202,86,1) 86.3% )",
   "linear-gradient(120deg, #d4fc79 0%, #96e6a1 100%)",
@@ -55,6 +56,9 @@ export interface SettingsPanelProps extends OutputSizeProps {
   /** The recording's own sound: 0 (muted) to 1. */
   sourceAudioVolume?: number;
   onSourceAudioVolumeChange?: (volume: number) => void;
+  /** Optional fade from/to black at the start and end of the video. */
+  fades?: Fades;
+  onFadeChange?: (key: keyof Fades, ms: number) => void;
   /** Switches to a tab (and scrolls to its target) when the nonce changes. */
   focusRequest?: { tab: "motion"; target: "auto-zoom"; nonce: number } | null;
   /** A part of the video is selected; its card (speed, cut) shows on the Motion tab. */
@@ -137,7 +141,7 @@ const ZOOM_DEPTH_OPTIONS: Array<{ depth: ZoomDepth; label: string }> = [
 ];
 
 export function SettingsPanel({
-  header, presets, aiPanel, autoZoomControls, focusRequest, hasSelectedClipPart = false, sourceAudioVolume = 1, onSourceAudioVolumeChange, selectedAudioId,
+  header, presets, aiPanel, autoZoomControls, focusRequest, hasSelectedClipPart = false, sourceAudioVolume = 1, onSourceAudioVolumeChange, fades, onFadeChange, selectedAudioId,
   selected,
   onWallpaperChange,
   selectedZoomDepth,
@@ -330,6 +334,32 @@ export function SettingsPanel({
       </TabsList>
       <TabsContent value={activeTab} className="mt-0 flex-1 overflow-y-auto custom-scrollbar p-4 pb-0">
         {activeTab === 'appearance' && presets}
+        {activeTab === 'appearance' && fades && onFadeChange && (
+          <div className="mb-4 rounded-lg border border-white/5 bg-white/5 p-2.5" data-testid="video-fades">
+            <span className="text-[11px] font-medium text-slate-200">{tSettings('fades.title')}</span>
+            {(['fadeInMs', 'fadeOutMs'] as const).map((key) => (
+              <div key={key} className="mt-2 flex items-center justify-between gap-2">
+                <span className="text-[10px] text-slate-400">{tSettings(key === 'fadeInMs' ? 'fades.in' : 'fades.out')}</span>
+                <div role="radiogroup" aria-label={`${tSettings('fades.title')}: ${tSettings(key === 'fadeInMs' ? 'fades.in' : 'fades.out')}`} className="flex gap-1">
+                  {FADE_CHOICES_MS.map((ms) => (
+                    <button
+                      key={ms}
+                      type="button"
+                      role="radio"
+                      aria-checked={fades[key] === ms}
+                      data-testid={`${key}-${ms}`}
+                      onClick={() => onFadeChange(key, ms)}
+                      className={fades[key] === ms ? 'rounded bg-violet-300/25 px-2 py-1 text-[10px] text-violet-100' : 'rounded px-2 py-1 text-[10px] text-slate-400 hover:bg-white/10'}
+                    >
+                      {ms === 0 ? tSettings('fades.off') : `${(ms / 1000).toLocaleString(locale)} ${locale === 'tr' ? 'sn' : 's'}`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <p className="mt-2 text-[9px] leading-snug text-slate-500">{tSettings('fades.hint')}</p>
+          </div>
+        )}
         {activeTab === 'item' && annotationPanel}
         {activeTab === 'ai' && aiPanel}
         {activeTab === 'audio' && onSourceAudioVolumeChange && (

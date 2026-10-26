@@ -99,12 +99,13 @@ export function SourceVideoTrack({ path, durationMs, trims, clip, selectedCutId 
         data-testid="cut-marker"
         data-cut-id={marker.cutId}
         aria-pressed={selected}
+        data-crossfade={marker.crossfade ? 'true' : undefined}
         title={t('clip.cut', undefined, { seconds: (marker.lengthMs / 1000).toFixed(1) })}
         onClick={(event) => { event.stopPropagation(); onSelectCut?.(marker.cutId) }}
         className={`absolute bottom-0 top-0 z-20 flex w-3 -translate-x-1/2 items-end justify-center pb-0.5 ${selected ? 'text-white' : 'text-red-300'}`}
         style={{ left: percent(marker.outMs) }}
       >
-        <span className={`absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 ${selected ? 'bg-white' : 'bg-red-400'}`} />
+        <span className={`absolute inset-y-0 left-1/2 -translate-x-1/2 ${marker.crossfade ? 'w-2 bg-gradient-to-r from-transparent via-violet-300 to-transparent' : `w-0.5 ${selected ? 'bg-white' : 'bg-red-400'}`}`} />
         <Scissors size={10} className="relative rounded-sm bg-black/70" />
       </button>
     })}

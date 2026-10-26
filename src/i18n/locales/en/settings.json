@@ -85,5 +85,12 @@
 		"mute": "Mute",
 		"unmute": "Unmute",
 		"hint": "The video's own sound; the export uses this level too. Added audio files are set separately."
+	},
+	"fades": {
+		"title": "Fade in and out",
+		"in": "Start",
+		"out": "End",
+		"off": "Off",
+		"hint": "Fades the picture from and to black, and the sound with it."
 	}
 }

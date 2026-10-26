@@ -1,5 +1,6 @@
 import type React from "react";
 import { useEffect, useRef, useImperativeHandle, forwardRef, useState, useMemo, useCallback } from "react";
+import { CUT_CROSSFADE_MS } from '@/lib/cutTransitions';
 import { getAssetPath, getRenderableAssetUrl } from "@/lib/assetPath";
 import { DEFAULT_WALLPAPER_PATH, DEFAULT_WALLPAPER_RELATIVE_PATH } from "@/lib/wallpapers";
 import { Application, Container, Sprite, Graphics, BlurFilter, Texture, VideoSource } from 'pixi.js';
@@ -62,6 +63,8 @@ interface VideoPlaybackProps {
   showShadow?: boolean;
   shadowIntensity?: number;
   backgroundBlur?: number;
+  /** Fade in/out darkening at the current moment, 0 (none) to 1 (black). */
+  fadeAmount?: number;
   zoomMotionBlur?: number;
   connectZooms?: boolean;
   borderRadius?: number;
@@ -111,6 +114,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
   showShadow,
   shadowIntensity = 0,
   backgroundBlur = 0,
+  fadeAmount = 0,
   zoomMotionBlur = 0,
   connectZooms = true,
   borderRadius = 0,
@@ -135,6 +139,39 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const appRef = useRef<Application | null>(null);
+  /** Snapshot of the scene before a crossfade cut, faded out over the next scene. */
+  const crossfadeCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const startCutCrossfadeRef = useRef<() => void>(() => undefined);
+  startCutCrossfadeRef.current = () => {
+    const app = appRef.current;
+    const canvas = crossfadeCanvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!app || !canvas || !ctx) return;
+    // Render now so the WebGL canvas still holds the last frame before the jump when it is copied.
+    app.render();
+    canvas.width = app.canvas.width;
+    canvas.height = app.canvas.height;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(app.canvas, 0, 0);
+    canvas.style.transition = 'none';
+    canvas.style.opacity = '1';
+    void canvas.offsetWidth;
+    canvas.style.transition = `opacity ${CUT_CROSSFADE_MS}ms linear`;
+    canvas.style.opacity = '0';
+    // The recording's sound comes back in over the same time instead of jumping.
+    const video = videoRef.current;
+    if (video && video.volume > 0) {
+      const target = video.volume;
+      const startedAt = performance.now();
+      video.volume = 0;
+      const ramp = () => {
+        const progress = Math.min(1, (performance.now() - startedAt) / CUT_CROSSFADE_MS);
+        video.volume = target * progress;
+        if (progress < 1) requestAnimationFrame(ramp);
+      };
+      requestAnimationFrame(ramp);
+    }
+  };
   const videoSpriteRef = useRef<Sprite | null>(null);
   const videoContainerRef = useRef<Container | null>(null);
   const cursorContainerRef = useRef<Container | null>(null);
@@ -748,6 +785,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
       onTimeUpdate,
       trimRegionsRef,
       speedRegionsRef,
+      onCutSkip: (cut) => { if (cut.crossfade) startCutCrossfadeRef.current(); },
     });
     
     video.addEventListener('play', handlePlay);
@@ -1074,6 +1112,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
 
   return (
     <div className="relative rounded-sm overflow-hidden" style={{ width: '100%', aspectRatio: formatAspectRatioForCSS(aspectRatio, nativeAspectRatio) }}>
+      {fadeAmount > 0 && <div data-testid="preview-fade" aria-hidden className="pointer-events-none absolute inset-0 z-50 bg-black" style={{ opacity: Math.min(1, fadeAmount) }} />}
       {/* Background layer */}
       <div
         className="absolute inset-0 bg-cover bg-center"
@@ -1091,6 +1130,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
             : 'none',
         }}
       />
+      <canvas ref={crossfadeCanvasRef} aria-hidden data-testid="cut-crossfade" className="pointer-events-none absolute inset-0 h-full w-full" style={{ opacity: 0 }} />
       {/* Only render overlay after PIXI and video are fully initialized */}
       {pixiReady && videoReady && (
         <div

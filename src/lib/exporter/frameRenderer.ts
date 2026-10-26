@@ -650,6 +650,43 @@ export class FrameRenderer {
     }
   }
 
+  private transitionCanvas: HTMLCanvasElement | null = null;
+
+  /** Keeps a copy of the composed frame, the scene a crossfade cut dissolves from. */
+  captureTransitionFrame(): void {
+    if (!this.compositeCanvas) return;
+    if (!this.transitionCanvas) {
+      this.transitionCanvas = document.createElement('canvas');
+      this.transitionCanvas.width = this.compositeCanvas.width;
+      this.transitionCanvas.height = this.compositeCanvas.height;
+    }
+    const ctx = this.transitionCanvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, this.transitionCanvas.width, this.transitionCanvas.height);
+    ctx.drawImage(this.compositeCanvas, 0, 0);
+  }
+
+  /** Lays the kept scene over the composed frame at `strength` (0–1) during a crossfade. */
+  blendTransitionFrame(strength: number): void {
+    if (!(strength > 0) || !this.transitionCanvas || !this.compositeCtx) return;
+    const ctx = this.compositeCtx;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, strength);
+    ctx.drawImage(this.transitionCanvas, 0, 0);
+    ctx.restore();
+  }
+
+  /** Darkens the composed frame toward black for a fade in/out; 0 leaves it as is. */
+  applyFade(amount: number): void {
+    if (!(amount > 0) || !this.compositeCanvas || !this.compositeCtx) return;
+    const ctx = this.compositeCtx;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, amount);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, this.compositeCanvas.width, this.compositeCanvas.height);
+    ctx.restore();
+  }
+
   getCanvas(): HTMLCanvasElement {
     if (!this.compositeCanvas) {
       throw new Error('Renderer not initialized');

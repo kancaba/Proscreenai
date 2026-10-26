@@ -85,5 +85,12 @@
     "mute": "Sesi kapat",
     "unmute": "Sesi aç",
     "hint": "Videonun kendi sesi; dışa aktarmada da bu düzey kullanılır. Eklediğiniz ses dosyaları ayrı ayarlanır."
+  },
+  "fades": {
+    "title": "Giriş ve çıkış",
+    "in": "Başlangıç",
+    "out": "Bitiş",
+    "off": "Kapalı",
+    "hint": "Görüntü siyahtan açılır ve siyaha kapanır; ses de birlikte açılıp kapanır."
   }
 }
