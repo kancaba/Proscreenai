@@ -49,6 +49,12 @@ interface Window {
     modelionSaveKey: (key: string) => Promise<{ configured: boolean; persistent: boolean }>
     modelionClearKey: () => Promise<{ configured: boolean; persistent: boolean }>
     modelionGenerateCaptions: (input: { topic: string; tone: string; language: string; count: number; durationSeconds: number }) => Promise<string[]>
+    fishAudioKeyStatus: () => Promise<{ configured: boolean; persistent: boolean }>
+    fishAudioSaveKey: (key: string) => Promise<{ configured: boolean; persistent: boolean }>
+    fishAudioClearKey: () => Promise<{ configured: boolean; persistent: boolean }>
+    fishAudioSearchVoices: (input: { query: string; language: string; mine?: boolean }) => Promise<{ id: string; title: string; author: string; languages: string[]; likes: number; sample?: string }[]>
+    fishAudioGenerateSpeech: (input: { text: string; voiceId: string; model: 's2.1-pro-free' | 's2.1-pro' | 'drama-3'; requestId: string }) => Promise<{ path: string }>
+    fishAudioCancelSpeech: (requestId: string) => Promise<void>
     getSources: (opts: Electron.SourcesOptions) => Promise<ProcessedDesktopSource[]>
     showRecorder: () => Promise<void>
     autosaveProjectDraft: (project: unknown, projectPath?: string) => Promise<{ success: boolean; updatedAt?: string; message?: string }>

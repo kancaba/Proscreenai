@@ -35,6 +35,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   modelionSaveKey: (key: string) => ipcRenderer.invoke('modelion-save-key', key),
   modelionClearKey: () => ipcRenderer.invoke('modelion-clear-key'),
   modelionGenerateCaptions: (input: { topic: string; tone: string; language: string; count: number; durationSeconds: number }) => ipcRenderer.invoke('modelion-generate-captions', input),
+  fishAudioKeyStatus: () => ipcRenderer.invoke('fish-audio-key-status'),
+  fishAudioSaveKey: (key: string) => ipcRenderer.invoke('fish-audio-save-key', key),
+  fishAudioClearKey: () => ipcRenderer.invoke('fish-audio-clear-key'),
+  fishAudioSearchVoices: (input: { query: string; language: string; mine?: boolean }) => ipcRenderer.invoke('fish-audio-search-voices', input),
+  fishAudioGenerateSpeech: (input: { text: string; voiceId: string; model: string; requestId: string }) => ipcRenderer.invoke('fish-audio-generate-speech', input),
+  fishAudioCancelSpeech: (requestId: string) => ipcRenderer.invoke('fish-audio-cancel-speech', requestId),
     hudOverlayHide: () => {
       ipcRenderer.send('hud-overlay-hide');
     },

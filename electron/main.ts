@@ -9,6 +9,7 @@ import { isAllowedExternalUrl } from './ipcValidation'
 import { registerGeminiKeys } from './geminiKeys'
 import { registerImageStudioHandlers } from './imageStudio'
 import { registerModelionHandlers } from './modelion'
+import { registerFishAudioHandlers } from './fishAudio'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -60,6 +61,7 @@ let afterEditorClose: (() => void) | null = null
 const hasSingleInstanceLock = app.requestSingleInstanceLock()
 
 registerModelionHandlers()
+registerFishAudioHandlers()
 registerImageStudioHandlers()
 registerGeminiKeys()
 
