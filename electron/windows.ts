@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, type MenuItemConstructorOptions } from 'electron'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -50,6 +50,27 @@ export function setHudRecordingState(recording: boolean) {
 function getScreen() {
   return nodeRequire('electron').screen as typeof import('electron').screen
 }
+
+// The recorder bar's window is too short for dropdowns, so its menus are native popups.
+type HudMenuItem = { id?: string; label?: string; type?: 'separator' | 'radio'; checked?: boolean; submenu?: HudMenuItem[] }
+function hudMenuTemplate(items: unknown, depth: number, choose: (id: string) => void): MenuItemConstructorOptions[] {
+  if (!Array.isArray(items) || depth > 2) return []
+  return items.slice(0, 20).flatMap((raw): MenuItemConstructorOptions[] => {
+    const item = (typeof raw === 'object' && raw !== null ? raw : {}) as HudMenuItem
+    if (item.type === 'separator') return [{ type: 'separator' }]
+    const label = typeof item.label === 'string' ? item.label.slice(0, 80) : ''
+    if (!label) return []
+    if (Array.isArray(item.submenu)) return [{ label, submenu: hudMenuTemplate(item.submenu, depth + 1, choose) }]
+    const id = typeof item.id === 'string' ? item.id.slice(0, 64) : ''
+    if (!id) return []
+    return [{ label, type: item.type === 'radio' ? 'radio' : 'normal', checked: item.checked === true, click: () => choose(id) }]
+  })
+}
+ipcMain.handle('hud-show-menu', (event, items: unknown) => new Promise<string | null>((resolve) => {
+  let chosen: string | null = null
+  const menu = Menu.buildFromTemplate(hudMenuTemplate(items, 0, (id) => { chosen = id }))
+  menu.popup({ window: BrowserWindow.fromWebContents(event.sender) ?? undefined, callback: () => resolve(chosen) })
+}))
 
 ipcMain.on('hud-overlay-hide', () => {
   if (hudOverlayWindow && !hudOverlayWindow.isDestroyed()) {

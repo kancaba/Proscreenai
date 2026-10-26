@@ -2,10 +2,6 @@
   -webkit-app-region: drag;
 }
 
-.hudBar {
-  isolation: isolate;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
-}
 
 .electronNoDrag {
   -webkit-app-region: no-drag;
@@ -51,14 +47,14 @@
 }
 
 .compactContainer { display:flex;align-items:center;justify-content:center;height:100%;padding:6px; }
-.compactBar { display:flex;align-items:center;gap:9px;padding:8px 10px;background:rgba(24,23,29,.98);border:1px solid rgba(255,255,255,.12);border-radius:14px;box-shadow:0 3px 12px #0003;height:44px; }
+.compactBar { display:flex;align-items:center;gap:9px;padding:8px 10px 8px 12px;background:linear-gradient(180deg,rgba(32,28,46,.97),rgba(18,16,28,.97));border:1px solid rgba(199,185,255,.18);border-radius:999px;box-shadow:0 5px 14px rgba(6,3,18,.32);height:46px; }
 .recordingLight { width:6px;height:6px;background:#fb7185;border-radius:50%;box-shadow:0 0 8px #fb718530;flex-shrink:0; }
 .recordingTime { color:#eeeaf4;font-size:12px;font-weight:550;font-variant-numeric:tabular-nums;min-width:39px; }
-.compactStop { display:grid;place-items:center;width:26px;height:26px;background:#fb71851a;border:1px solid #fb71852b;color:#fda4af;border-radius:7px;cursor:pointer; }
+.compactStop { display:grid;place-items:center;width:30px;height:30px;background:#fb71851f;border:1px solid #fb718533;color:#fda4af;border-radius:999px;cursor:pointer; }
 .compactStop:hover { background:#fb718536; }
 .compactStop:focus-visible { outline:2px solid #fda4af;outline-offset:2px; }
 
-.compactPause { display:grid;place-items:center;width:28px;height:28px;background:#ffffff0a;border:1px solid #ffffff15;color:#d9d2ed;border-radius:7px;cursor:pointer;flex-shrink:0; }
+.compactPause { display:grid;place-items:center;width:30px;height:30px;background:#ffffff0a;border:1px solid #ffffff15;color:#d9d2ed;border-radius:999px;cursor:pointer;flex-shrink:0; }
 .compactPause:hover { background:#c7b9ff22; }
 .compactPause[aria-pressed="true"] { color:#fbbf24;background:#fbbf2412;border-color:#fbbf2433; }
 .compactPause:focus-visible { outline:2px solid #c7b9ff;outline-offset:2px; }
@@ -71,3 +67,43 @@
 .spinner { animation:hud-spin 1s linear infinite;flex-shrink:0; }
 @keyframes hud-spin { to { transform:rotate(360deg); } }
 @media(prefers-reduced-motion:reduce) { .spinner { animation:none; } }
+
+/* Recorder bar: one rounded bar that fits the window, brand lavender accents, quiet secondary actions. */
+.hudRoot { width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;padding:0 22px 16px;overflow:hidden;background:transparent; }
+
+.subPill { display:flex;align-items:center;gap:6px;max-width:100%;padding:4px 6px 4px 10px;border-radius:999px;background:rgba(20,18,30,.86);border:1px solid rgba(199,185,255,.14);box-shadow:0 3px 10px rgba(5,2,15,.22);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:#b9b0cc;font-size:11px; }
+.subLabel { color:#8f86a6;font-size:10px;letter-spacing:.02em; }
+.subIcon { color:#c7b9ff;flex-shrink:0; }
+.subSelect { color-scheme:dark;max-width:200px;border:0;border-radius:999px;background:rgba(255,255,255,.06);color:#ece8f6;padding:3px 8px;font-size:11px;outline:none;cursor:pointer; }
+.subSelect:hover:not(:disabled) { background:rgba(199,185,255,.14); }
+.subSelect:focus-visible { box-shadow:0 0 0 2px rgba(199,185,255,.55); }
+.subSelect:disabled { opacity:.5;cursor:default; }
+.permissionChip { display:flex;align-items:center;gap:4px;border-radius:999px;background:rgba(251,191,36,.12);color:#fcd783;padding:3px 8px;font-size:10px;cursor:pointer; }
+.permissionChip:hover { background:rgba(251,191,36,.22); }
+.permissionAction { font-weight:600;text-decoration:underline;text-underline-offset:2px; }
+
+.bar { display:flex;align-items:center;gap:6px;width:100%;max-width:616px;height:54px;padding:0 8px 0 10px;border-radius:999px;background:linear-gradient(180deg,rgba(32,28,46,.96),rgba(18,16,28,.96));border:1px solid rgba(199,185,255,.18);box-shadow:0 6px 14px rgba(6,3,18,.32),inset 0 1px 0 rgba(255,255,255,.06);backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);isolation:isolate; }
+.grip { color:rgba(255,255,255,.28);flex-shrink:0; }
+.group { display:flex;align-items:center;gap:2px;min-width:0; }
+.divider { width:1px;height:22px;background:rgba(255,255,255,.1);margin:0 4px;flex-shrink:0; }
+
+.chip, .toggle, .iconButton { display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;border-radius:999px;border:0;background:transparent;color:#cfc8df;font-size:12px;cursor:pointer;transition:background .15s,color .15s;white-space:nowrap; }
+.chip { padding:0 10px;min-width:0; }
+.chip:hover:not(:disabled), .toggle:hover:not(:disabled), .iconButton:hover:not(:disabled) { background:rgba(255,255,255,.07);color:#fff; }
+.chip:focus-visible, .toggle:focus-visible, .iconButton:focus-visible, .recordButton:focus-visible { outline:2px solid rgba(199,185,255,.7);outline-offset:1px; }
+.chip:disabled, .toggle:disabled, .iconButton:disabled { opacity:.45;cursor:default; }
+.chipSelected { background:rgba(199,185,255,.12);color:#efeaff; }
+.chipText { max-width:118px;overflow:hidden;text-overflow:ellipsis; }
+
+.toggle { width:34px;color:rgba(255,255,255,.4); }
+.toggle[aria-pressed="true"] { background:rgba(199,185,255,.16);color:#d9ceff; }
+
+.iconButton { width:30px;height:30px;color:rgba(255,255,255,.55); }
+.closeButton:hover:not(:disabled) { background:rgba(251,113,133,.16);color:#fda4af; }
+
+.recordButton { display:inline-flex;align-items:center;gap:8px;height:38px;margin-left:auto;padding:0 16px 0 13px;border:0;border-radius:999px;background:linear-gradient(135deg,#c9b8ff 0%,#f2b3cf 100%);color:#1b1327;font-size:13px;font-weight:650;cursor:pointer;box-shadow:0 6px 18px rgba(201,184,255,.28);transition:transform .12s,box-shadow .15s,filter .15s;flex-shrink:0; }
+.recordButton:hover:not(:disabled) { filter:brightness(1.05);box-shadow:0 8px 22px rgba(242,179,207,.38); }
+.recordButton:active:not(:disabled) { transform:scale(.97); }
+.recordButton:disabled { background:rgba(255,255,255,.08);color:rgba(255,255,255,.4);box-shadow:none;cursor:default; }
+.recordDot { width:10px;height:10px;border-radius:50%;background:#ef4462;box-shadow:0 0 0 3px rgba(239,68,98,.2);flex-shrink:0; }
+.recordButton:disabled .recordDot { background:rgba(255,255,255,.35);box-shadow:none; }

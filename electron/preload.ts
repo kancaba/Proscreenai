@@ -48,6 +48,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   elevenLabsSearchVoices: (input: { query: string; mine?: boolean }) => ipcRenderer.invoke('elevenlabs-search-voices', input),
   elevenLabsGenerateSpeech: (input: { text: string; voiceId: string; model: string; language: string; requestId: string }) => ipcRenderer.invoke('elevenlabs-generate-speech', input),
   elevenLabsCancelSpeech: (requestId: string) => ipcRenderer.invoke('elevenlabs-cancel-speech', requestId),
+    showHudMenu: (items: unknown) => ipcRenderer.invoke('hud-show-menu', items),
     hudOverlayHide: () => {
       ipcRenderer.send('hud-overlay-hide');
     },

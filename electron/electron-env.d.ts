@@ -139,6 +139,8 @@ interface Window {
     chooseRecordingsDirectory: () => Promise<{ success: boolean; canceled?: boolean; path?: string; isDefault?: boolean; message?: string; error?: string }>
     getShortcuts: () => Promise<Record<string, unknown> | null>
     saveShortcuts: (shortcuts: unknown) => Promise<{ success: boolean; error?: string }>
+    /** Shows a native popup menu for the recorder bar and resolves with the chosen item's id (null when dismissed). */
+    showHudMenu: (items: Array<{ id?: string; label: string; type?: 'separator' | 'radio'; checked?: boolean; submenu?: Array<{ id?: string; label: string; type?: 'separator' | 'radio'; checked?: boolean }> } | { type: 'separator'; label?: string }>) => Promise<string | null>;
     hudOverlayHide: () => void;
     hudOverlayClose: () => void;
     setHasUnsavedChanges: (hasChanges: boolean) => void
