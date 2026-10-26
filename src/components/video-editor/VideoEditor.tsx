@@ -89,6 +89,7 @@ import { RegionInspector } from './RegionInspector';
 import { DEFAULT_ZOOM_SPAN_MS, findAvailableSpan, validRegionSpan, type TimeSpan } from './editingTools';
 import { KIND_ALLOWS_OVERLAP, nudgeRegion, placeCopy, type RegionCommand, type RegionKind, type RegionTarget, splitRegion, type TimedRegion } from './timeline/regionCommands';
 import { getAnnotationText } from './annotationText';
+import { applyAudioSpanChange, audioFileOffsetSeconds } from './audioRegionSpan';
 import type { EditorAppearance } from './appearancePresets';
 
 const LOOP_CURSOR_END_WINDOW_MS = 670;
@@ -1294,7 +1295,7 @@ export default function VideoEditor() {
     }
   }, []);
 
-  const handleAudioAdded = useCallback((span: Span, audioPath: string) => {
+  const handleAudioAdded = useCallback((span: Span, audioPath: string, sourceDurationMs?: number) => {
     const id = `audio-${nextAudioIdRef.current++}`;
     const newRegion: AudioRegion = {
       id,
@@ -1302,6 +1303,7 @@ export default function VideoEditor() {
       endMs: Math.round(span.end),
       audioPath,
       volume: 1,
+      ...(sourceDurationMs && sourceDurationMs > 0 ? { sourceDurationMs: Math.round(sourceDurationMs) } : {}),
     };
     setAudioRegions((prev) => [...prev, newRegion]);
     setSelectedAudioId(id);
@@ -1312,17 +1314,7 @@ export default function VideoEditor() {
   }, []);
 
   const handleAudioSpanChange = useCallback((id: string, span: Span) => {
-    setAudioRegions((prev) =>
-      prev.map((region) =>
-        region.id === id
-          ? {
-              ...region,
-              startMs: Math.round(span.start),
-              endMs: Math.round(span.end),
-            }
-          : region,
-      ),
-    );
+    setAudioRegions((prev) => prev.map((region) => (region.id === id ? applyAudioSpanChange(region, span) : region)));
   }, []);
 
   const handleAudioDelete = useCallback((id: string) => {
@@ -1819,7 +1811,7 @@ export default function VideoEditor() {
 
       if (isPlaying && isInRegion) {
         audio.playbackRate = videoPlaybackRef.current?.video?.playbackRate ?? 1;
-        const audioOffset = (currentTimeMs - region.startMs) / 1000;
+        const audioOffset = audioFileOffsetSeconds(region, currentTimeMs);
         // Only seek if significantly out of sync (> 200ms)
         if (Math.abs(audio.currentTime - audioOffset) > 0.2) {
           audio.currentTime = audioOffset;
@@ -2441,7 +2433,7 @@ export default function VideoEditor() {
               selectedSpeedId={selectedSpeedId}
               onSelectSpeed={handleSelectSpeed}
               audioRegions={timelineAudio}
-              onAudioAdded={(span, audioPath) => handleAudioAdded(fromTimeline(span), audioPath)}
+              onAudioAdded={(span, audioPath, sourceDurationMs) => handleAudioAdded(fromTimeline(span), audioPath, sourceDurationMs)}
               onAudioSpanChange={(id, span) => handleAudioSpanChange(id, fromTimeline(span))}
               onAudioDelete={handleAudioDelete}
               selectedAudioId={selectedAudioId}
@@ -2585,7 +2577,7 @@ export default function VideoEditor() {
       </Dialog>
       <VoiceoverPanel open={voiceoverOpen} onOpenChange={setVoiceoverOpen} initialText={voiceoverText}
         onSettings={() => { setVoiceoverOpen(false); setAiSettingsOpen(true); }} remainingSeconds={Math.max(0, duration-currentTime)}
-        onAdd={(path, seconds) => { const start = Math.min(currentTime, Math.max(0,duration-.1)); handleAudioAdded({start:Math.round(start*1000),end:Math.round(Math.min(duration,start+seconds)*1000)},path); }} />
+        onAdd={(path, seconds) => { const start = Math.min(currentTime, Math.max(0,duration-.1)); handleAudioAdded({start:Math.round(start*1000),end:Math.round(Math.min(duration,start+seconds)*1000)},path,seconds*1000); }} />
       <ExportSetupDialog open={exportSetupOpen} onOpenChange={setExportSetupOpen} onStart={() => { setExportSetupOpen(false); handleStartExport(); }}
         selected={wallpaper} onWallpaperChange={setWallpaper} aspectRatio={aspectRatio} videoElement={videoPlaybackRef.current?.video}
         exportFormat={exportFormat} onExportFormatChange={setExportFormat} exportQuality={exportQuality} onExportQualityChange={value => { setExportQuality(value); if (exportResolution === 'legacy') setExportResolution('source'); }}

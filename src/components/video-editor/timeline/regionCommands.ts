@@ -37,10 +37,12 @@ const overlaps = (a: TimedRegion, b: TimedRegion) => a.startMs < b.endMs && a.en
 export function splitRegion<T extends TimedRegion>(region: T, atMs: number, newId: string): [T, T] | null {
   const at = Math.round(atMs);
   if (at - region.startMs < MIN_REGION_PIECE_MS || region.endMs - at < MIN_REGION_PIECE_MS) return null;
-  return [
-    { ...region, endMs: at },
-    { ...structuredClone(region), id: newId, startMs: at },
-  ];
+  const second = { ...structuredClone(region), id: newId, startMs: at };
+  // An audio clip's second piece continues the sound from where the first stops.
+  if ("audioPath" in second) {
+    (second as T & { sourceStartMs?: number }).sourceStartMs = ((region as T & { sourceStartMs?: number }).sourceStartMs ?? 0) + (at - region.startMs);
+  }
+  return [{ ...region, endMs: at }, second];
 }
 
 /**

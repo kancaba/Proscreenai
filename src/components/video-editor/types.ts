@@ -173,6 +173,10 @@ export interface AudioRegion {
   endMs: number;
   audioPath: string;
   volume: number;
+  /** Where in the audio file the clip starts; trimming the clip's left edge moves this. Defaults to 0. */
+  sourceStartMs?: number;
+  /** Full length of the audio file, when known, so a clip cannot extend past the file's end. */
+  sourceDurationMs?: number;
 }
 
 export type PlaybackSpeed = 0.25 | 0.5 | 0.75 | 1.25 | 1.5 | 1.75 | 2;

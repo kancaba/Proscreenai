@@ -4,6 +4,13 @@ import { nudgeRegion, placeCopy, splitRegion } from "./regionCommands";
 const zoom = { id: "zoom-1", startMs: 1000, endMs: 3000, depth: 3, focus: { cx: 0.2, cy: 0.3 } };
 
 describe("region commands", () => {
+  it("splitting an audio clip continues the sound in the second piece", () => {
+    const audio = { id: "audio-1", startMs: 1000, endMs: 9000, audioPath: "/tmp/voice.mp3", volume: 1, sourceStartMs: 500 };
+    const parts = splitRegion(audio, 4000, "audio-2");
+    expect(parts?.[0]).toMatchObject({ startMs: 1000, endMs: 4000, sourceStartMs: 500 });
+    expect(parts?.[1]).toMatchObject({ id: "audio-2", startMs: 4000, endMs: 9000, sourceStartMs: 3500 });
+  });
+
   it("splits at the playhead into two adjoining regions with the same settings", () => {
     const parts = splitRegion(zoom, 2000, "zoom-2");
     expect(parts).toEqual([

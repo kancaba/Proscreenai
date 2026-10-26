@@ -17,12 +17,14 @@ function ApiKeyCard({ open, tr, name, detail, inputId, minLength, api, onPersist
 }
 const modelionApi: KeyApi = { status: () => window.electronAPI.modelionKeyStatus(), save: key => window.electronAPI.modelionSaveKey(key), clear: () => window.electronAPI.modelionClearKey() }
 const fishAudioApi: KeyApi = { status: () => window.electronAPI.fishAudioKeyStatus(), save: key => window.electronAPI.fishAudioSaveKey(key), clear: () => window.electronAPI.fishAudioClearKey() }
+const elevenLabsApi: KeyApi = { status: () => window.electronAPI.elevenLabsKeyStatus(), save: key => window.electronAPI.elevenLabsSaveKey(key), clear: () => window.electronAPI.elevenLabsClearKey() }
 export function ModelionSettings({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const { locale } = useI18n(); const tr = locale === 'tr'
   const [persistent, setPersistent] = useState(true)
   return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-w-lg border-white/10 bg-[#15151c] text-white"><DialogHeader><DialogTitle>{tr ? 'AI bağlantısı' : 'AI connection'}</DialogTitle><DialogDescription>{tr ? 'Metin üretimi ve seslendirme sağlayıcıları' : 'Text generation and voiceover providers'}</DialogDescription></DialogHeader>
     <ApiKeyCard open={open} tr={tr} name="Modelion" detail={tr ? 'Metin üretimi ve Ema Lightning seslendirme' : 'Text generation and Ema Lightning speech'} inputId="modelion-key" minLength={12} api={modelionApi} onPersistent={setPersistent} />
     <ApiKeyCard open={open} tr={tr} name="Fish Audio" detail={tr ? 'Seslendirme · anahtarı fish.audio hesabınızdaki API Keys sayfasından oluşturun' : 'Voiceover · create a key on the API Keys page of your fish.audio account'} inputId="fish-audio-key" minLength={16} api={fishAudioApi} onPersistent={setPersistent} />
+    <ApiKeyCard open={open} tr={tr} name="ElevenLabs" detail={tr ? 'Seslendirme · anahtarı elevenlabs.io › Settings › API Keys sayfasından oluşturun' : 'Voiceover · create a key at elevenlabs.io › Settings › API Keys'} inputId="elevenlabs-key" minLength={20} api={elevenLabsApi} onPersistent={setPersistent} />
     <p className="text-xs leading-relaxed text-slate-400">{persistent ? (tr ? 'Anahtarlar bu cihazda şifrelenerek saklanır; projeye ve video dosyasına eklenmez.' : 'Keys are encrypted on this device and are never included in projects or videos.') : (tr ? 'Güvenli saklama kullanılamıyor. Anahtarlar yalnızca bu oturumda tutulur.' : 'Secure storage unavailable. Keys last for this session only.')}</p>
   </DialogContent></Dialog>
 }

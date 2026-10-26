@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   modelionCancelSpeech: (requestId: string) => ipcRenderer.invoke('modelion-cancel-speech', requestId),
   transcribeVideo: (input: { videoPath: string; language: string; requestId: string }) => ipcRenderer.invoke('transcribe-video', input),
   cancelTranscription: (requestId: string) => ipcRenderer.invoke('cancel-transcription', requestId),
+  getAudioWaveform: (audioPath: string) => ipcRenderer.invoke('audio-waveform', audioPath),
   agentDetectTools: (force?: boolean) => ipcRenderer.invoke('agent-detect-tools', force === true),
   agentStart: (input: unknown) => ipcRenderer.invoke('agent-start', input),
   agentCancel: (runId: string) => ipcRenderer.invoke('agent-cancel', runId),
@@ -41,6 +42,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   fishAudioSearchVoices: (input: { query: string; language: string; mine?: boolean }) => ipcRenderer.invoke('fish-audio-search-voices', input),
   fishAudioGenerateSpeech: (input: { text: string; voiceId: string; model: string; requestId: string }) => ipcRenderer.invoke('fish-audio-generate-speech', input),
   fishAudioCancelSpeech: (requestId: string) => ipcRenderer.invoke('fish-audio-cancel-speech', requestId),
+  elevenLabsKeyStatus: () => ipcRenderer.invoke('elevenlabs-key-status'),
+  elevenLabsSaveKey: (key: string) => ipcRenderer.invoke('elevenlabs-save-key', key),
+  elevenLabsClearKey: () => ipcRenderer.invoke('elevenlabs-clear-key'),
+  elevenLabsSearchVoices: (input: { query: string; mine?: boolean }) => ipcRenderer.invoke('elevenlabs-search-voices', input),
+  elevenLabsGenerateSpeech: (input: { text: string; voiceId: string; model: string; language: string; requestId: string }) => ipcRenderer.invoke('elevenlabs-generate-speech', input),
+  elevenLabsCancelSpeech: (requestId: string) => ipcRenderer.invoke('elevenlabs-cancel-speech', requestId),
     hudOverlayHide: () => {
       ipcRenderer.send('hud-overlay-hide');
     },

@@ -74,7 +74,7 @@ interface TimelineEditorProps {
   selectedSpeedId?: string | null;
   onSelectSpeed?: (id: string | null) => void;
   audioRegions?: AudioRegion[];
-  onAudioAdded?: (span: Span, audioPath: string) => void;
+  onAudioAdded?: (span: Span, audioPath: string, sourceDurationMs?: number) => void;
   onAudioSpanChange?: (id: string, span: Span) => void;
   onAudioDelete?: (id: string) => void;
   selectedAudioId?: string | null;
@@ -117,6 +117,7 @@ interface TimelineRenderItem {
   zoomDepth?: number;
   speedValue?: number;
   variant: 'zoom' | 'trim' | 'annotation' | 'speed' | 'audio';
+  waveform?: { audioPath: string; offsetMs: number };
 }
 
 const SCALE_CANDIDATES = [
@@ -656,6 +657,7 @@ function Timeline({
             onSelect={() => onSelectAudio?.(item.id)}
 						onContextMenu={(event) => onItemContextMenu?.({ kind: 'audio', id: item.id }, event)}
             variant="audio" lane={audioLayout.lanes.get(item.id)}
+            waveform={item.waveform}
           >
             {item.label}
           </Item>
@@ -1180,7 +1182,7 @@ export default function TimelineEditor({
 
     const startPos = Math.max(0, Math.min(currentTimeMs, totalMs));
     const actualDuration = Math.min(audioDurationMs, totalMs - startPos);
-    if (actualDuration > 0) onAudioAdded({ start: startPos, end: startPos + actualDuration }, result.path);
+    if (actualDuration > 0) onAudioAdded({ start: startPos, end: startPos + actualDuration }, result.path, audioDurationMs);
   }, [videoDuration, totalMs, currentTimeMs, audioRegions, onAudioAdded]);
 
   const handleAddAnnotation = useCallback(() => {
@@ -1348,6 +1350,7 @@ export default function TimelineEditor({
         span: { start: region.startMs, end: region.endMs },
         label: fileName,
         variant: 'audio',
+        waveform: { audioPath: region.audioPath, offsetMs: region.sourceStartMs ?? 0 },
       };
     });
 

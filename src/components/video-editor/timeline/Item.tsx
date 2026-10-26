@@ -3,6 +3,7 @@ import { useItem } from "dnd-timeline";
 import { Gauge, MessageSquare, Music, Scissors, ZoomIn } from "lucide-react";
 import { useEffect, useRef, useMemo } from "react";
 import { cn } from "@/lib/utils";
+import { AudioWaveform } from "./AudioWaveform";
 import glassStyles from "./ItemGlass.module.css";
 
 interface ItemProps {
@@ -17,6 +18,8 @@ interface ItemProps {
   zoomDepth?: number;
   speedValue?: number;
   variant?: 'zoom' | 'trim' | 'annotation' | 'speed' | 'audio';
+  /** Audio clips: the file and where in it the clip starts, for the waveform. */
+  waveform?: { audioPath: string; offsetMs: number };
 }
 
 // Map zoom depth to multiplier labels
@@ -50,6 +53,7 @@ export default function Item({
 	zoomDepth = 1,
 	speedValue,
 	variant = "zoom",
+	waveform,
 	children,
 }: ItemProps) {
 	const { setNodeRef, attributes, listeners, itemStyle, itemContentStyle } = useItem({
@@ -131,6 +135,7 @@ export default function Item({
             style={{ cursor: 'col-resize', pointerEvents: 'auto', width: 8, opacity: 0.9, background: endCapColor }}
             title="Resize right"
           />
+          {isAudio && waveform && <AudioWaveform audioPath={waveform.audioPath} offsetMs={waveform.offsetMs} lengthMs={span.end - span.start} />}
           {/* Content */}
           <div className="relative z-10 flex flex-col items-center justify-center text-white/90 opacity-80 group-hover:opacity-100 transition-opacity select-none overflow-hidden">
             <div className="flex items-center gap-1.5">

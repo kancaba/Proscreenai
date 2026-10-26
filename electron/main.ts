@@ -10,6 +10,7 @@ import { registerGeminiKeys } from './geminiKeys'
 import { registerImageStudioHandlers } from './imageStudio'
 import { registerModelionHandlers } from './modelion'
 import { registerFishAudioHandlers } from './fishAudio'
+import { registerElevenLabsHandlers } from './elevenLabs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -62,6 +63,7 @@ const hasSingleInstanceLock = app.requestSingleInstanceLock()
 
 registerModelionHandlers()
 registerFishAudioHandlers()
+registerElevenLabsHandlers()
 registerImageStudioHandlers()
 registerGeminiKeys()
 

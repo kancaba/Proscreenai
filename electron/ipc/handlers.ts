@@ -18,6 +18,7 @@ import { randomUUID } from 'node:crypto'
 import { ProjectLibrary } from '../projectLibrary'
 import { writeExportFile } from '../exportFile'
 import { registerTranscriptionHandlers } from '../transcription'
+import { registerAudioWaveformHandlers } from '../audioWaveform'
 import { registerAgentHandlers } from '../agents/agentManager'
 import { isAllowedExternalUrl, resolveReadableMediaPath, resolveRecordingFilePath } from '../ipcValidation'
 import { createCountdownWindow, getCountdownWindow, closeCountdownWindow, setHudRecordingState, createRegionSelectorWindow } from '../windows'
@@ -1560,6 +1561,7 @@ export function registerIpcHandlers(
     ),
   }
   registerTranscriptionHandlers(transcriptionDeps)
+  registerAudioWaveformHandlers(getFfmpegBinaryPath)
   registerAgentHandlers(transcriptionDeps)
 
   ipcMain.handle('get-sources', async (_, opts) => {

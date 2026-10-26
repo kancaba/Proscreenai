@@ -1,6 +1,7 @@
 import { WebDemuxer } from 'web-demuxer'
 import type { SpeedRegion, TrimRegion, AudioRegion } from '@/components/video-editor/types'
 import { toFileUrl } from '@/components/video-editor/projectPersistence'
+import { audioFileOffsetSeconds } from '@/components/video-editor/audioRegionSpan'
 import type { VideoMuxer } from './muxer'
 
 const AUDIO_BITRATE = 128_000
@@ -297,7 +298,7 @@ export class AudioProcessor {
             const isInRegion = currentTimeMs >= region.startMs && currentTimeMs < region.endMs
 
             if (isInRegion) {
-              const audioOffset = (currentTimeMs - region.startMs) / 1000
+              const audioOffset = audioFileOffsetSeconds(region, currentTimeMs)
               if (audioEl.paused) {
                 audioEl.currentTime = audioOffset
                 audioEl.play().catch(() => {})

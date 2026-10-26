@@ -40,6 +40,7 @@ interface Window {
       | { success: false; code: 'unsupported-platform' | 'unsupported-os' | 'unsupported-locale' | 'assets-unavailable' | 'no-audio' | 'no-speech' | 'too-long' | 'cancelled' | 'failed'; message: string }
     >
     cancelTranscription: (requestId: string) => Promise<void>
+    getAudioWaveform: (audioPath: string) => Promise<{ durationMs: number; peaksPerSecond: number; peaks: number[] }>
     agentDetectTools: (force?: boolean) => Promise<import('../src/lib/agent/agentApi').AgentToolInfo[]>
     agentStart: (input: import('../src/lib/agent/agentApi').AgentStartInput) => Promise<{ success: true; runId: string } | { success: false; code: string; message: string }>
     agentCancel: (runId: string) => Promise<void>
@@ -55,6 +56,12 @@ interface Window {
     fishAudioSearchVoices: (input: { query: string; language: string; mine?: boolean }) => Promise<{ id: string; title: string; author: string; languages: string[]; likes: number; sample?: string }[]>
     fishAudioGenerateSpeech: (input: { text: string; voiceId: string; model: 's2.1-pro-free' | 's2.1-pro' | 'drama-3'; requestId: string }) => Promise<{ path: string }>
     fishAudioCancelSpeech: (requestId: string) => Promise<void>
+    elevenLabsKeyStatus: () => Promise<{ configured: boolean; persistent: boolean }>
+    elevenLabsSaveKey: (key: string) => Promise<{ configured: boolean; persistent: boolean }>
+    elevenLabsClearKey: () => Promise<{ configured: boolean; persistent: boolean }>
+    elevenLabsSearchVoices: (input: { query: string; mine?: boolean }) => Promise<{ id: string; title: string; author: string; languages: string[]; likes: number; sample?: string }[]>
+    elevenLabsGenerateSpeech: (input: { text: string; voiceId: string; model: 'eleven_v4' | 'eleven_flash_v2_5' | 'eleven_multilingual_v2'; language: string; requestId: string }) => Promise<{ path: string }>
+    elevenLabsCancelSpeech: (requestId: string) => Promise<void>
     getSources: (opts: Electron.SourcesOptions) => Promise<ProcessedDesktopSource[]>
     showRecorder: () => Promise<void>
     autosaveProjectDraft: (project: unknown, projectPath?: string) => Promise<{ success: boolean; updatedAt?: string; message?: string }>
