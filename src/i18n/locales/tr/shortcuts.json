@@ -2,7 +2,7 @@
   "actions": {
     "addZoom": "Zoom ekle",
     "addTrim": "Kes (seçiliyi imleçte böl / kesme ekle)",
-    "addSpeed": "Hız ekle",
+    "addSpeed": "Parçanın hızı",
     "addAnnotation": "Anotasyon ekle",
     "addKeyframe": "Anahtar kare ekle",
     "deleteSelected": "Seçileni sil",

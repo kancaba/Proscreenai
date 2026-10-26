@@ -3,11 +3,13 @@ import { Trash2 } from 'lucide-react'
 import { useI18n } from '@/contexts/I18nContext'
 import type { TimeSpan } from './editingTools'
 
-export function RegionInspector({ region, label, onChange, onDelete }: {
+export function RegionInspector({ region, label, onChange, onDelete, children }: {
   region: TimeSpan
   label: string
   onChange: (span: TimeSpan) => boolean
   onDelete: () => void
+  /** Kind-specific controls shown under the timing, e.g. an audio clip's volume and track. */
+  children?: React.ReactNode
 }) {
   const { locale } = useI18n()
   const tr = locale === 'tr'
@@ -29,6 +31,7 @@ export function RegionInspector({ region, label, onChange, onDelete }: {
         {invalid && <p role="alert" className="mt-2 text-[10px] text-red-300">{tr ? 'Video sınırları içinde, çakışmayan en az 0,1 sn seçin.' : 'Choose at least 0.1 sec within the video, without overlaps.'}</p>}
         <div className="mt-2 flex items-center justify-between"><span className="text-[10px] text-slate-500">{((region.endMs - region.startMs) / 1000).toFixed(2)} {tr ? 'saniye' : 'seconds'}</span><button type="submit" className="rounded bg-violet-300/15 px-2 py-1 text-[10px] text-violet-200 hover:bg-violet-300/25">{tr ? 'Uygula' : 'Apply'}</button></div>
       </form>
+      {children}
     </section>
   )
 }

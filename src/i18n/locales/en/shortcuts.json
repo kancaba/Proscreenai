@@ -2,7 +2,7 @@
 	"actions": {
 		"addZoom": "Add Zoom",
 		"addTrim": "Cut (split selected at playhead / add cut)",
-		"addSpeed": "Add Speed",
+		"addSpeed": "Part speed",
 		"addAnnotation": "Add Annotation",
 		"addKeyframe": "Add Keyframe",
 		"deleteSelected": "Delete Selected",

@@ -177,6 +177,8 @@ export interface AudioRegion {
   sourceStartMs?: number;
   /** Full length of the audio file, when known, so a clip cannot extend past the file's end. */
   sourceDurationMs?: number;
+  /** Audio track the clip sits on: 0 is A1, 1 is A2 and so on. Defaults to 0. */
+  track?: number;
 }
 
 export type PlaybackSpeed = 0.25 | 0.5 | 0.75 | 1.25 | 1.5 | 1.75 | 2;

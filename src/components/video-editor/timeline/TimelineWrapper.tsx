@@ -17,15 +17,19 @@ interface TimelineWrapperProps {
   children: ReactNode;
   range: Range;
   videoDuration: number;
-  hasOverlap: (newSpan: Span, excludeId?: string) => boolean;
+  /** Whether a span would collide with items on `rowId` (the row it was dropped on; defaults to its own row). */
+  hasOverlap: (newSpan: Span, excludeId?: string, rowId?: string) => boolean;
   onRangeChange: Dispatch<SetStateAction<Range>>;
   minItemDurationMs: number;
   minVisibleRangeMs: number;
   gridSizeMs?: number;
-  onItemSpanChange: (id: string, span: Span) => void;
+  /** `rowId` is the row the item was dropped on (items may move between audio tracks). */
+  onItemSpanChange: (id: string, span: Span, rowId?: string) => void;
   allRegionSpans?: { id: string; rowId: string; start: number; end: number }[];
   /** Playhead position, a snap target for dragged items. */
   playheadMs?: number;
+  /** Further snap targets, such as the cut points of the video. */
+  snapTimes?: number[];
   /** Current pixel scale of the timeline, published by the timeline body each render. */
   snapScaleRef?: MutableRefObject<TimelineSnapScale>;
 }
@@ -48,6 +52,7 @@ export default function TimelineWrapper({
   onItemSpanChange,
   allRegionSpans = [],
   playheadMs = 0,
+  snapTimes = [],
   snapScaleRef,
 }: TimelineWrapperProps) {
   const totalMs = Math.max(0, Math.round(videoDuration * 1000));
@@ -100,7 +105,7 @@ export default function TimelineWrapper({
         showGuide(null);
         return span;
       }
-      const targets = collectSnapTargets(allRegionSpans, itemId, playheadMs, totalMs);
+      const targets = [...collectSnapTargets(allRegionSpans, itemId, playheadMs, totalMs), ...snapTimes];
       const threshold = SNAP_DISTANCE_PX * scale.msPerPx;
       const original = allRegionSpans.find((region) => region.id === itemId);
       const result = mode === "move" || !original
@@ -109,7 +114,7 @@ export default function TimelineWrapper({
       showGuide(result.snapTo);
       return result.span;
     },
-    [allRegionSpans, minItemDurationMs, playheadMs, showGuide, snapScaleRef, totalMs],
+    [allRegionSpans, minItemDurationMs, playheadMs, showGuide, snapScaleRef, snapTimes, totalMs],
   );
 
   const clampSpanToBounds = useCallback(
@@ -170,8 +175,8 @@ export default function TimelineWrapper({
 
   // When a span overlaps neighbours, clamp it to the nearest boundary
   const clampToNeighbours = useCallback(
-    (span: Span, activeItemId: string): Span => {
-      const siblings = trackNeighbours(allRegionSpans, activeItemId);
+    (span: Span, activeItemId: string, rowId?: string): Span => {
+      const siblings = trackNeighbours(allRegionSpans, activeItemId, rowId);
       let { start, end } = span;
 
       for (const r of siblings) {
@@ -244,15 +249,15 @@ export default function TimelineWrapper({
       showGuide(null);
       let clampedSpan = clampSpanToBounds(updatedSpan);
 
-      // Clamp to neighbour boundaries instead of rejecting
-      if (hasOverlap(clampedSpan, activeItemId)) {
-        clampedSpan = clampToNeighbours(clampedSpan, activeItemId);
-        if (hasOverlap(clampedSpan, activeItemId)) {
+      // Clamp to neighbour boundaries on the row it was dropped on instead of rejecting
+      if (hasOverlap(clampedSpan, activeItemId, activeRowId)) {
+        clampedSpan = clampToNeighbours(clampedSpan, activeItemId, activeRowId);
+        if (hasOverlap(clampedSpan, activeItemId, activeRowId)) {
           return;
         }
       }
 
-      onItemSpanChange(activeItemId, clampedSpan);
+      onItemSpanChange(activeItemId, clampedSpan, activeRowId);
     },
     [clampSpanToBounds, clampToNeighbours, hasOverlap, onItemSpanChange, snapSpan, showGuide]
   );
@@ -277,7 +282,7 @@ export default function TimelineWrapper({
         el.style.opacity = '0';
         return;
       }
-      el.textContent = `${formatTooltipMs(span.start)} – ${formatTooltipMs(span.end)}`;
+      el.textContent = `${formatTooltipMs(span.start)} – ${formatTooltipMs(span.end)}  ·  ${formatTooltipMs(span.end - span.start)}`;
       el.style.opacity = '1';
       if (screenX !== undefined) {
         const parent = el.parentElement;

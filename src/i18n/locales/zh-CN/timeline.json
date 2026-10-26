@@ -36,6 +36,7 @@
   "resizeLeft": "向左调整",
   "resizeRight": "向右调整",
   "audioEmptyHint": "点击添加音频选择文件",
+  "audioTrackDropHint": "将片段拖到这里以移到此轨道",
   "emptyVideoTitle": "尚未加载视频",
   "emptyVideoHint": "导入视频以开始编辑",
   "regionMenu": {

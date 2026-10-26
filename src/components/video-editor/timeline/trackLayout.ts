@@ -7,7 +7,7 @@ export function layoutTrackLanes<T extends { id: string; span: { start: number; 
   }
   return { lanes, count: Math.max(1, ends.length) }
 }
-export function trackNeighbours<T extends {id:string;rowId:string}>(items:T[], id:string) {
-  const rowId = items.find(item=>item.id===id)?.rowId
+export function trackNeighbours<T extends {id:string;rowId:string}>(items:T[], id:string, targetRowId?:string) {
+  const rowId = targetRowId ?? items.find(item=>item.id===id)?.rowId
   return rowId ? items.filter(item=>item.id!==id && item.rowId===rowId) : []
 }

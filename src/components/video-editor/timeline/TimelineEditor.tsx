@@ -1,6 +1,6 @@
 import { layoutTrackLanes } from './trackLayout';
 import { SourceVideoTrack } from './SourceVideoTrack';
-import { useScopedT } from '@/contexts/I18nContext';
+import { useI18n, useScopedT } from '@/contexts/I18nContext';
 import { type MutableRefObject, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type WheelEvent } from "react";
 import { useTimelineContext } from "dnd-timeline";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,8 @@ import KeyframeMarkers from "./KeyframeMarkers";
 import type { Range, Span } from "dnd-timeline";
 import type { ZoomRegion, TrimRegion, AnnotationRegion, SpeedRegion, AudioRegion, CursorTelemetryPoint, ZoomFocus } from "../types";
 import { toFileUrl } from "../projectPersistence";
+import { audioRowId, MAX_AUDIO_TRACKS, trackOfAudioRow } from "../audioRegionSpan";
+import { audioClipName } from "../audioClipName";
 import { detectInteractionCandidates, normalizeCursorTelemetry } from "./zoomSuggestionUtils";
 import { DEFAULT_ZOOM_SPAN_MS } from "../editingTools";
 import type { ClipSegment } from "./editedTime";
@@ -37,7 +39,6 @@ const ZOOM_ROW_ID = "row-zoom";
 const TRIM_ROW_ID = "row-trim";
 const ANNOTATION_ROW_ID = "row-annotation";
 const SPEED_ROW_ID = "row-speed";
-const AUDIO_ROW_ID = "row-audio";
 const FALLBACK_RANGE_MS = 1000;
 const TARGET_MARKER_COUNT = 12;
 const SUGGESTION_SPACING_MS = 1800;
@@ -75,7 +76,8 @@ interface TimelineEditorProps {
   onSelectSpeed?: (id: string | null) => void;
   audioRegions?: AudioRegion[];
   onAudioAdded?: (span: Span, audioPath: string, sourceDurationMs?: number) => void;
-  onAudioSpanChange?: (id: string, span: Span) => void;
+  /** `track` is set when the clip was dropped on another audio track. */
+  onAudioSpanChange?: (id: string, span: Span, track?: number) => void;
   onAudioDelete?: (id: string) => void;
   selectedAudioId?: string | null;
   /** Copy, paste, duplicate, split, delete or nudge a timeline item. */
@@ -101,6 +103,9 @@ export interface ClipTrackProps {
   onSplit: () => void;
   /** Cuts the selected part out. */
   onDeleteSegment: () => void;
+  /** Speed changes on the edited timeline, drawn as badges on the video track. */
+  speeds?: Array<{ id: string; speed: number; outStart: number; outEnd: number }>;
+  onSelectSpeed?: (id: string) => void;
 }
 
 interface TimelineScaleConfig {
@@ -478,7 +483,6 @@ function Timeline({
   selectedZoomId,
   selectedTrimId,
   selectedAnnotationId,
-  selectedSpeedId,
   selectedAudioId,
   keyframes = [],
   snapScaleRef,
@@ -548,10 +552,10 @@ function Timeline({
   const zoomItems = items.filter(item => item.rowId === ZOOM_ROW_ID);
   const trimItems = items.filter(item => item.rowId === TRIM_ROW_ID);
   const annotationItems = items.filter(item => item.rowId === ANNOTATION_ROW_ID);
-  const speedItems = items.filter(item => item.rowId === SPEED_ROW_ID);
-  const audioItems = items.filter(item => item.rowId === AUDIO_ROW_ID);
+  const audioItems = items.filter(item => trackOfAudioRow(item.rowId) !== undefined);
+  // One row per audio track in use, plus an empty one to drop a clip onto a new track.
+  const audioTrackCount = Math.min(MAX_AUDIO_TRACKS, Math.max(1, ...audioItems.map((item) => (trackOfAudioRow(item.rowId) ?? 0) + 2)));
   const annotationLayout = layoutTrackLanes(annotationItems);
-  const audioLayout = layoutTrackLanes(audioItems);
 
 	return (
 		<div
@@ -628,41 +632,32 @@ function Timeline({
 				))}
 			</Row>
 
-      <Row label="HIZ" labelColor="#fdba74" id={SPEED_ROW_ID} isEmpty={speedItems.length === 0} hint={t('addSpeed')}>
-        {speedItems.map((item) => (
-          <Item
-            id={item.id}
-            key={item.id}
-            rowId={item.rowId}
-            span={item.span}
-            isSelected={item.id === selectedSpeedId}
-            onSelect={() => onSelectSpeed?.(item.id)}
-						onContextMenu={(event) => onItemContextMenu?.({ kind: 'speed', id: item.id }, event)}
-            variant="speed"
-            speedValue={item.speedValue}
-          >
-            {item.label}
-          </Item>
-        ))}
-      </Row>
+      {/* Speed is set on parts of the video (select a part on the video track); there is no separate speed row. */}
 
-      <Row laneCount={audioLayout.count} label="SES" labelColor="#d8b4fe" id={AUDIO_ROW_ID} isEmpty={audioItems.length === 0} hint={t("audioEmptyHint")}>
-        {audioItems.map((item) => (
-          <Item
-            id={item.id}
-            key={item.id}
-            rowId={item.rowId}
-            span={item.span}
-            isSelected={item.id === selectedAudioId}
-            onSelect={() => onSelectAudio?.(item.id)}
-						onContextMenu={(event) => onItemContextMenu?.({ kind: 'audio', id: item.id }, event)}
-            variant="audio" lane={audioLayout.lanes.get(item.id)}
-            waveform={item.waveform}
-          >
-            {item.label}
-          </Item>
-        ))}
-      </Row>
+      {Array.from({ length: audioTrackCount }, (_, track) => {
+        const rowId = audioRowId(track);
+        const trackItems = audioItems.filter((item) => item.rowId === rowId);
+        const hint = audioItems.length === 0 ? t("audioEmptyHint") : t("audioTrackDropHint", "Drag a clip here to move it to this track");
+        return (
+          <Row key={rowId} label={`A${track + 1}`} labelColor="#d8b4fe" id={rowId} isEmpty={trackItems.length === 0} hint={hint}>
+            {trackItems.map((item) => (
+              <Item
+                id={item.id}
+                key={item.id}
+                rowId={item.rowId}
+                span={item.span}
+                isSelected={item.id === selectedAudioId}
+                onSelect={() => onSelectAudio?.(item.id)}
+                onContextMenu={(event) => onItemContextMenu?.({ kind: 'audio', id: item.id }, event)}
+                variant="audio"
+                waveform={item.waveform}
+              >
+                {item.label}
+              </Item>
+            ))}
+          </Row>
+        );
+      })}
     </div>
   );
 }
@@ -730,6 +725,7 @@ export default function TimelineEditor({
   const timelineContainerRef = useRef<HTMLDivElement>(null);
   const { shortcuts: keyShortcuts, isMac } = useShortcuts();
   const tTimeline = useScopedT('timeline');
+  const { locale } = useI18n();
   const snapScaleRef = useRef<TimelineSnapScale>({ msPerPx: 0, sidebarWidth: 0, rangeStart: 0 });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; target: RegionTarget } | null>(null);
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
@@ -930,7 +926,7 @@ export default function TimelineEditor({
     // Only re-run when the timeline scale changes, not on every region edit
   }, [totalMs, safeMinDurationMs, onZoomSpanChange, onTrimSpanChange, onSpeedSpanChange, onAudioSpanChange]);
 
-  const hasOverlap = useCallback((newSpan: Span, excludeId?: string): boolean => {
+  const hasOverlap = useCallback((newSpan: Span, excludeId?: string, rowId?: string): boolean => {
     // Determine which row the item belongs to
     const isZoomItem = zoomRegions.some(r => r.id === excludeId);
     const isTrimItem = trimRegions.some(r => r.id === excludeId);
@@ -938,8 +934,14 @@ export default function TimelineEditor({
     const isSpeedItem = speedRegions.some(r => r.id === excludeId);
     const isAudioItem = audioRegions.some(r => r.id === excludeId);
 
-    if (isAnnotationItem || isAudioItem) {
+    if (isAnnotationItem) {
       return false;
+    }
+
+    // Clips on one audio track never overlap (like Premiere); other tracks are free.
+    if (isAudioItem) {
+      const track = trackOfAudioRow(rowId) ?? audioRegions.find((region) => region.id === excludeId)?.track ?? 0;
+      return audioRegions.some((region) => region.id !== excludeId && (region.track ?? 0) === track && newSpan.end > region.startMs && newSpan.start < region.endMs);
     }
 
     // Helper to check overlap against a specific set of regions
@@ -1123,6 +1125,12 @@ export default function TimelineEditor({
   }, [videoDuration, totalMs, currentTimeMs, trimRegions, onTrimAdded, defaultRegionDurationMs]);
 
   const handleAddSpeed = useCallback(() => {
+    // With video parts, S selects the part under the playhead and its card sets the speed.
+    if (clip) {
+      const part = clip.segments.find((segment) => currentTimeMs >= segment.outStart && currentTimeMs < segment.outEnd) ?? clip.segments[clip.segments.length - 1];
+      if (part) clip.onSelectSegment(part.startMs);
+      return;
+    }
     if (!videoDuration || videoDuration === 0 || totalMs === 0 || !onSpeedAdded) {
       return;
     }
@@ -1150,7 +1158,7 @@ export default function TimelineEditor({
 
     const actualDuration = Math.min(defaultRegionDurationMs, gapToNext);
     onSpeedAdded({ start: startPos, end: startPos + actualDuration });
-  }, [videoDuration, totalMs, currentTimeMs, speedRegions, onSpeedAdded, defaultRegionDurationMs]);
+  }, [clip, videoDuration, totalMs, currentTimeMs, speedRegions, onSpeedAdded, defaultRegionDurationMs]);
 
   const handleAddAudio = useCallback(async () => {
     if (!videoDuration || videoDuration === 0 || totalMs === 0 || !onAudioAdded) {
@@ -1343,30 +1351,32 @@ export default function TimelineEditor({
     }));
 
     const audios: TimelineRenderItem[] = audioRegions.map((region) => {
-      const fileName = region.audioPath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, '') || 'Audio';
       return {
         id: region.id,
-        rowId: AUDIO_ROW_ID,
+        rowId: audioRowId(region.track ?? 0),
         span: { start: region.startMs, end: region.endMs },
-        label: fileName,
+        label: audioClipName(region.audioPath, locale === 'tr'),
         variant: 'audio',
         waveform: { audioPath: region.audioPath, offsetMs: region.sourceStartMs ?? 0 },
       };
     });
 
     return [...zooms, ...trims, ...annotations, ...speeds, ...audios];
-  }, [zoomRegions, trimRegions, annotationRegions, speedRegions, audioRegions]);
+  }, [zoomRegions, trimRegions, annotationRegions, speedRegions, audioRegions, locale]);
 
   // Flat list of all non-annotation region spans for neighbour-clamping during drag/resize
   const allRegionSpans = useMemo(() => {
     const zooms = zoomRegions.map((r) => ({ id: r.id, rowId: r.id.split('-')[0], start: r.startMs, end: r.endMs }));
     const trims = trimRegions.map((r) => ({ id: r.id, rowId: r.id.split('-')[0], start: r.startMs, end: r.endMs }));
     const speeds = speedRegions.map((r) => ({ id: r.id, rowId: r.id.split('-')[0], start: r.startMs, end: r.endMs }));
-    const audios = audioRegions.map((r) => ({ id: r.id, rowId: r.id.split('-')[0], start: r.startMs, end: r.endMs }));
+    const audios = audioRegions.map((r) => ({ id: r.id, rowId: audioRowId(r.track ?? 0), start: r.startMs, end: r.endMs }));
     return [...zooms, ...trims, ...speeds, ...audios];
   }, [zoomRegions, trimRegions, speedRegions, audioRegions]);
 
-  const handleItemSpanChange = useCallback((id: string, span: Span) => {
+  // Cut points and part boundaries of the video are snap targets too.
+  const cutSnapTimes = useMemo(() => [...(clip?.markers.map((marker) => marker.outMs) ?? []), ...(clip?.segments.map((segment) => segment.outStart) ?? [])], [clip]);
+
+  const handleItemSpanChange = useCallback((id: string, span: Span, rowId?: string) => {
     // Check if it's a zoom, trim, speed, or annotation item
     if (zoomRegions.some(r => r.id === id)) {
       onZoomSpanChange(id, span);
@@ -1377,7 +1387,7 @@ export default function TimelineEditor({
     } else if (annotationRegions.some(r => r.id === id)) {
       onAnnotationSpanChange?.(id, span);
     } else if (audioRegions.some(r => r.id === id)) {
-      onAudioSpanChange?.(id, span);
+      onAudioSpanChange?.(id, span, trackOfAudioRow(rowId));
     }
   }, [zoomRegions, trimRegions, speedRegions, annotationRegions, audioRegions, onZoomSpanChange, onTrimSpanChange, onSpeedSpanChange, onAnnotationSpanChange, onAudioSpanChange]);
 
@@ -1638,6 +1648,7 @@ export default function TimelineEditor({
           onItemSpanChange={handleItemSpanChange}
           allRegionSpans={allRegionSpans}
           playheadMs={currentTimeMs}
+          snapTimes={cutSnapTimes}
           snapScaleRef={snapScaleRef}
         >
           <KeyframeMarkers

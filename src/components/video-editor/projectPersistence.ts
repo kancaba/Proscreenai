@@ -1,5 +1,6 @@
 import { normalizeSplits } from "./timeline/editedTime";
 import type { ResolutionPreset, VideoFps } from '@/lib/video/outputSettings';
+import { MAX_AUDIO_TRACKS } from "./audioRegionSpan";
 import { getAnnotationText } from './annotationText';
 import { normalizeAnnotationAnimation } from "./annotationEffects";
 import { ASPECT_RATIOS, type AspectRatio, isCustomAspectRatio } from "@/utils/aspectRatioUtils";
@@ -323,6 +324,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
             volume: isFiniteNumber(region.volume) ? clamp(region.volume, 0, 1) : 1,
             ...(isFiniteNumber(region.sourceStartMs) && region.sourceStartMs > 0 ? { sourceStartMs: Math.round(region.sourceStartMs) } : {}),
             ...(isFiniteNumber(region.sourceDurationMs) && region.sourceDurationMs > 0 ? { sourceDurationMs: Math.round(region.sourceDurationMs) } : {}),
+            ...(isFiniteNumber(region.track) && region.track >= 1 ? { track: Math.min(MAX_AUDIO_TRACKS - 1, Math.round(region.track)) } : {}),
           };
         })
     : [];

@@ -36,6 +36,7 @@
   "resizeLeft": "Sol kenarı boyutlandır",
   "resizeRight": "Sağ kenarı boyutlandır",
   "audioEmptyHint": "Ses ekle düğmesiyle bir ses dosyası seç",
+  "audioTrackDropHint": "Klibi bu ize taşımak için buraya sürükleyin",
   "emptyVideoTitle": "Henüz video yüklenmedi",
   "emptyVideoHint": "Başlamak için bir video içe aktar",
   "regionMenu": {

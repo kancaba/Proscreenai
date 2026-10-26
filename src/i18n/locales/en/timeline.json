@@ -36,6 +36,7 @@
   "resizeLeft": "Resize left",
   "resizeRight": "Resize right",
   "audioEmptyHint": "Choose an audio file with Add audio",
+  "audioTrackDropHint": "Drag a clip here to put it on this track",
   "emptyVideoTitle": "No video loaded",
   "emptyVideoHint": "Import a video to start editing",
   "regionMenu": {

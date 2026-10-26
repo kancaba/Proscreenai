@@ -1,5 +1,5 @@
 import type { Span } from "dnd-timeline";
-import { useItem } from "dnd-timeline";
+import { useItem, useTimelineContext } from "dnd-timeline";
 import { Gauge, MessageSquare, Music, Scissors, ZoomIn } from "lucide-react";
 import { useEffect, useRef, useMemo } from "react";
 import { cn } from "@/lib/utils";
@@ -56,11 +56,18 @@ export default function Item({
 	waveform,
 	children,
 }: ItemProps) {
+	// The edges trim and the middle moves. On a short clip the trim zones shrink so at least
+	// its middle third can always be grabbed to move it (the library default is 10 px per edge).
+	const { valueToPixels } = useTimelineContext();
+	const widthPx = valueToPixels(span.end - span.start);
+	const resizeHandleWidth = Math.max(6, Math.min(20, widthPx / 3));
 	const { setNodeRef, attributes, listeners, itemStyle, itemContentStyle } = useItem({
 		id,
 		span,
 		data: { rowId },
+		resizeHandleWidth,
 	});
+	const gripWidth = Math.max(4, resizeHandleWidth / 2);
 
   const isZoom = variant === 'zoom';
   const isTrim = variant === 'trim';
@@ -125,16 +132,17 @@ export default function Item({
             onSelect?.();
           }}
         >
-          <div
-            className={cn(glassStyles.zoomEndCap, glassStyles.left)}
-            style={{ cursor: 'col-resize', pointerEvents: 'auto', width: 8, opacity: 0.9, background: endCapColor }}
-            title="Resize left"
-          />
-          <div
-            className={cn(glassStyles.zoomEndCap, glassStyles.right)}
-            style={{ cursor: 'col-resize', pointerEvents: 'auto', width: 8, opacity: 0.9, background: endCapColor }}
-            title="Resize right"
-          />
+          {(['left', 'right'] as const).map((side) => (
+            <div
+              key={side}
+              data-testid={`trim-handle-${side}`}
+              className={cn(glassStyles.zoomEndCap, glassStyles[side], "flex items-center justify-center gap-[2px]")}
+              style={{ cursor: 'ew-resize', pointerEvents: 'auto', width: gripWidth, opacity: isSelected ? 1 : 0.85, background: endCapColor }}
+              title={side === 'left' ? 'Trim start' : 'Trim end'}
+            >
+              {gripWidth >= 7 && <><span className="h-3 w-px rounded bg-white/70" /><span className="h-3 w-px rounded bg-white/70" /></>}
+            </div>
+          ))}
           {isAudio && waveform && <AudioWaveform audioPath={waveform.audioPath} offsetMs={waveform.offsetMs} lengthMs={span.end - span.start} />}
           {/* Content */}
           <div className="relative z-10 flex flex-col items-center justify-center text-white/90 opacity-80 group-hover:opacity-100 transition-opacity select-none overflow-hidden">

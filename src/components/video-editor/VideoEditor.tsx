@@ -5,7 +5,10 @@ import { ModelionSettings } from './ModelionSettings';
 import { VoiceoverPanel } from './VoiceoverPanel';
 import { ExportSetupDialog } from './ExportSetupDialog';
 import { outputDimensions, exportBitrate, fitCustomSizeToRatio, matchesRatio, type ResolutionPreset, type VideoFps } from '@/lib/video/outputSettings';
-import { AudioInspector } from './AudioInspector';
+import { AudioClipControls } from './AudioInspector';
+import { audioClipName } from './audioClipName';
+import { ClipPartInspector } from './ClipPartInspector';
+import { setPartSpeed, speedOfPart } from './clipSpeed';
 import type { Span } from "dnd-timeline";
 import { Home, FolderOpen, Languages, Monitor, Settings2 } from "lucide-react";
 import { type Dispatch, type MutableRefObject, type SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -89,7 +92,7 @@ import { RegionInspector } from './RegionInspector';
 import { DEFAULT_ZOOM_SPAN_MS, findAvailableSpan, validRegionSpan, type TimeSpan } from './editingTools';
 import { KIND_ALLOWS_OVERLAP, nudgeRegion, placeCopy, type RegionCommand, type RegionKind, type RegionTarget, splitRegion, type TimedRegion } from './timeline/regionCommands';
 import { getAnnotationText } from './annotationText';
-import { applyAudioSpanChange, audioFileOffsetSeconds } from './audioRegionSpan';
+import { applyAudioTimelineChange, audioFileOffsetSeconds, audioTimelineSpan, firstFreeAudioTrack, isAudioActive, MAX_AUDIO_TRACKS, splitAudioRegion } from './audioRegionSpan';
 import type { EditorAppearance } from './appearancePresets';
 
 const LOOP_CURSOR_END_WINDOW_MS = 670;
@@ -185,6 +188,8 @@ export default function VideoEditor() {
   const [sourceAudioVolume, setSourceAudioVolume] = useState(1);
   /** Points (source ms) where the video track is split into parts that can be cut. */
   const [clipSplits, setClipSplits] = useState<number[]>([]);
+  const totalSourceMs = Math.round(duration * 1000);
+  const cutMap = useMemo(() => createCutMap(trimRegions, totalSourceMs), [trimRegions, totalSourceMs]);
   /** The selected video part, by its source start. */
   const [selectedClipStart, setSelectedClipStart] = useState<number | null>(null);
   const [selectedAudioId, setSelectedAudioId] = useState<string | null>(null);
@@ -1305,17 +1310,28 @@ export default function VideoEditor() {
       volume: 1,
       ...(sourceDurationMs && sourceDurationMs > 0 ? { sourceDurationMs: Math.round(sourceDurationMs) } : {}),
     };
-    setAudioRegions((prev) => [...prev, newRegion]);
+    // A new clip goes on the first track that is free where it lands.
+    setAudioRegions((prev) => {
+      const track = firstFreeAudioTrack(prev, audioTimelineSpan(newRegion, cutMap), cutMap);
+      return [...prev, track > 0 ? { ...newRegion, track } : newRegion];
+    });
     setSelectedAudioId(id);
     setSelectedZoomId(null);
     setSelectedTrimId(null);
     setSelectedAnnotationId(null);
     setSelectedSpeedId(null);
-  }, []);
+  }, [cutMap]);
 
-  const handleAudioSpanChange = useCallback((id: string, span: Span) => {
-    setAudioRegions((prev) => prev.map((region) => (region.id === id ? applyAudioSpanChange(region, span) : region)));
-  }, []);
+  /** A clip moved or resized on the edited timeline (where cuts are already removed), possibly onto another track. */
+  const handleAudioTimelineChange = useCallback((id: string, span: Span, track?: number) => {
+    setAudioRegions((prev) => prev.map((region) => {
+      if (region.id !== id) return region;
+      const moved = applyAudioTimelineChange(region, span, cutMap);
+      if (track === undefined) return moved;
+      const { track: _previous, ...rest } = moved;
+      return track > 0 ? { ...rest, track } : rest;
+    }));
+  }, [cutMap]);
 
   const handleAudioDelete = useCallback((id: string) => {
     setAudioRegions((prev) => prev.filter((region) => region.id !== id));
@@ -1488,6 +1504,12 @@ export default function VideoEditor() {
   const regionClipboardRef = useRef<{ kind: RegionKind; region: TimedRegion } | null>(null);
   const [canPasteRegion, setCanPasteRegion] = useState(false);
   const handleRegionCommand = useCallback((command: RegionCommand, target: RegionTarget | null) => {
+    // Pasted or duplicated audio goes to the first track that is free where it lands.
+    const onFreeAudioTrack = (region: AudioRegion): AudioRegion => {
+      const free = firstFreeAudioTrack(audioRegions, audioTimelineSpan(region, cutMap), cutMap, region.id);
+      const { track: _previous, ...rest } = region;
+      return free > 0 ? { ...rest, track: free } : rest;
+    };
     type Track = {
       regions: TimedRegion[];
       set: (update: (prev: TimedRegion[]) => TimedRegion[]) => void;
@@ -1531,7 +1553,8 @@ export default function VideoEditor() {
         toast.info(t('timeline.regionMenu.noSpace', 'There is no free space at the playhead for this item.'));
         return;
       }
-      track.set((prev) => [...prev, withZIndex(clip.kind, copy)]);
+      const placed = clip.kind === "audio" ? onFreeAudioTrack(copy as AudioRegion) : copy;
+      track.set((prev) => [...prev, withZIndex(clip.kind, placed)]);
       track.select(copy.id);
       return;
     }
@@ -1552,12 +1575,15 @@ export default function VideoEditor() {
           toast.info(t('timeline.regionMenu.noSpace', 'There is no free space at the playhead for this item.'));
           return;
         }
-        track.set((prev) => [...prev, withZIndex(target.kind, copy)]);
+        const placed = target.kind === "audio" ? onFreeAudioTrack(copy as AudioRegion) : copy;
+        track.set((prev) => [...prev, withZIndex(target.kind, placed)]);
         track.select(copy.id);
         break;
       }
       case "split": {
-        const parts = splitRegion(region, playheadMs, track.nextId());
+        const parts = target.kind === "audio"
+          ? splitAudioRegion(region as AudioRegion, toOutputMs(cutMap, playheadMs), cutMap, track.nextId())
+          : splitRegion(region, playheadMs, track.nextId());
         if (!parts) {
           toast.info(t('timeline.regionMenu.cannotSplit', 'Move the playhead inside the item to split it.'));
           return;
@@ -1576,7 +1602,7 @@ export default function VideoEditor() {
         break;
     }
   }, [
-    zoomRegions, trimRegions, speedRegions, annotationRegions, audioRegions, duration, currentTime, t,
+    zoomRegions, trimRegions, speedRegions, annotationRegions, audioRegions, duration, currentTime, t, cutMap,
     handleZoomDelete, handleTrimDelete, handleSpeedDelete, handleAnnotationDelete, handleAudioDelete,
     handleSelectZoom, handleSelectTrim, handleSelectSpeed, handleSelectAnnotation, handleSelectAudio,
   ]);
@@ -1806,12 +1832,13 @@ export default function VideoEditor() {
       const audio = audioElementsRef.current.get(region.id);
       if (!audio) continue;
 
-      const currentTimeMs = currentTime * 1000;
-      const isInRegion = currentTimeMs >= region.startMs && currentTimeMs < region.endMs;
+      // Added audio follows the edited timeline, so it plays on without gaps where the video is cut.
+      const timelineMs = toOutputMs(cutMap, currentTime * 1000);
+      const isInRegion = isAudioActive(region, timelineMs, cutMap);
 
       if (isPlaying && isInRegion) {
         audio.playbackRate = videoPlaybackRef.current?.video?.playbackRate ?? 1;
-        const audioOffset = audioFileOffsetSeconds(region, currentTimeMs);
+        const audioOffset = audioFileOffsetSeconds(region, timelineMs, cutMap);
         // Only seek if significantly out of sync (> 200ms)
         if (Math.abs(audio.currentTime - audioOffset) > 0.2) {
           audio.currentTime = audioOffset;
@@ -1825,7 +1852,7 @@ export default function VideoEditor() {
         }
       }
     }
-  }, [isPlaying, currentTime, audioRegions]);
+  }, [isPlaying, currentTime, audioRegions, cutMap]);
 
   /** "Project name 2026-10-19 17.42" for the exported file (saved in the recordings folder). */
   const exportFileBase = useCallback(() => {
@@ -2167,9 +2194,12 @@ export default function VideoEditor() {
   }, []);
 
   // --- Edited timeline: cut parts are removed and what follows moves up (Premiere-style). ---
-  const totalSourceMs = Math.round(duration * 1000);
-  const cutMap = useMemo(() => createCutMap(trimRegions, totalSourceMs), [trimRegions, totalSourceMs]);
   const clipParts = useMemo(() => clipSegments(cutMap, clipSplits), [cutMap, clipSplits]);
+  /** Speed changes drawn on the video track, in edited-timeline time. */
+  const timelineSpeedBadges = useMemo(() => speedRegions.flatMap((region) => {
+    const span = spanToOutput(cutMap, { start: region.startMs, end: region.endMs });
+    return span ? [{ id: region.id, speed: region.speed, outStart: span.start, outEnd: span.end }] : [];
+  }), [speedRegions, cutMap]);
   const timelineMarkers = useMemo(() => cutMarkers(cutMap).map((marker) => ({ outMs: marker.outMs, cutId: marker.cut.id, lengthMs: marker.cut.endMs - marker.cut.startMs })), [cutMap]);
   const toTimeline = useCallback(<T extends { startMs: number; endMs: number }>(regions: T[]): T[] => regions.flatMap((region) => {
     const span = spanToOutput(cutMap, { start: region.startMs, end: region.endMs });
@@ -2179,7 +2209,11 @@ export default function VideoEditor() {
   const timelineZooms = useMemo(() => toTimeline(effectiveZoomRegions), [toTimeline, effectiveZoomRegions]);
   const timelineSpeeds = useMemo(() => toTimeline(speedRegions), [toTimeline, speedRegions]);
   const timelineAnnotations = useMemo(() => toTimeline(annotationRegions), [toTimeline, annotationRegions]);
-  const timelineAudio = useMemo(() => toTimeline(audioRegions), [toTimeline, audioRegions]);
+  const timelineAudio = useMemo(() => audioRegions.flatMap((region) => {
+    const span = audioTimelineSpan(region, cutMap);
+    const end = Math.min(span.end, cutMap.outputMs);
+    return end - span.start >= 1 ? [{ ...region, startMs: span.start, endMs: Math.round(end) }] : [];
+  }), [audioRegions, cutMap]);
   const timelineTelemetry = useMemo(
     () => effectiveCursorTelemetry
       .filter((sample) => !cutMap.cuts.some((cut) => sample.timeMs > cut.startMs && sample.timeMs < cut.endMs))
@@ -2230,30 +2264,66 @@ export default function VideoEditor() {
     handleSeek(Math.min(part.endMs, Math.max(0, totalSourceMs - 1)) / 1000);
   }, [clipParts, selectedClipStart, totalSourceMs, startNewHistoryStep, t]);
 
+  const selectedPartIndex = clipParts.findIndex((part) => part.startMs === selectedClipStart);
+  const selectedPart = selectedPartIndex >= 0 ? clipParts[selectedPartIndex] : null;
+  /** Gives the selected part one speed (1 removes any speed change there). */
+  const handleSetPartSpeed = useCallback((speed: PlaybackSpeed | 1) => {
+    const part = clipParts.find((candidate) => candidate.startMs === selectedClipStart);
+    if (!part) return;
+    setSpeedRegions((previous) => setPartSpeed(previous, part, speed, () => `speed-${nextSpeedIdRef.current++}`));
+  }, [clipParts, selectedClipStart]);
+  /** Selects the part of the video under the playhead (the speed tool and S). */
+  const selectPartAtPlayhead = () => {
+    const at = Math.round(currentTime * 1000);
+    const part = clipParts.find((candidate) => at >= candidate.startMs && at < candidate.endMs) ?? clipParts[clipParts.length - 1];
+    if (part) handleSelectClip(part.startMs);
+  };
+
   const addEditorTool = (tool: EditorTool) => {
     if (tool === 'trim') {
       handleSplitClip();
       return;
     }
-    const regions = tool === 'zoom' ? zoomRegions : tool === 'speed' ? speedRegions : [];
+    if (tool === 'speed') {
+      selectPartAtPlayhead();
+      return;
+    }
+    const regions = tool === 'zoom' ? zoomRegions : [];
     const span = findAvailableSpan(Math.round(duration * 1000), Math.round(currentTime * 1000), regions, tool === 'text' ? 2500 : tool === 'zoom' ? DEFAULT_ZOOM_SPAN_MS : 1500);
     if (!span) { toast.info(t('timeline.zoom.existsOrNoSpace')); return; }
     const timelineSpan = { start: span.startMs, end: span.endMs };
     if (tool === 'zoom') handleZoomAdded(timelineSpan);
-    if (tool === 'speed') handleSpeedAdded(timelineSpan);
     if (tool === 'text') handleAnnotationAdded(timelineSpan);
     handleSeek(span.startMs / 1000);
   };
+  const selectedAudio = selectedAudioId ? audioRegions.find((r) => r.id === selectedAudioId) ?? null : null;
+  // Audio clips are edited in edited-timeline time, as the timeline shows them.
   const activeRegion = selectedZoomId ? zoomRegions.find((r) => r.id === selectedZoomId)
     : selectedTrimId ? trimRegions.find((r) => r.id === selectedTrimId)
     : selectedSpeedId ? speedRegions.find((r) => r.id === selectedSpeedId)
-    : selectedAudioId ? audioRegions.find((r) => r.id === selectedAudioId) : null;
+    : selectedAudioId ? timelineAudio.find((r) => r.id === selectedAudioId) : null;
+  /** Whether the selected audio clip could sit on `track` without overlapping another clip there. */
+  const isTrackFreeForSelectedAudio = (track: number) => {
+    if (!selectedAudio) return false;
+    const span = audioTimelineSpan(selectedAudio, cutMap);
+    return !audioRegions.some((region) => {
+      if (region.id === selectedAudio.id || (region.track ?? 0) !== track) return false;
+      const other = audioTimelineSpan(region, cutMap);
+      return span.end > other.start && span.start < other.end;
+    });
+  };
   const activeRegionKind = selectedZoomId ? 'zoom' : selectedTrimId ? 'trim' : selectedSpeedId ? 'speed' : 'audio';
   const updateActiveRegion = (span: TimeSpan) => {
     if (!activeRegion) return false;
+    if (activeRegionKind === 'audio') {
+      // Typed in edited-timeline time; the clip may run past the video's end.
+      if (!(span.startMs >= 0 && span.endMs - span.startMs >= 100 && span.startMs < cutMap.outputMs)) return false;
+      handleAudioTimelineChange(activeRegion.id, { start: span.startMs, end: span.endMs });
+      return true;
+    }
     const others = (activeRegionKind === 'zoom' ? zoomRegions : activeRegionKind === 'trim' ? trimRegions : speedRegions).filter((r) => r.id !== activeRegion.id);
-    if (!validRegionSpan(span, Math.round(duration * 1000), activeRegionKind === 'audio' ? [] : others)) return false;
-    const change = activeRegionKind === 'zoom' ? handleZoomSpanChange : activeRegionKind === 'trim' ? handleTrimSpanChange : activeRegionKind === 'audio' ? handleAudioSpanChange : handleSpeedSpanChange;
+    if (!validRegionSpan(span, Math.round(duration * 1000), others)) return false;
+    const change = activeRegionKind === 'zoom' ? handleZoomSpanChange : activeRegionKind === 'trim' ? handleTrimSpanChange : handleSpeedSpanChange;
     change(activeRegion.id, { start: span.startMs, end: span.endMs });
     return true;
   };
@@ -2433,8 +2503,8 @@ export default function VideoEditor() {
               selectedSpeedId={selectedSpeedId}
               onSelectSpeed={handleSelectSpeed}
               audioRegions={timelineAudio}
-              onAudioAdded={(span, audioPath, sourceDurationMs) => handleAudioAdded(fromTimeline(span), audioPath, sourceDurationMs)}
-              onAudioSpanChange={(id, span) => handleAudioSpanChange(id, fromTimeline(span))}
+              onAudioAdded={(span, audioPath, sourceDurationMs) => { const start = toSourceMs(cutMap, span.start); handleAudioAdded({ start, end: start + (span.end - span.start) }, audioPath, sourceDurationMs); }}
+              onAudioSpanChange={handleAudioTimelineChange}
               onAudioDelete={handleAudioDelete}
               selectedAudioId={selectedAudioId}
               onSelectAudio={handleSelectAudio}
@@ -2451,6 +2521,13 @@ export default function VideoEditor() {
                 markers: timelineMarkers,
                 selectedStart: selectedClipStart,
                 onSelectSegment: handleSelectClip,
+                speeds: timelineSpeedBadges,
+                onSelectSpeed: (id: string) => {
+                  // A speed that fills a part selects the part; any other (from older projects) selects the speed itself.
+                  const region = speedRegions.find((candidate) => candidate.id === id);
+                  const part = region && clipParts.find((candidate) => candidate.startMs === region.startMs && candidate.endMs === region.endMs);
+                  if (part) handleSelectClip(part.startMs); else handleSelectSpeed(id);
+                },
                 onSplit: handleSplitClip,
                 onDeleteSegment: handleDeleteClipPart,
               }}
@@ -2466,19 +2543,25 @@ export default function VideoEditor() {
           <div className="workspace-inspector" hidden={!inspectorVisible || focusMode}>
           <SettingsPanel
           focusRequest={settingsFocusRequest}
+          hasSelectedClipPart={selectedPart !== null}
           sourceAudioVolume={sourceAudioVolume}
           onSourceAudioVolumeChange={setSourceAudioVolume}
           autoZoomControls={<AutoZoomControls settings={autoZoomSettings} onChange={updateAutoZoomSettings} onRegenerate={normalizedCursorTelemetry.length >= 2 && duration > 0 ? handleRegenerateAutoZoom : undefined} />}
           presets={<StylePresets appearance={appearance} onApply={applyAppearance} />}
           selectedAudioId={selectedAudioId}
-          aiPanel={<div className="space-y-3"><h2 className="text-sm font-semibold text-white">AI stüdyo</h2><AutoCaptionsSection state={autoCaptions} existingCount={transcriptCaptionCount} /><AgentPanel state={agent} available={Boolean(agentVideoPath) && duration > 0} onApply={handleAgentApply} onSeek={handleSeek} onExpand={() => setAgentWideOpen(true)} /><p className="text-xs leading-relaxed text-slate-400">{locale === 'tr' ? 'Videonuz için yazılar üretin ve Ema Lightning veya Fish Audio ile seslendirin.' : 'Generate captions and narrate with Ema Lightning or Fish Audio.'}</p><button onClick={() => setAiCaptionsOpen(true)} className="w-full rounded-lg bg-violet-300/15 p-3 text-left text-xs text-violet-200">{locale === 'tr' ? '✦ AI video yazıları' : '✦ AI captions'}</button><button onClick={() => openVoiceover()} className="w-full rounded-lg bg-violet-300/15 p-3 text-left text-xs text-violet-200">{locale === 'tr' ? '♫ Metni seslendir' : '♫ Text to speech'}</button><button onClick={() => setAiSettingsOpen(true)} className="w-full rounded-lg border border-white/10 p-3 text-left text-xs text-slate-400">{locale === 'tr' ? 'AI bağlantısı ve API anahtarı' : 'AI connection and API key'}</button></div>}
+          aiPanel={<div className="space-y-3"><h2 className="text-sm font-semibold text-white">AI stüdyo</h2><AutoCaptionsSection state={autoCaptions} existingCount={transcriptCaptionCount} /><AgentPanel state={agent} available={Boolean(agentVideoPath) && duration > 0} onApply={handleAgentApply} onSeek={handleSeek} onExpand={() => setAgentWideOpen(true)} /><p className="text-xs leading-relaxed text-slate-400">{locale === 'tr' ? 'Videonuz için yazılar üretin; Ema Lightning, Fish Audio veya ElevenLabs ile seslendirin.' : 'Generate captions and narrate with Ema Lightning, Fish Audio or ElevenLabs.'}</p><button onClick={() => setAiCaptionsOpen(true)} className="w-full rounded-lg bg-violet-300/15 p-3 text-left text-xs text-violet-200">{locale === 'tr' ? '✦ AI video yazıları' : '✦ AI captions'}</button><button onClick={() => openVoiceover()} className="w-full rounded-lg bg-violet-300/15 p-3 text-left text-xs text-violet-200">{locale === 'tr' ? '♫ Metni seslendir' : '♫ Text to speech'}</button><button onClick={() => setAiSettingsOpen(true)} className="w-full rounded-lg border border-white/10 p-3 text-left text-xs text-slate-400">{locale === 'tr' ? 'AI bağlantısı ve API anahtarı' : 'AI connection and API key'}</button></div>}
           header={<>
-            {activeRegion && <RegionInspector key={activeRegion.id} region={activeRegion}
-              label={activeRegionKind === 'zoom' ? 'Zoom' : activeRegionKind === 'trim' ? t('timeline.trim.label', undefined, { index: '' }) : activeRegionKind === 'audio' ? (locale === 'tr' ? 'Ses' : 'Audio') : t('timeline.speed.label')}
-              onChange={updateActiveRegion} onDelete={deleteActiveRegion} />}
-            {selectedAudioId && audioRegions.find(region => region.id === selectedAudioId) && <AudioInspector key={selectedAudioId}
-              region={audioRegions.find(region => region.id === selectedAudioId)!}
-              onVolumeChange={volume => setAudioRegions(previous => previous.map(region => region.id === selectedAudioId ? { ...region, volume } : region))} />}
+            {selectedPart && <ClipPartInspector index={selectedPartIndex} part={selectedPart} speed={speedOfPart(selectedPart, speedRegions)}
+              canCut={clipParts.length > 1} onSpeedChange={handleSetPartSpeed} onCut={handleDeleteClipPart} />}
+            {activeRegion && <RegionInspector region={activeRegion}
+              label={activeRegionKind === 'zoom' ? 'Zoom' : activeRegionKind === 'trim' ? t('timeline.trim.label', undefined, { index: '' }) : activeRegionKind === 'audio' && selectedAudio ? audioClipName(selectedAudio.audioPath, locale === 'tr') : t('timeline.speed.label')}
+              onChange={updateActiveRegion} onDelete={deleteActiveRegion}>
+              {activeRegionKind === 'audio' && selectedAudio && <AudioClipControls region={selectedAudio}
+                trackCount={Math.min(MAX_AUDIO_TRACKS, Math.max(...audioRegions.map((region) => (region.track ?? 0) + 2)))}
+                isTrackFree={isTrackFreeForSelectedAudio}
+                onVolumeChange={volume => setAudioRegions(previous => previous.map(region => region.id === selectedAudio.id ? { ...region, volume } : region))}
+                onTrackChange={(track) => handleAudioTimelineChange(selectedAudio.id, audioTimelineSpan(selectedAudio, cutMap), track)} />}
+            </RegionInspector>}
           </>}
           selected={wallpaper}
           onWallpaperChange={setWallpaper}
@@ -2577,7 +2660,7 @@ export default function VideoEditor() {
       </Dialog>
       <VoiceoverPanel open={voiceoverOpen} onOpenChange={setVoiceoverOpen} initialText={voiceoverText}
         onSettings={() => { setVoiceoverOpen(false); setAiSettingsOpen(true); }} remainingSeconds={Math.max(0, duration-currentTime)}
-        onAdd={(path, seconds) => { const start = Math.min(currentTime, Math.max(0,duration-.1)); handleAudioAdded({start:Math.round(start*1000),end:Math.round(Math.min(duration,start+seconds)*1000)},path,seconds*1000); }} />
+        onAdd={(path, seconds) => { const start = Math.min(currentTime, Math.max(0,duration-.1)); handleAudioAdded({start:Math.round(start*1000),end:Math.round((start+seconds)*1000)},path,seconds*1000); }} />
       <ExportSetupDialog open={exportSetupOpen} onOpenChange={setExportSetupOpen} onStart={() => { setExportSetupOpen(false); handleStartExport(); }}
         selected={wallpaper} onWallpaperChange={setWallpaper} aspectRatio={aspectRatio} videoElement={videoPlaybackRef.current?.video}
         exportFormat={exportFormat} onExportFormatChange={setExportFormat} exportQuality={exportQuality} onExportQualityChange={value => { setExportQuality(value); if (exportResolution === 'legacy') setExportResolution('source'); }}

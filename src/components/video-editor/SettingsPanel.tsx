@@ -57,6 +57,8 @@ export interface SettingsPanelProps extends OutputSizeProps {
   onSourceAudioVolumeChange?: (volume: number) => void;
   /** Switches to a tab (and scrolls to its target) when the nonce changes. */
   focusRequest?: { tab: "motion"; target: "auto-zoom"; nonce: number } | null;
+  /** A part of the video is selected; its card (speed, cut) shows on the Motion tab. */
+  hasSelectedClipPart?: boolean;
   selectedAudioId?: string | null;
   selected: string;
   onWallpaperChange: (path: string) => void;
@@ -135,7 +137,7 @@ const ZOOM_DEPTH_OPTIONS: Array<{ depth: ZoomDepth; label: string }> = [
 ];
 
 export function SettingsPanel({
-  header, presets, aiPanel, autoZoomControls, focusRequest, sourceAudioVolume = 1, onSourceAudioVolumeChange, selectedAudioId,
+  header, presets, aiPanel, autoZoomControls, focusRequest, hasSelectedClipPart = false, sourceAudioVolume = 1, onSourceAudioVolumeChange, selectedAudioId,
   selected,
   onWallpaperChange,
   selectedZoomDepth,
@@ -190,7 +192,7 @@ export function SettingsPanel({
   const tSettings = useScopedT('settings');
   const { t, locale } = useI18n();
   const [activeTab, setActiveTab] = useState('appearance');
-  useEffect(() => { if (selectedAnnotationId) setActiveTab('item'); else if (selectedAudioId) setActiveTab('audio'); else if (selectedZoomId || selectedSpeedId || selectedTrimId) setActiveTab('motion'); }, [selectedAnnotationId, selectedAudioId, selectedZoomId, selectedSpeedId, selectedTrimId]);
+  useEffect(() => { if (selectedAnnotationId) setActiveTab('item'); else if (selectedAudioId) setActiveTab('audio'); else if (selectedZoomId || selectedSpeedId || selectedTrimId || hasSelectedClipPart) setActiveTab('motion'); }, [selectedAnnotationId, selectedAudioId, selectedZoomId, selectedSpeedId, selectedTrimId, hasSelectedClipPart]);
   const autoZoomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!focusRequest) return;
@@ -428,7 +430,8 @@ export function SettingsPanel({
           </div>
         )}
 
-        <div className="mb-4">
+        {/* Speeds are set on video parts now; this grid edits a selected speed range from older projects. */}
+        {selectedSpeedId && <div className="mb-4">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-slate-200">{tSettings('speed.playbackSpeed')}</span>
             {selectedSpeedId && selectedSpeedValue && (
@@ -474,7 +477,7 @@ export function SettingsPanel({
               {tSettings('speed.deleteRegion')}
             </Button>
           )}
-        </div>
+        </div>}
 
         {autoZoomControls && <div ref={autoZoomRef}>{autoZoomControls}</div>}
 

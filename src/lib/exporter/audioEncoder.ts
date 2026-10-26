@@ -1,7 +1,8 @@
 import { WebDemuxer } from 'web-demuxer'
 import type { SpeedRegion, TrimRegion, AudioRegion } from '@/components/video-editor/types'
 import { toFileUrl } from '@/components/video-editor/projectPersistence'
-import { audioFileOffsetSeconds } from '@/components/video-editor/audioRegionSpan'
+import { audioFileOffsetSeconds, isAudioActive } from '@/components/video-editor/audioRegionSpan'
+import { createCutMap, toOutputMs } from '@/components/video-editor/timeline/editedTime'
 import type { VideoMuxer } from './muxer'
 
 const AUDIO_BITRATE = 128_000
@@ -234,6 +235,8 @@ export class AudioProcessor {
       audioRegionElements.push({ media: audioEl, sourceNode: regionSource, gainNode, region })
     }
 
+    // Added audio follows the edited timeline (cuts removed), so it is not skipped with the video.
+    const cutMap = createCutMap(trimRegions, Number.isFinite(media.duration) ? Math.round(media.duration * 1000) : Number.MAX_SAFE_INTEGER)
     const { recorder, recordedBlobPromise } = this.startAudioRecording(destinationNode.stream)
     let rafId: number | null = null
 
@@ -295,10 +298,11 @@ export class AudioProcessor {
           // Sync external audio regions with the video timeline position
           for (const entry of audioRegionElements) {
             const { media: audioEl, region } = entry
-            const isInRegion = currentTimeMs >= region.startMs && currentTimeMs < region.endMs
+            const timelineMs = toOutputMs(cutMap, currentTimeMs)
+            const isInRegion = isAudioActive(region, timelineMs, cutMap)
 
             if (isInRegion) {
-              const audioOffset = audioFileOffsetSeconds(region, currentTimeMs)
+              const audioOffset = audioFileOffsetSeconds(region, timelineMs, cutMap)
               if (audioEl.paused) {
                 audioEl.currentTime = audioOffset
                 audioEl.play().catch(() => {})

@@ -36,6 +36,7 @@
   "resizeLeft": "Redimensionar izquierda",
   "resizeRight": "Redimensionar derecha",
   "audioEmptyHint": "Elige un archivo con Añadir audio",
+  "audioTrackDropHint": "Arrastra un clip aquí para moverlo a esta pista",
   "emptyVideoTitle": "No hay vídeo cargado",
   "emptyVideoHint": "Importa un vídeo para empezar",
   "regionMenu": {

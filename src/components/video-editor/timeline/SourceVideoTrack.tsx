@@ -79,6 +79,18 @@ export function SourceVideoTrack({ path, durationMs, trims, clip, selectedCutId 
         style={{ left: percent(segment.outStart), width: percent(segment.outEnd - segment.outStart) }}
       />
     })}
+    {/* Speed changes sit on the video they speed up; clicking one selects its part. */}
+    {clip?.speeds?.map((badge) => <button
+      key={badge.id}
+      type="button"
+      data-testid="speed-badge"
+      data-speed={badge.speed}
+      title={`${badge.speed.toLocaleString()}×`}
+      onClick={(event) => { event.stopPropagation(); clip.onSelectSpeed?.(badge.id) }}
+      className="absolute bottom-1 z-[15] flex h-4 min-w-0 items-center overflow-hidden rounded-full border border-amber-300/50 bg-amber-500/85 px-1.5 text-[9px] font-semibold leading-none text-white shadow hover:bg-amber-400"
+      style={{ left: `calc(${percent(badge.outStart)} + 3px)`, maxWidth: `calc(${percent(badge.outEnd - badge.outStart)} - 6px)` }}
+    >{badge.speed.toLocaleString()}×</button>)}
+    {clip?.speeds?.map((badge) => <div key={`${badge.id}-band`} aria-hidden className="pointer-events-none absolute bottom-0 h-[3px] bg-amber-400/90" style={{ left: percent(badge.outStart), width: percent(badge.outEnd - badge.outStart) }} />)}
     {clip?.markers.map((marker) => {
       const selected = selectedCutId === marker.cutId
       return <button
