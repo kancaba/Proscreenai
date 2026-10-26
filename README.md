@@ -190,6 +190,8 @@ node_modules/.bin/electron scripts/readme-screenshots.cjs
 
 Masaüstü testleri ve ekran görüntüsü aracı izole profillerle çalışır. Canlı sağlayıcı testi yapan bazı diğer scriptler hesap kotası tüketir; dosya başındaki açıklamalarını okuyarak çalıştır.
 
+Tanıtım sitesinin kaynağı ayrı bir depoda tutulur: [kancaba/proscreenai-website](https://github.com/kancaba/proscreenai-website) (özel depo).
+
 ## Durum ve sınırlar
 
 Pro Screen AI aktif geliştirmededir. Mevcut akışlar için birim ve Electron arayüz testleri bulunur; tüm cihazlar, sürücüler ve sağlayıcı hesapları için sorunsuz çalışma garantisi verilmez.
