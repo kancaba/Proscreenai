@@ -25,7 +25,7 @@ import type { AppLocale } from "@/i18n/config";
 import VideoPlayback, { VideoPlaybackRef } from "./VideoPlayback";
 import PlaybackControls from "./PlaybackControls";
 import TimelineEditor from "./timeline/TimelineEditor";
-import { SettingsPanel } from "./SettingsPanel";
+import { SettingsPanel, type SettingsFocusRequest } from "./SettingsPanel";
 import { ExportDialog } from "./ExportDialog";
 import { DEFAULT_WALLPAPER_RELATIVE_PATH, WALLPAPER_PATHS } from "@/lib/wallpapers";
 import {
@@ -96,6 +96,7 @@ import { DEFAULT_ZOOM_SPAN_MS, findAvailableSpan, validRegionSpan, type TimeSpan
 import { KIND_ALLOWS_OVERLAP, nudgeRegion, placeCopy, type RegionCommand, type RegionKind, type RegionTarget, splitRegion, type TimedRegion } from './timeline/regionCommands';
 import { getAnnotationText } from './annotationText';
 import { fadeAmount, type Fades, NO_FADES } from '@/lib/fades';
+import { type EndingHold, NO_ENDING } from '@/lib/endingHold';
 import { applyAudioTimelineChange, audioFileOffsetSeconds, audioTimelineSpan, firstFreeAudioTrack, isAudioActive, MAX_AUDIO_TRACKS, splitAudioRegion } from './audioRegionSpan';
 import type { EditorAppearance } from './appearancePresets';
 
@@ -110,6 +111,7 @@ type EditorHistorySnapshot = {
   audioRegions: AudioRegion[];
   sourceAudioVolume: number;
   fades: Fades;
+  ending: EndingHold;
   clipSplits: number[];
   selectedZoomId: string | null;
   selectedTrimId: string | null;
@@ -182,7 +184,7 @@ export default function VideoEditor() {
   // Video whose telemetry has finished loading (empty or not), so "no clicks" can be told apart from "not loaded yet".
   const [cursorTelemetryPath, setCursorTelemetryPath] = useState<string | null>(null);
   const [autoZoomSettings, setAutoZoomSettingsState] = useState<AutoZoomSettings>(loadAutoZoomSettings);
-  const [settingsFocusRequest, setSettingsFocusRequest] = useState<{ tab: "motion"; target: "auto-zoom"; nonce: number } | null>(null);
+  const [settingsFocusRequest, setSettingsFocusRequest] = useState<SettingsFocusRequest | null>(null);
   const [selectedZoomId, setSelectedZoomId] = useState<string | null>(null);
   const [trimRegions, setTrimRegions] = useState<TrimRegion[]>([]);
   const [selectedTrimId, setSelectedTrimId] = useState<string | null>(null);
@@ -195,12 +197,17 @@ export default function VideoEditor() {
   const [sourceAudioVolume, setSourceAudioVolume] = useState(1);
   /** Optional fade from/to black at the video's start and end. */
   const [fades, setFades] = useState<Fades>(NO_FADES);
+  /** Time added after the video's end (last frame or background). */
+  const [ending, setEnding] = useState<EndingHold>(NO_ENDING);
   /** Points (source ms) where the video track is split into parts that can be cut. */
   const [clipSplits, setClipSplits] = useState<number[]>([]);
   const totalSourceMs = Math.round(duration * 1000);
-  const cutMap = useMemo(() => createCutMap(trimRegions, totalSourceMs), [trimRegions, totalSourceMs]);
+  const cutMap = useMemo(() => createCutMap(trimRegions, totalSourceMs, speedRegions), [trimRegions, totalSourceMs, speedRegions]);
+  /** The ending extension after the video, and the whole edited timeline with it. */
+  const endingMs = duration > 0 ? ending.durationMs : 0;
+  const timelineMs = cutMap.outputMs + endingMs;
   /** Fade darkening at the playhead, shown over the preview and applied to the preview's sound. */
-  const previewFade = fadeAmount(toOutputMs(cutMap, currentTime * 1000), cutMap.outputMs, fades);
+  const previewFade = fadeAmount(toOutputMs(cutMap, currentTime * 1000), timelineMs, fades);
   /** The selected video part, by its source start. */
   const [selectedClipStart, setSelectedClipStart] = useState<number | null>(null);
   /** Start (source ms) of the selected typing stretch, if any. */
@@ -241,6 +248,90 @@ export default function VideoEditor() {
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(null);
 
   const videoPlaybackRef = useRef<VideoPlaybackRef>(null);
+
+  // --- Ending extension: after the video, a clock moves the playhead on while the video
+  // element rests on its last frame. Past the end, the playhead's source time is the video's
+  // length plus how far into the extension it is.
+  /** How far (ms) into the extension the playhead is; null while it is on the video. */
+  const endingPositionRef = useRef<number | null>(null);
+  const endingClockRef = useRef<number | null>(null);
+  const endingStateRef = useRef({ endingMs, sourceMs: totalSourceMs, cutMap, isPlaying });
+  endingStateRef.current = { endingMs, sourceMs: totalSourceMs, cutMap, isPlaying };
+
+  const stopEndingClock = useCallback(() => {
+    if (endingClockRef.current !== null) cancelAnimationFrame(endingClockRef.current);
+    endingClockRef.current = null;
+  }, []);
+
+  const runEndingClock = useCallback((fromMs: number) => {
+    stopEndingClock();
+    const startedAt = performance.now();
+    setIsPlaying(true);
+    const tick = () => {
+      const { endingMs: length, sourceMs } = endingStateRef.current;
+      const position = Math.min(length, fromMs + performance.now() - startedAt);
+      endingPositionRef.current = position;
+      setCurrentTime((sourceMs + position) / 1000);
+      if (position >= length) {
+        endingClockRef.current = null;
+        setIsPlaying(false);
+        return;
+      }
+      endingClockRef.current = requestAnimationFrame(tick);
+    };
+    endingClockRef.current = requestAnimationFrame(tick);
+  }, [stopEndingClock]);
+
+  useEffect(() => stopEndingClock, [stopEndingClock]);
+
+  // A shorter (or removed) extension pulls a playhead that was in it back inside.
+  useEffect(() => {
+    const position = endingPositionRef.current;
+    if (position === null || position <= endingMs) return;
+    if (endingMs > 0) {
+      endingPositionRef.current = endingMs;
+      setCurrentTime((totalSourceMs + endingMs) / 1000);
+      return;
+    }
+    stopEndingClock();
+    endingPositionRef.current = null;
+    setIsPlaying(false);
+    setCurrentTime(duration);
+  }, [endingMs, totalSourceMs, duration, stopEndingClock]);
+
+  /** Times from the video element; ignored while the playhead is in the extension. */
+  const handleVideoTime = useCallback((time: number) => {
+    if (endingPositionRef.current === null) setCurrentTime(time);
+  }, []);
+
+  const handleVideoPlayState = useCallback((playing: boolean) => {
+    if (playing) {
+      stopEndingClock();
+      endingPositionRef.current = null;
+      setIsPlaying(true);
+      return;
+    }
+    if (endingClockRef.current !== null) return;
+    const { endingMs: length, cutMap: map, isPlaying: wasPlaying } = endingStateRef.current;
+    const video = videoPlaybackRef.current?.video;
+    // The video played to its end (or into a cut that runs to the end): the extension plays on.
+    if (length > 0 && wasPlaying && video && toOutputMs(map, video.currentTime * 1000) >= map.outputMs - 60) {
+      endingPositionRef.current = 0;
+      runEndingClock(0);
+      return;
+    }
+    setIsPlaying(false);
+  }, [runEndingClock, stopEndingClock]);
+
+  /** Pauses the video or the extension's clock. */
+  const pausePlayback = useCallback(() => {
+    if (endingClockRef.current !== null) {
+      stopEndingClock();
+      setIsPlaying(false);
+    }
+    videoPlaybackRef.current?.pause();
+  }, [stopEndingClock]);
+
   const nextZoomIdRef = useRef(1);
   const nextTrimIdRef = useRef(1);
   const nextSpeedIdRef = useRef(1);
@@ -278,7 +369,7 @@ export default function VideoEditor() {
   const [voiceoverOpen, setVoiceoverOpen] = useState(false);
   const [voiceoverText, setVoiceoverText] = useState('');
   const [exportSetupOpen, setExportSetupOpen] = useState(false);
-  const openVoiceover = (text?: string) => { videoPlaybackRef.current?.pause(); setVoiceoverText(text ?? annotationRegions.filter(region => region.type === 'text' && (!selectedAnnotationId || region.id === selectedAnnotationId)).sort((a,b) => a.startMs-b.startMs).map(getAnnotationText).filter(Boolean).join(' ')); setVoiceoverOpen(true); };
+  const openVoiceover = (text?: string) => { pausePlayback(); setVoiceoverText(text ?? annotationRegions.filter(region => region.type === 'text' && (!selectedAnnotationId || region.id === selectedAnnotationId)).sort((a,b) => a.startMs-b.startMs).map(getAnnotationText).filter(Boolean).join(' ')); setVoiceoverOpen(true); };
   const appearance = useMemo<EditorAppearance>(() => ({
     wallpaper, shadowIntensity, backgroundBlur, zoomMotionBlur, connectZooms,
     showCursor, loopCursor, cursorSize, cursorSmoothing, cursorMotionBlur,
@@ -306,6 +397,7 @@ export default function VideoEditor() {
       audioRegions: JSON.parse(JSON.stringify(snapshot.audioRegions)),
       sourceAudioVolume: snapshot.sourceAudioVolume,
       fades: { ...snapshot.fades },
+      ending: { ...(snapshot.ending ?? NO_ENDING) },
       clipSplits: [...(snapshot.clipSplits ?? [])],
       selectedZoomId: snapshot.selectedZoomId,
       selectedTrimId: snapshot.selectedTrimId,
@@ -325,6 +417,7 @@ export default function VideoEditor() {
       audioRegions,
       sourceAudioVolume,
       fades,
+      ending,
       clipSplits,
       selectedZoomId,
       selectedTrimId,
@@ -341,6 +434,7 @@ export default function VideoEditor() {
     audioRegions,
     sourceAudioVolume,
     fades,
+    ending,
     clipSplits,
     selectedZoomId,
     selectedTrimId,
@@ -360,6 +454,7 @@ export default function VideoEditor() {
     setAudioRegions(cloned.audioRegions);
     setSourceAudioVolume(cloned.sourceAudioVolume ?? 1);
     setFades(cloned.fades ?? NO_FADES);
+    setEnding(cloned.ending ?? NO_ENDING);
     setClipSplits(cloned.clipSplits ?? []);
     setSelectedClipStart(null);
     setSelectedZoomId(cloned.selectedZoomId);
@@ -415,7 +510,7 @@ export default function VideoEditor() {
     const normalizedEditor = normalizeProjectEditor(project.editor);
 
     try {
-      videoPlaybackRef.current?.pause();
+      pausePlayback();
     } catch {
       // no-op
     }
@@ -459,6 +554,7 @@ export default function VideoEditor() {
     setAudioRegions(normalizedEditor.audioRegions);
     setSourceAudioVolume(normalizedEditor.sourceAudioVolume);
     setFades(normalizedEditor.fades);
+    setEnding(normalizedEditor.ending ?? NO_ENDING);
     setClipSplits(normalizedEditor.clipSplits);
     setSelectedClipStart(null);
     setExportResolution(normalizedEditor.exportResolution ?? 'legacy');
@@ -521,6 +617,7 @@ export default function VideoEditor() {
         audioRegions,
         sourceAudioVolume,
         fades,
+        ...(ending.durationMs > 0 ? { ending } : {}),
         clipSplits,
         aspectRatio,
         exportQuality, exportResolution, exportFps, exportCustomWidth, exportCustomHeight,
@@ -553,6 +650,7 @@ export default function VideoEditor() {
     audioRegions,
     sourceAudioVolume,
     fades,
+    ending,
     clipSplits,
     annotationRegions,
     aspectRatio,
@@ -731,6 +829,7 @@ export default function VideoEditor() {
       audioRegions,
       sourceAudioVolume,
       fades,
+      ...(ending.durationMs > 0 ? { ending } : {}),
       clipSplits,
       aspectRatio,
       exportQuality, exportResolution, exportFps, exportCustomWidth, exportCustomHeight,
@@ -792,6 +891,7 @@ export default function VideoEditor() {
     audioRegions,
     sourceAudioVolume,
     fades,
+    ending,
     clipSplits,
     aspectRatio,
     exportQuality, exportResolution, exportFps, exportCustomWidth, exportCustomHeight,
@@ -1109,15 +1209,45 @@ export default function VideoEditor() {
     if (!playback || !video) return;
 
     if (isPlaying) {
-      playback.pause();
-    } else {
-      playback.play().catch(err => console.error('Video play failed:', err));
+      pausePlayback();
+      return;
     }
+    const position = endingPositionRef.current;
+    if (position !== null && position < endingMs - 30) {
+      runEndingClock(position);
+      return;
+    }
+    // At the very end: start over from the beginning.
+    endingPositionRef.current = null;
+    playback.play().catch(err => console.error('Video play failed:', err));
   }
 
   function handleSeek(time: number) {
-    const video = videoPlaybackRef.current?.video;
-    if (!video) return;
+    const playback = videoPlaybackRef.current;
+    const video = playback?.video;
+    if (!playback || !video) return;
+    if (endingMs > 0 && duration > 0 && time * 1000 > totalSourceMs) {
+      const position = Math.min(endingMs, time * 1000 - totalSourceMs);
+      const keepPlaying = isPlaying;
+      if (keepPlaying && endingClockRef.current === null) playback.pause();
+      endingPositionRef.current = position;
+      video.currentTime = duration;
+      setCurrentTime((totalSourceMs + position) / 1000);
+      if (keepPlaying) runEndingClock(position);
+      return;
+    }
+    if (endingPositionRef.current !== null) {
+      const wasRunning = endingClockRef.current !== null;
+      stopEndingClock();
+      endingPositionRef.current = null;
+      video.currentTime = time;
+      setCurrentTime(time);
+      if (wasRunning) {
+        setIsPlaying(false);
+        playback.play().catch(err => console.error('Video play failed:', err));
+      }
+      return;
+    }
     video.currentTime = time;
   }
 
@@ -1574,7 +1704,8 @@ export default function VideoEditor() {
       annotation: asTrack(annotationRegions, setAnnotationRegions, "annotation", nextAnnotationIdRef, handleAnnotationDelete, handleSelectAnnotation),
       audio: asTrack(audioRegions, setAudioRegions, "audio", nextAudioIdRef, handleAudioDelete, handleSelectAudio),
     };
-    const totalMs = Math.round(duration * 1000);
+    // Texts and sounds may sit in the ending extension; video edits stay on the video.
+    const totalFor = (kind: RegionKind) => (kind === "annotation" || kind === "audio" ? totalSourceMs + endingMs : totalSourceMs);
     const playheadMs = Math.round(currentTime * 1000);
     // New text copies go on top of existing texts.
     const withZIndex = (kind: RegionKind, region: TimedRegion) =>
@@ -1584,7 +1715,7 @@ export default function VideoEditor() {
       const clip = regionClipboardRef.current;
       if (!clip) return;
       const track = tracks[clip.kind];
-      const copy = placeCopy(clip.region, track.regions, playheadMs, totalMs, track.nextId(), KIND_ALLOWS_OVERLAP[clip.kind]);
+      const copy = placeCopy(clip.region, track.regions, playheadMs, totalFor(clip.kind), track.nextId(), KIND_ALLOWS_OVERLAP[clip.kind]);
       if (!copy) {
         toast.info(t('timeline.regionMenu.noSpace', 'There is no free space at the playhead for this item.'));
         return;
@@ -1606,7 +1737,7 @@ export default function VideoEditor() {
         toast.success(t('timeline.regionMenu.copied', 'Copied. Paste at the playhead with Cmd/Ctrl + V.'));
         break;
       case "duplicate": {
-        const copy = placeCopy(region, track.regions, region.endMs, totalMs, track.nextId(), KIND_ALLOWS_OVERLAP[target.kind]);
+        const copy = placeCopy(region, track.regions, region.endMs, totalFor(target.kind), track.nextId(), KIND_ALLOWS_OVERLAP[target.kind]);
         if (!copy) {
           toast.info(t('timeline.regionMenu.noSpace', 'There is no free space at the playhead for this item.'));
           return;
@@ -1629,7 +1760,7 @@ export default function VideoEditor() {
         break;
       }
       case "nudge": {
-        const moved = nudgeRegion(region, command.deltaMs, track.regions, totalMs, KIND_ALLOWS_OVERLAP[target.kind]);
+        const moved = nudgeRegion(region, command.deltaMs, track.regions, totalFor(target.kind), KIND_ALLOWS_OVERLAP[target.kind]);
         if (moved) track.set((prev) => prev.map((item) => (item.id === region.id ? moved : item)));
         break;
       }
@@ -1638,7 +1769,7 @@ export default function VideoEditor() {
         break;
     }
   }, [
-    zoomRegions, trimRegions, speedRegions, annotationRegions, audioRegions, duration, currentTime, t, cutMap,
+    zoomRegions, trimRegions, speedRegions, annotationRegions, audioRegions, totalSourceMs, endingMs, currentTime, t, cutMap,
     handleZoomDelete, handleTrimDelete, handleSpeedDelete, handleAnnotationDelete, handleAudioDelete,
     handleSelectZoom, handleSelectTrim, handleSelectSpeed, handleSelectAnnotation, handleSelectAudio,
   ]);
@@ -1948,7 +2079,7 @@ export default function VideoEditor() {
       const wasPlaying = isPlaying;
       const restoreTime = video.currentTime;
       if (wasPlaying) {
-        videoPlaybackRef.current?.pause();
+        pausePlayback();
       }
 
       const sourceWidth = video.videoWidth || 1920;
@@ -1967,6 +2098,7 @@ export default function VideoEditor() {
         const gifExporter = new GifExporter({
           videoUrl: videoPath,
           fades,
+          ending: endingMs > 0 ? ending : undefined,
           width: settings.gifConfig.width,
           height: settings.gifConfig.height,
           frameRate: settings.gifConfig.frameRate,
@@ -2061,6 +2193,7 @@ export default function VideoEditor() {
           audioRegions,
           sourceAudioVolume,
           fades,
+          ending: endingMs > 0 ? ending : undefined,
           previewWidth,
           previewHeight,
           onProgress: (progress: ExportProgress) => {
@@ -2116,7 +2249,7 @@ export default function VideoEditor() {
       setShowExportDialog(keepExportDialogOpen);
       setExportProgress(null);
     }
-  }, [exportFileBase, sourceAudioVolume, fades, videoPath, wallpaper, zoomRegions, trimRegions, speedRegions, shadowIntensity, backgroundBlur, zoomMotionBlur, connectZooms, showCursor, effectiveCursorTelemetry, cursorSize, cursorSmoothing, cursorMotionBlur, cursorClickBounce, borderRadius, padding, cropRegion, annotationRegions, audioRegions, isPlaying, aspectRatio, exportQuality, exportResolution, exportFps, exportCustomWidth, exportCustomHeight,showExportSuccessToast]);
+  }, [exportFileBase, sourceAudioVolume, fades, ending, endingMs, videoPath, wallpaper, zoomRegions, trimRegions, speedRegions, shadowIntensity, backgroundBlur, zoomMotionBlur, connectZooms, showCursor, effectiveCursorTelemetry, cursorSize, cursorSmoothing, cursorMotionBlur, cursorClickBounce, borderRadius, padding, cropRegion, annotationRegions, audioRegions, isPlaying, aspectRatio, exportQuality, exportResolution, exportFps, exportCustomWidth, exportCustomHeight,showExportSuccessToast]);
 
   const handleStartExport = useCallback(() => {
     if (!videoPath) {
@@ -2162,7 +2295,7 @@ export default function VideoEditor() {
 
   const handleOpenExportDialog = useCallback(() => {
     if (hasPendingExportSave) setShowExportDialog(true);
-    else if (duration > 0) { videoPlaybackRef.current?.pause(); setExportSetupOpen(true); }
+    else if (duration > 0) { pausePlayback(); setExportSetupOpen(true); }
   }, [hasPendingExportSave, duration]);
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
@@ -2251,9 +2384,9 @@ export default function VideoEditor() {
   const timelineAnnotations = useMemo(() => toTimeline(annotationRegions), [toTimeline, annotationRegions]);
   const timelineAudio = useMemo(() => audioRegions.flatMap((region) => {
     const span = audioTimelineSpan(region, cutMap);
-    const end = Math.min(span.end, cutMap.outputMs);
-    return end - span.start >= 1 ? [{ ...region, startMs: span.start, endMs: Math.round(end) }] : [];
-  }), [audioRegions, cutMap]);
+    const end = Math.min(span.end, timelineMs);
+    return end - span.start >= 1 ? [{ ...region, startMs: Math.round(span.start), endMs: Math.round(end) }] : [];
+  }), [audioRegions, cutMap, timelineMs]);
   const timelineTelemetry = useMemo(
     () => effectiveCursorTelemetry
       .filter((sample) => !cutMap.cuts.some((cut) => sample.timeMs > cut.startMs && sample.timeMs < cut.endMs))
@@ -2330,7 +2463,7 @@ export default function VideoEditor() {
       return;
     }
     const regions = tool === 'zoom' ? zoomRegions : [];
-    const span = findAvailableSpan(Math.round(duration * 1000), Math.round(currentTime * 1000), regions, tool === 'text' ? 2500 : tool === 'zoom' ? DEFAULT_ZOOM_SPAN_MS : 1500);
+    const span = findAvailableSpan(totalSourceMs + (tool === 'text' ? endingMs : 0), Math.round(currentTime * 1000), regions, tool === 'text' ? 2500 : tool === 'zoom' ? DEFAULT_ZOOM_SPAN_MS : 1500);
     if (!span) { toast.info(t('timeline.zoom.existsOrNoSpace')); return; }
     const timelineSpan = { start: span.startMs, end: span.endMs };
     if (tool === 'zoom') handleZoomAdded(timelineSpan);
@@ -2358,7 +2491,7 @@ export default function VideoEditor() {
     if (!activeRegion) return false;
     if (activeRegionKind === 'audio') {
       // Typed in edited-timeline time; the clip may run past the video's end.
-      if (!(span.startMs >= 0 && span.endMs - span.startMs >= 100 && span.startMs < cutMap.outputMs)) return false;
+      if (!(span.startMs >= 0 && span.endMs - span.startMs >= 100 && span.startMs < timelineMs)) return false;
       handleAudioTimelineChange(activeRegion.id, { start: span.startMs, end: span.endMs });
       return true;
     }
@@ -2461,9 +2594,10 @@ export default function VideoEditor() {
                       ref={videoPlaybackRef}
                       videoPath={videoPath || ''}
                       onDurationChange={setDuration}
-                      onTimeUpdate={setCurrentTime}
+                      onTimeUpdate={handleVideoTime}
                       currentTime={currentTime}
-                      onPlayStateChange={setIsPlaying}
+                      onPlayStateChange={handleVideoPlayState}
+                      hideVideo={ending.mode === 'background' && endingMs > 0 && currentTime * 1000 > totalSourceMs + 1}
                       onError={setError}
                       wallpaper={wallpaper}
                       zoomRegions={effectiveZoomRegions}
@@ -2502,7 +2636,7 @@ export default function VideoEditor() {
                     <PlaybackControls
                       isPlaying={isPlaying}
                       currentTime={toOutputMs(cutMap, currentTime * 1000) / 1000}
-                      duration={cutMap.outputMs / 1000}
+                      duration={timelineMs / 1000}
                       onTogglePlayPause={togglePlayPause}
                       onSeek={(time) => handleSeek(toSourceMs(cutMap, time * 1000) / 1000)}
                     />
@@ -2521,7 +2655,7 @@ export default function VideoEditor() {
                 <div className="workspace-timeline-heading"><strong>{locale === 'tr' ? 'Zaman çizelgesi' : 'Timeline'}</strong><span>{duration > 0 ? "1 video · " : ""}{zoomRegions.length + trimRegions.length + speedRegions.length + annotationRegions.length + audioRegions.length} {locale === 'tr' ? 'düzenleme' : 'edits'}</span><small>{locale === 'tr' ? 'Sürükle, kısalt, hikâyeni oluştur.' : 'Drag, trim, tell your story.'}</small></div>
                 <TimelineEditor
               videoPath={videoSourcePath || videoPath || ''}
-              videoDuration={cutMap.outputMs / 1000}
+              videoDuration={timelineMs / 1000}
               currentTime={toOutputMs(cutMap, currentTime * 1000) / 1000}
               onSeek={(time) => handleSeek(toSourceMs(cutMap, time * 1000) / 1000)}
               cursorTelemetry={timelineTelemetry}
@@ -2572,7 +2706,9 @@ export default function VideoEditor() {
                 },
                 onSplit: handleSplitClip,
                 onDeleteSegment: handleDeleteClipPart,
+                ending: endingMs > 0 ? { durationMs: endingMs, mode: ending.mode, onSelect: showEndingSettings } : undefined,
               }}
+              onExtendEnding={extendEnding}
               aspectRatio={aspectRatio}
               onAspectRatioChange={setAspectRatio}
             />
@@ -2590,6 +2726,8 @@ export default function VideoEditor() {
           onSourceAudioVolumeChange={setSourceAudioVolume}
           fades={fades}
           onFadeChange={(key, ms) => setFades((previous) => ({ ...previous, [key]: ms }))}
+          ending={ending}
+          onEndingChange={setEnding}
           autoZoomControls={<AutoZoomControls settings={autoZoomSettings} onChange={updateAutoZoomSettings} onRegenerate={normalizedCursorTelemetry.length >= 2 && duration > 0 ? handleRegenerateAutoZoom : undefined} />}
           presets={<StylePresets appearance={appearance} onApply={applyAppearance} />}
           selectedAudioId={selectedAudioId}

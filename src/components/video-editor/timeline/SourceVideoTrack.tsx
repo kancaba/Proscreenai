@@ -126,3 +126,24 @@ export function SourceVideoTrack({ path, durationMs, trims, clip, selectedCutId 
     })}
   </div></div>
 }
+
+/** The time added after the video's end, drawn right after the video on its track. */
+export function EndingTrackItem({ startMs, durationMs, mode, onSelect }: { startMs: number; durationMs: number; mode: 'freeze' | 'background'; onSelect: () => void }) {
+  const t = useScopedT('timeline')
+  const { setNodeRef, itemStyle, itemContentStyle } = useItem({ id: 'video-ending', span: { start: startMs, end: startMs + durationMs }, disabled: true, data: { rowId: 'source-video-row' } })
+  const label = t(mode === 'freeze' ? 'ending.freeze' : 'ending.background')
+  return <div ref={setNodeRef} style={itemStyle}><div style={{ ...itemContentStyle, height: 52 }}>
+    <button
+      type="button"
+      data-testid="ending-track"
+      data-mode={mode}
+      title={t('ending.title')}
+      onClick={(event) => { event.stopPropagation(); onSelect() }}
+      className="flex h-full w-full min-w-0 items-center gap-1.5 overflow-hidden rounded-lg border-2 border-dashed border-cyan-300/50 bg-[repeating-linear-gradient(135deg,#164e6333,#164e6333_6px,#0e7490_6px,#0e749033_12px)] px-2 text-[11px] text-cyan-100 hover:border-cyan-200"
+    >
+      <Hourglass size={12} className="shrink-0" />
+      <span className="truncate font-medium">{label}</span>
+      <span className="ml-auto shrink-0 tabular-nums">{(durationMs / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })}s</span>
+    </button>
+  </div></div>
+}

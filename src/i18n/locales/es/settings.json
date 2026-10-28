@@ -92,5 +92,14 @@
 		"out": "Final",
 		"off": "No",
 		"hint": "Funde la imagen desde y hacia negro, junto con el sonido."
+	},
+	"ending": {
+		"title": "Final",
+		"off": "No",
+		"seconds": "Duración del final en segundos",
+		"show": "Qué se ve tras el vídeo",
+		"freeze": "Último fotograma",
+		"background": "Solo el fondo",
+		"hint": "La línea de tiempo sigue tras el final del vídeo, así los textos y sonidos pueden continuar."
 	}
 }

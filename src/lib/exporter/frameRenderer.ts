@@ -676,6 +676,11 @@ export class FrameRenderer {
     ctx.restore();
   }
 
+  /** Shows or hides the video and cursor; hidden, only the background (and texts) are drawn. */
+  setVideoVisible(visible: boolean): void {
+    if (this.cameraContainer) this.cameraContainer.visible = visible;
+  }
+
   /** Darkens the composed frame toward black for a fade in/out; 0 leaves it as is. */
   applyFade(amount: number): void {
     if (!(amount > 0) || !this.compositeCanvas || !this.compositeCtx) return;

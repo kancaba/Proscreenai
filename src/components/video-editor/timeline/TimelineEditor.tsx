@@ -1,5 +1,5 @@
 import { layoutTrackLanes } from './trackLayout';
-import { SourceVideoTrack } from './SourceVideoTrack';
+import { EndingTrackItem, SourceVideoTrack } from './SourceVideoTrack';
 import { useI18n, useScopedT } from '@/contexts/I18nContext';
 import { type MutableRefObject, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type WheelEvent } from "react";
 import { useTimelineContext } from "dnd-timeline";

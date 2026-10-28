@@ -3,6 +3,7 @@ import type { ExportProgress, ExportResult, GifFrameRate, GifSizePreset, GIF_SIZ
 import { StreamingVideoDecoder } from './streamingDecoder';
 import { FrameRenderer } from './frameRenderer';
 import { fadeAmount, type Fades, NO_FADES } from '@/lib/fades';
+import type { EndingHold } from '@/lib/endingHold';
 import { CutCrossfadeTracker } from '@/lib/cutTransitions';
 import { createCutMap } from '@/components/video-editor/timeline/editedTime';
 import type { ZoomRegion, CropRegion, TrimRegion, AnnotationRegion, SpeedRegion, CursorTelemetryPoint } from '@/components/video-editor/types';
@@ -13,6 +14,8 @@ interface GifExporterConfig {
   videoUrl: string;
   /** Fade from/to black at the start and end of the GIF. */
   fades?: Fades;
+  /** Time added after the video's end: the last frame held, or the background alone. */
+  ending?: EndingHold;
   width: number;
   height: number;
   frameRate: GifFrameRate;
@@ -146,7 +149,10 @@ export class GifExporter {
 
       // Calculate effective duration and frame count (excluding trim regions)
       const effectiveDuration = this.streamingDecoder.getEffectiveDuration(this.config.trimRegions, this.config.speedRegions);
-      const totalFrames = Math.ceil(effectiveDuration * this.config.frameRate);
+      const endingMs = this.config.ending?.durationMs ?? 0;
+      const totalFrames = Math.ceil((effectiveDuration + endingMs / 1000) * this.config.frameRate);
+      // The last video frame, kept to draw the ending extension with.
+      let lastFrame: VideoFrame | null = null;
 
       // Calculate frame delay in milliseconds (gif.js uses ms)
       const frameDelay = Math.round(1000 / this.config.frameRate);
@@ -175,6 +181,10 @@ export class GifExporter {
 
           const sourceTimestampUs = sourceTimestampMs * 1000;
           await this.renderer!.renderFrame(videoFrame, sourceTimestampUs);
+          if (endingMs > 0) {
+            lastFrame?.close();
+            lastFrame = videoFrame.clone();
+          }
           videoFrame.close();
           const crossfade = crossfades.step(sourceTimestampMs, frameIndex * frameDelay, frameDelay);
           this.renderer!.blendTransitionFrame(crossfade.blend);
@@ -186,6 +196,25 @@ export class GifExporter {
           this.reportProgress(frameIndex, totalFrames);
         }
       );
+
+      // The ending extension: the held last frame or the background, with texts placed there.
+      const heldFrame = lastFrame as VideoFrame | null;
+      if (heldFrame && !this.cancelled) {
+        const videoEndMs = videoInfo.duration * 1000;
+        this.renderer!.setVideoVisible(this.config.ending?.mode !== 'background');
+        while (frameIndex < totalFrames && !this.cancelled) {
+          const sourceMs = videoEndMs + Math.max(0, frameIndex * frameDelay - effectiveDuration * 1000);
+          // A fresh copy each time: the renderer drops the texture of the frame before.
+          const frame = heldFrame.clone();
+          await this.renderer!.renderFrame(frame, sourceMs * 1000);
+          frame.close();
+          this.renderer!.applyFade(fadeAmount(frameIndex * frameDelay, Math.max(0, totalFrames - 1) * frameDelay, this.config.fades ?? NO_FADES));
+          this.addRenderedGifFrame(frameDelay);
+          frameIndex++;
+          this.reportProgress(frameIndex, totalFrames);
+        }
+      }
+      heldFrame?.close();
 
       if (this.cancelled) {
         return { success: false, error: 'Export cancelled' };

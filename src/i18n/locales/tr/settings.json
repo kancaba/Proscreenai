@@ -92,5 +92,14 @@
     "out": "Bitiş",
     "off": "Kapalı",
     "hint": "Görüntü siyahtan açılır ve siyaha kapanır; ses de birlikte açılıp kapanır."
+  },
+  "ending": {
+    "title": "Videonun sonu",
+    "off": "Kapalı",
+    "seconds": "Bitiş uzatmasının süresi (saniye)",
+    "show": "Videodan sonra görünen",
+    "freeze": "Son kare",
+    "background": "Yalnız arka plan",
+    "hint": "Video bittikten sonra zaman çizelgesi bu kadar devam eder; yazılar ve sesler videonun sonundan taşabilir."
   }
 }

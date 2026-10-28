@@ -92,5 +92,14 @@
 		"out": "End",
 		"off": "Off",
 		"hint": "Fades the picture from and to black, and the sound with it."
+	},
+	"ending": {
+		"title": "Ending",
+		"off": "Off",
+		"seconds": "Ending length in seconds",
+		"show": "What shows after the video",
+		"freeze": "Last frame",
+		"background": "Background only",
+		"hint": "The timeline goes on after the video ends, so texts and sounds can run past it."
 	}
 }

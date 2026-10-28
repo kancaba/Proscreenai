@@ -67,4 +67,12 @@ describe("edited timeline", () => {
   it("cleans split points", () => {
     expect(normalizeSplits([5000.4, 0, 5000, -1, 30000, "x", 1200], 20000)).toEqual([1200, 5000]);
   });
+  it("runs on at 1x past the video's end (the ending extension)", () => {
+    const map = createCutMap([{ id: "cut", startMs: 2000, endMs: 4000 }], 10000, [{ startMs: 6000, endMs: 10000, speed: 2 }]);
+    expect(map.outputMs).toBe(6000);
+    expect(toOutputMs(map, 10000)).toBe(6000);
+    expect(toOutputMs(map, 12500)).toBe(8500);
+    expect(toSourceMs(map, 8500)).toBe(12500);
+    expect(toSourceMs(map, 6000, "before")).toBe(10000);
+  });
 });

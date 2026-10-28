@@ -29,6 +29,8 @@ export class AudioProcessor {
     audioRegions?: AudioRegion[],
     sourceVolume = 1,
     fades?: Fades & { totalMs: number },
+    /** Time added after the video's end, where only added audio plays. */
+    endingMs = 0,
   ): Promise<void> {
     const sortedTrims = trimRegions ? [...trimRegions].sort((a, b) => a.startMs - b.startMs) : []
     const sortedSpeedRegions = speedRegions
@@ -52,6 +54,7 @@ export class AudioProcessor {
         sortedAudioRegions,
         volume,
         activeFades,
+        endingMs,
       )
       if (!this.cancelled) {
         await this.muxRenderedAudioBlob(renderedAudioBlob, muxer)
@@ -184,6 +187,7 @@ export class AudioProcessor {
     audioRegions: AudioRegion[],
     sourceVolume = 1,
     fades?: Fades & { totalMs: number },
+    endingMs = 0,
   ): Promise<Blob> {
     const media = document.createElement('audio')
     media.src = videoUrl
@@ -278,10 +282,28 @@ export class AudioProcessor {
       audioRegionElements.push({ media: audioEl, sourceNode: regionSource, gainNode, region })
     }
 
-    // Added audio follows the edited timeline (cuts removed), so it is not skipped with the video.
-    const cutMap = createCutMap(trimRegions, Number.isFinite(media.duration) ? Math.round(media.duration * 1000) : Number.MAX_SAFE_INTEGER)
+    // Added audio follows the edited timeline (cuts removed, sped-up parts shortened), so it is
+    // neither skipped nor sped up with the video.
+    const cutMap = createCutMap(trimRegions, Number.isFinite(media.duration) ? Math.round(media.duration * 1000) : Number.MAX_SAFE_INTEGER, speedRegions)
     const { recorder, recordedBlobPromise } = this.startAudioRecording(destinationNode.stream)
     let rafId: number | null = null
+
+    // Plays each added clip that is heard at this moment of the edited timeline, at its place in the file.
+    const syncAudioRegions = (timelineMs: number) => {
+      for (const { media: audioEl, region } of audioRegionElements) {
+        if (isAudioActive(region, timelineMs, cutMap)) {
+          const audioOffset = audioFileOffsetSeconds(region, timelineMs, cutMap)
+          if (audioEl.paused) {
+            audioEl.currentTime = audioOffset
+            audioEl.play().catch(() => {})
+          } else if (Math.abs(audioEl.currentTime - audioOffset) > 0.3) {
+            audioEl.currentTime = audioOffset
+          }
+        } else if (!audioEl.paused) {
+          audioEl.pause()
+        }
+      }
+    }
 
     try {
       if (audioContext.state === 'suspended') {
@@ -344,25 +366,7 @@ export class AudioProcessor {
           }
 
           // Sync external audio regions with the video timeline position
-          for (const entry of audioRegionElements) {
-            const { media: audioEl, region } = entry
-            const timelineMs = toOutputMs(cutMap, currentTimeMs)
-            const isInRegion = isAudioActive(region, timelineMs, cutMap)
-
-            if (isInRegion) {
-              const audioOffset = audioFileOffsetSeconds(region, timelineMs, cutMap)
-              if (audioEl.paused) {
-                audioEl.currentTime = audioOffset
-                audioEl.play().catch(() => {})
-              } else if (Math.abs(audioEl.currentTime - audioOffset) > 0.3) {
-                audioEl.currentTime = audioOffset
-              }
-            } else {
-              if (!audioEl.paused) {
-                audioEl.pause()
-              }
-            }
-          }
+          syncAudioRegions(toOutputMs(cutMap, currentTimeMs))
 
           if (!media.paused && !media.ended) {
             rafId = requestAnimationFrame(tick)
@@ -376,6 +380,27 @@ export class AudioProcessor {
         media.addEventListener('ended', onEnded, { once: true })
         rafId = requestAnimationFrame(tick)
       })
+
+      // The ending extension: the recording's sound has ended; added clips play on over it.
+      if (endingMs > 0 && !this.cancelled) {
+        media.pause()
+        const endingStartedAt = audioContext.currentTime
+        await new Promise<void>((resolve) => {
+          const step = () => {
+            const elapsedMs = (audioContext.currentTime - endingStartedAt) * 1000
+            if (this.cancelled || elapsedMs >= endingMs) {
+              rafId = null
+              resolve()
+              return
+            }
+            const timelineMs = cutMap.outputMs + elapsedMs
+            if (fades) masterGain.gain.value = 1 - fadeAmount(timelineMs, fades.totalMs, fades)
+            syncAudioRegions(timelineMs)
+            rafId = requestAnimationFrame(step)
+          }
+          rafId = requestAnimationFrame(step)
+        })
+      }
     } finally {
       if (rafId !== null) {
         cancelAnimationFrame(rafId)

@@ -21,6 +21,7 @@ import { type AspectRatio } from "@/utils/aspectRatioUtils";
 import type { ExportQuality, ExportFormat, GifFrameRate, GifSizePreset } from "@/lib/exporter";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { FADE_CHOICES_MS, type Fades } from "@/lib/fades";
+import { ENDING_CHOICES_MS, type EndingHold, MAX_ENDING_MS } from "@/lib/endingHold";
 const GRADIENTS = [
   "linear-gradient( 111.6deg,  rgba(114,167,232,1) 9.4%, rgba(253,129,82,1) 43.9%, rgba(253,129,82,1) 54.8%, rgba(249,202,86,1) 86.3% )",
   "linear-gradient(120deg, #d4fc79 0%, #96e6a1 100%)",
@@ -48,6 +49,9 @@ const GRADIENTS = [
   "linear-gradient(to right, #0acffe 0%, #495aff 100%)",
 ];
 
+/** A settings section to switch to and scroll into view. */
+export type SettingsFocusRequest = { tab: "motion"; target: "auto-zoom"; nonce: number } | { tab: "appearance"; target: "ending"; nonce: number };
+
 export interface SettingsPanelProps extends OutputSizeProps {
   header?: React.ReactNode;
   presets?: React.ReactNode;
@@ -59,8 +63,11 @@ export interface SettingsPanelProps extends OutputSizeProps {
   /** Optional fade from/to black at the start and end of the video. */
   fades?: Fades;
   onFadeChange?: (key: keyof Fades, ms: number) => void;
+  /** Time added after the video's end (last frame or background). */
+  ending?: EndingHold;
+  onEndingChange?: (ending: EndingHold) => void;
   /** Switches to a tab (and scrolls to its target) when the nonce changes. */
-  focusRequest?: { tab: "motion"; target: "auto-zoom"; nonce: number } | null;
+  focusRequest?: SettingsFocusRequest | null;
   /** A part of the video is selected; its card (speed, cut) shows on the Motion tab. */
   hasSelectedClipPart?: boolean;
   selectedAudioId?: string | null;
@@ -141,7 +148,7 @@ const ZOOM_DEPTH_OPTIONS: Array<{ depth: ZoomDepth; label: string }> = [
 ];
 
 export function SettingsPanel({
-  header, presets, aiPanel, autoZoomControls, focusRequest, hasSelectedClipPart = false, sourceAudioVolume = 1, onSourceAudioVolumeChange, fades, onFadeChange, selectedAudioId,
+  header, presets, aiPanel, autoZoomControls, focusRequest, hasSelectedClipPart = false, sourceAudioVolume = 1, onSourceAudioVolumeChange, fades, onFadeChange, ending, onEndingChange, selectedAudioId,
   selected,
   onWallpaperChange,
   selectedZoomDepth,
@@ -198,10 +205,12 @@ export function SettingsPanel({
   const [activeTab, setActiveTab] = useState('appearance');
   useEffect(() => { if (selectedAnnotationId) setActiveTab('item'); else if (selectedAudioId) setActiveTab('audio'); else if (selectedZoomId || selectedSpeedId || selectedTrimId || hasSelectedClipPart) setActiveTab('motion'); }, [selectedAnnotationId, selectedAudioId, selectedZoomId, selectedSpeedId, selectedTrimId, hasSelectedClipPart]);
   const autoZoomRef = useRef<HTMLDivElement>(null);
+  const endingRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!focusRequest) return;
     setActiveTab(focusRequest.tab);
-    requestAnimationFrame(() => autoZoomRef.current?.scrollIntoView({ block: "center", behavior: "smooth" }));
+    const target = focusRequest.target === "ending" ? endingRef : autoZoomRef;
+    requestAnimationFrame(() => target.current?.scrollIntoView({ block: "center", behavior: "smooth" }));
   }, [focusRequest]);
   const [wallpaperPreviewPaths, setWallpaperPreviewPaths] = useState<string[]>([]);
   const [customImages, setCustomImages] = useState<string[]>([]);
@@ -358,6 +367,64 @@ export function SettingsPanel({
               </div>
             ))}
             <p className="mt-2 text-[9px] leading-snug text-slate-500">{tSettings('fades.hint')}</p>
+          </div>
+        )}
+        {activeTab === 'appearance' && ending && onEndingChange && (
+          <div ref={endingRef} className="mb-4 rounded-lg border border-white/5 bg-white/5 p-2.5" data-testid="video-ending">
+            <span className="text-[11px] font-medium text-slate-200">{tSettings('ending.title')}</span>
+            <div className="mt-2 flex flex-wrap items-center gap-1">
+              <div role="radiogroup" aria-label={tSettings('ending.title')} className="flex gap-1">
+                {ENDING_CHOICES_MS.map((ms) => (
+                  <button
+                    key={ms}
+                    type="button"
+                    role="radio"
+                    aria-checked={ending.durationMs === ms}
+                    data-testid={`ending-${ms}`}
+                    onClick={() => onEndingChange({ ...ending, durationMs: ms })}
+                    className={ending.durationMs === ms ? 'rounded bg-violet-300/25 px-2 py-1 text-[10px] text-violet-100' : 'rounded px-2 py-1 text-[10px] text-slate-400 hover:bg-white/10'}
+                  >
+                    {ms === 0 ? tSettings('ending.off') : `${(ms / 1000).toLocaleString(locale)} ${locale === 'tr' ? 'sn' : 's'}`}
+                  </button>
+                ))}
+              </div>
+              {/* Any other length, in seconds. */}
+              <label className="ml-auto flex items-center gap-1 text-[10px] text-slate-400">
+                <input
+                  type="number"
+                  data-testid="ending-seconds"
+                  aria-label={tSettings('ending.seconds')}
+                  min={0}
+                  max={MAX_ENDING_MS / 1000}
+                  step={0.5}
+                  value={ending.durationMs / 1000}
+                  onChange={(event) => {
+                    const seconds = Number(event.target.value);
+                    if (Number.isFinite(seconds)) onEndingChange({ ...ending, durationMs: Math.round(Math.min(MAX_ENDING_MS, Math.max(0, seconds * 1000))) });
+                  }}
+                  className="w-12 rounded bg-black/30 px-1.5 py-1 text-right text-[10px] text-slate-200 outline-none"
+                />
+                {locale === 'tr' ? 'sn' : 's'}
+              </label>
+            </div>
+            {ending.durationMs > 0 && (
+              <div role="radiogroup" aria-label={tSettings('ending.show')} className="mt-2 grid grid-cols-2 gap-1">
+                {(['freeze', 'background'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    role="radio"
+                    aria-checked={ending.mode === mode}
+                    data-testid={`ending-mode-${mode}`}
+                    onClick={() => onEndingChange({ ...ending, mode })}
+                    className={ending.mode === mode ? 'rounded bg-violet-300/25 px-2 py-1.5 text-[10px] text-violet-100' : 'rounded bg-black/20 px-2 py-1.5 text-[10px] text-slate-400 hover:bg-white/10'}
+                  >
+                    {tSettings(mode === 'freeze' ? 'ending.freeze' : 'ending.background')}
+                  </button>
+                ))}
+              </div>
+            )}
+            <p className="mt-2 text-[9px] leading-snug text-slate-500">{tSettings('ending.hint')}</p>
           </div>
         )}
         {activeTab === 'item' && annotationPanel}

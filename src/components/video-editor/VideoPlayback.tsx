@@ -65,6 +65,8 @@ interface VideoPlaybackProps {
   backgroundBlur?: number;
   /** Fade in/out darkening at the current moment, 0 (none) to 1 (black). */
   fadeAmount?: number;
+  /** Hides the video (and cursor), leaving the background: the ending extension's background mode. */
+  hideVideo?: boolean;
   zoomMotionBlur?: number;
   connectZooms?: boolean;
   borderRadius?: number;
@@ -115,6 +117,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
   shadowIntensity = 0,
   backgroundBlur = 0,
   fadeAmount = 0,
+  hideVideo = false,
   zoomMotionBlur = 0,
   connectZooms = true,
   borderRadius = 0,
@@ -1124,7 +1127,9 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
       <div
         ref={containerRef}
         className="absolute inset-0"
+        data-testid="preview-video-layer"
         style={{
+          visibility: hideVideo ? 'hidden' : undefined,
           filter: (showShadow && shadowIntensity > 0)
             ? `drop-shadow(0 ${shadowIntensity * 12}px ${shadowIntensity * 48}px rgba(0,0,0,${shadowIntensity * 0.7})) drop-shadow(0 ${shadowIntensity * 4}px ${shadowIntensity * 16}px rgba(0,0,0,${shadowIntensity * 0.5})) drop-shadow(0 ${shadowIntensity * 2}px ${shadowIntensity * 8}px rgba(0,0,0,${shadowIntensity * 0.3}))`
             : 'none',

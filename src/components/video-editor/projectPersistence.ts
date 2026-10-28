@@ -1,6 +1,7 @@
 import { normalizeSplits } from "./timeline/editedTime";
 import type { ResolutionPreset, VideoFps } from '@/lib/video/outputSettings';
 import { type Fades, normalizeFades } from "@/lib/fades";
+import { type EndingHold, normalizeEnding } from "@/lib/endingHold";
 import { MAX_AUDIO_TRACKS } from "./audioRegionSpan";
 import { getAnnotationText } from './annotationText';
 import { normalizeAnnotationAnimation } from "./annotationEffects";
@@ -54,6 +55,8 @@ export interface ProjectEditorState {
   sourceAudioVolume: number;
   /** Fade from/to black at the start and end of the video. */
   fades: Fades;
+  /** Time added after the video's end (absent when there is none). */
+  ending?: EndingHold;
   /** Where the video track is split into parts (source ms). */
   clipSplits: number[];
   aspectRatio: AspectRatio;
@@ -382,6 +385,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
       ? clamp((editor as Partial<ProjectEditorState>).sourceAudioVolume as number, 0, 1)
       : 1,
     fades: normalizeFades((editor as Partial<ProjectEditorState>).fades),
+    ending: normalizeEnding((editor as Partial<ProjectEditorState>).ending),
     clipSplits: normalizeSplits((editor as Partial<ProjectEditorState>).clipSplits, 0),
     aspectRatio:
       typeof editor.aspectRatio === "string" &&

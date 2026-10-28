@@ -92,7 +92,7 @@ export function toOutputMs(map: CutMap, sourceMs: number): number {
     if (sourceMs < piece.srcStart) return piece.outStart;
     if (sourceMs <= piece.srcEnd) return piece.outStart + (Math.max(piece.srcStart, sourceMs) - piece.srcStart) / piece.speed;
   }
-  return Math.max(0, Math.min(map.outputMs, sourceMs - removed));
+  return map.outputMs + Math.max(0, sourceMs - map.sourceMs);
 }
 
 /**
@@ -106,7 +106,7 @@ export function toSourceMs(map: CutMap, outputMs: number, bias: "after" | "befor
     if (outputMs < end) return Math.min(piece.srcEnd, piece.srcStart + Math.max(0, outputMs - piece.outStart) * piece.speed);
     if (outputMs === end && bias === "before") return piece.srcEnd;
   }
-  return Math.max(0, Math.min(map.sourceMs, outputMs + removed));
+  return map.sourceMs + Math.max(0, outputMs - map.outputMs);
 }
 
 /** A source span as shown on the edited timeline; null when it is entirely cut out. */
