@@ -1,5 +1,5 @@
 import { Bot, Check, LoaderCircle, Maximize2, RefreshCw, Square, TriangleAlert, X } from "lucide-react";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { AgentToolId } from "@/lib/agent/agentEvents";
 import { AGENT_TASKS } from "@/lib/agent/agentTasks";
 import type { Proposal, ProposalKind } from "@/lib/agent/proposals";
@@ -25,6 +25,61 @@ function formatUsage(usage: AgentUsage, words: { input: string; cached: string; 
   const parts = [`${compact.format(usage.inputTokens)} ${words.input}${usage.cachedTokens > 0 ? ` (${compact.format(usage.cachedTokens)} ${words.cached})` : ""}`, `${compact.format(usage.outputTokens)} ${words.output}`];
   if (usage.costUsd > 0) parts.push(`$${usage.costUsd.toFixed(usage.costUsd < 0.1 ? 3 : 2)}`);
   return parts.join(" · ");
+}
+
+/** A message box that grows with what is typed (up to about 12 lines); ⌘↩ or Ctrl+↩ sends. */
+function MessageBox({ value, onChange, onSend, placeholder, sendLabel, canSend, testId, sendTestId, primary }: {
+  value: string;
+  onChange: (value: string) => void;
+  onSend: () => void;
+  placeholder: string;
+  sendLabel: string;
+  canSend: boolean;
+  testId: string;
+  sendTestId: string;
+  primary?: boolean;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the height follows the text.
+  useLayoutEffect(() => {
+    const box = ref.current;
+    if (!box) return;
+    box.style.height = "auto";
+    box.style.height = `${Math.min(box.scrollHeight + 2, 240)}px`;
+  }, [value]);
+  return (
+    <div className="flex flex-col gap-1.5">
+      <textarea
+        ref={ref}
+        data-testid={testId}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && canSend) {
+            event.preventDefault();
+            onSend();
+          }
+        }}
+        placeholder={placeholder}
+        rows={4}
+        className="min-h-[88px] w-full resize-y rounded-md border border-white/10 bg-white/5 px-2.5 py-2 text-xs leading-relaxed text-slate-200 outline-none focus:border-[#2563EB]/70"
+      />
+      <div className="flex items-center justify-end gap-2">
+        <span className="text-[10px] text-slate-500">⌘↩</span>
+        <button
+          type="button"
+          data-testid={sendTestId}
+          disabled={!canSend}
+          onClick={onSend}
+          className={primary
+            ? "rounded-md bg-[#2563EB] px-4 py-1.5 text-[11px] text-white disabled:opacity-40"
+            : "rounded-md border border-white/15 px-4 py-1.5 text-[11px] text-slate-200 disabled:opacity-40"}
+        >
+          {sendLabel}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function describeProposal(item: Proposal) {
@@ -142,28 +197,20 @@ export function AgentPanel({ state, available, onApply, onSeek, variant = "compa
               </button>
             ))}
           </div>
-          <div className="flex gap-1.5">
-            <textarea
-              data-testid="agent-request"
-              value={request}
-              onChange={(event) => setRequest(event.target.value)}
-              placeholder={t("agent.requestPlaceholder")}
-              rows={2}
-              className="min-w-0 flex-1 resize-none rounded bg-white/5 px-2 py-1.5 text-[11px] text-slate-200 outline-none"
-            />
-            <button
-              type="button"
-              data-testid="agent-send"
-              disabled={!usable || !request.trim()}
-              onClick={() => {
-                void state.start(request);
-                setRequest("");
-              }}
-              className="rounded-md bg-[#2563EB] px-2.5 text-[11px] text-white disabled:opacity-40"
-            >
-              {t("agent.send")}
-            </button>
-          </div>
+          <MessageBox
+            value={request}
+            onChange={setRequest}
+            onSend={() => {
+              void state.start(request);
+              setRequest("");
+            }}
+            placeholder={t("agent.requestPlaceholder")}
+            sendLabel={t("agent.send")}
+            canSend={!!usable && !!request.trim()}
+            testId="agent-request"
+            sendTestId="agent-send"
+            primary
+          />
         </>
       )}
     </>;
@@ -263,28 +310,19 @@ export function AgentPanel({ state, available, onApply, onSeek, variant = "compa
       )}
 
       {state.canFollowUp && (
-        <div className="flex gap-1.5">
-          <textarea
-            data-testid="agent-follow-up"
-            value={followUp}
-            onChange={(event) => setFollowUp(event.target.value)}
-            placeholder={t("agent.followUpPlaceholder")}
-            rows={2}
-            className="min-w-0 flex-1 resize-none rounded bg-white/5 px-2 py-1.5 text-[11px] text-slate-200 outline-none"
-          />
-          <button
-            type="button"
-            data-testid="agent-follow-up-send"
-            disabled={!usable || !followUp.trim()}
-            onClick={() => {
-              void state.start(followUp, true);
-              setFollowUp("");
-            }}
-            className="rounded-md border border-white/15 px-2.5 text-[11px] text-slate-200 disabled:opacity-40"
-          >
-            {t("agent.send")}
-          </button>
-        </div>
+        <MessageBox
+          value={followUp}
+          onChange={setFollowUp}
+          onSend={() => {
+            void state.start(followUp, true);
+            setFollowUp("");
+          }}
+          placeholder={t("agent.followUpPlaceholder")}
+          sendLabel={t("agent.send")}
+          canSend={!!usable && !!followUp.trim()}
+          testId="agent-follow-up"
+          sendTestId="agent-follow-up-send"
+        />
       )}
     </>;
 
