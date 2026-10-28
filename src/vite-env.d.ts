@@ -31,13 +31,18 @@ interface SystemCursorAsset {
 
 interface Window {
   electronAPI: {
+    byteplusKeyStatus: () => Promise<{configured:boolean;persistent:boolean}>;
+    byteplusSaveKey: (key:string) => Promise<{configured:boolean;persistent:boolean}>;
+    byteplusClearKey: () => Promise<{configured:boolean;persistent:boolean}>;
+    byteplusLedger: () => Promise<import("./lib/byteplusSettings").ByteplusLedger>;
+    byteplusRecover: (id:string) => Promise<{success:boolean;error?:string;image?:string;jobId?:string} & import("./lib/imageUsage").ImageRunMetadata>;
     geminiKeyStatus: () => Promise<{configured:boolean;persistent:boolean}>;
     geminiSaveKey: (key:string) => Promise<{configured:boolean;persistent:boolean}>;
     geminiClearKey: () => Promise<{configured:boolean;persistent:boolean}>;
     imageStudioBrandWebsite: (url:string) => Promise<{success:boolean;data?:import("./lib/brandWebsiteTypes").WebsiteBrand;error?:string}>;
     imageStudioReferencePage: (url:string) => Promise<{success:boolean;url?:string;text?:string;error?:string}>;
     imageStudioCapabilities: () => Promise<{tools:{id:string;name:string;status:string}[];imageGeneration:boolean;note:string}>;
-    imageStudioRun: (input: {requestId:string;mode:string;purpose?:"brand";prompt:string;tool:string;references:string[];width?:number;height?:number;imageSize?:"1K"|"2K"|"4K";auto?:boolean}) => Promise<{success:boolean;error?:string;cancelled?:boolean;prompt?:string;image?:string;jobId?:string;usage?:import("./lib/imageUsage").ImageUsage;durationMs?:number;provider?:"codex"|"gemini";requestedResolution?:"1K"|"2K"|"4K"}>;
+    imageStudioRun: (input: {requestId:string;mode:string;purpose?:"brand";prompt:string;tool:string;references:string[];width?:number;height?:number;imageSize?:"1K"|"2K"|"4K";byteplus?:import("./lib/byteplusSettings").ByteplusOptions;referenceNames?:string[];auto?:boolean}) => Promise<{success:boolean;error?:string;cancelled?:boolean;prompt?:string;image?:string;jobId?:string;usage?:import("./lib/imageUsage").ImageUsage;durationMs?:number;provider?:"codex"|"gemini"|"byteplus";actualWidth?:number;actualHeight?:number;requestedResolution?:"1K"|"1.5K"|"2K"|"3K"|"4K"}>;
     imageStudioCancel: (id:string) => Promise<void>;
     onImageStudioProgress: (callback:(event:{requestId:string;stage:string;detail?:string;usage?:import("./lib/imageUsage").ImageUsage;durationMs?:number})=>void) => () => void;
     getSources: (opts: Electron.SourcesOptions) => Promise<ProcessedDesktopSource[]>

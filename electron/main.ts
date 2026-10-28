@@ -6,6 +6,7 @@ import fs from 'node:fs/promises'
 import { createHudOverlayWindow, createEditorWindow, createSourceSelectorWindow, createWelcomeWindow } from './windows'
 import { registerIpcHandlers, getSelectedSourceId, killWgcCaptureProcess } from './ipc/handlers'
 import { isAllowedExternalUrl } from './ipcValidation'
+import { registerByteplusKeys } from './byteplusKeys'
 import { registerGeminiKeys } from './geminiKeys'
 import { registerImageStudioHandlers } from './imageStudio'
 import { registerModelionHandlers } from './modelion'
@@ -66,6 +67,7 @@ registerFishAudioHandlers()
 registerElevenLabsHandlers()
 registerImageStudioHandlers()
 registerGeminiKeys()
+registerByteplusKeys()
 
 if (!hasSingleInstanceLock) {
   app.quit()

@@ -1,0 +1,403 @@
+.studio-connection-dialog {
+	box-sizing: border-box;
+	width: min(520px, calc(100vw - 32px));
+	max-width: none;
+	max-height: min(680px, calc(100dvh - 40px));
+	margin: auto;
+	padding: 0;
+	color: #eeeaf5;
+	background: #1c1b24;
+	border: 1px solid #ffffff1c;
+	border-radius: 18px;
+	box-shadow: 0 32px 100px #0009;
+	font:
+		13px / 1.5 system-ui,
+		sans-serif;
+	overflow: hidden;
+}
+.studio-connection-dialog[open] {
+	display: flex;
+	flex-direction: column;
+}
+.studio-connection-dialog::backdrop {
+	background: #09080db3;
+	backdrop-filter: blur(7px);
+}
+.studio-connection-dialog .connection-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 24px 24px 20px;
+	margin: 0;
+	flex-shrink: 0;
+}
+.connection-heading {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+	min-width: 0;
+}
+.connection-heading-icon {
+	display: grid;
+	place-items: center;
+	width: 40px;
+	height: 40px;
+	flex-shrink: 0;
+	border: 1px solid #c7aaff25;
+	border-radius: 12px;
+	background: #baa2f710;
+	color: #c9b6f5;
+}
+.studio-connection-dialog .connection-heading h3 {
+	margin: 0;
+	font-size: 17px;
+	font-weight: 600;
+	letter-spacing: -0.35px;
+	color: #f2edf9;
+}
+.studio-connection-dialog .connection-heading p {
+	margin: 3px 0 0;
+	color: #9790a6;
+	font-size: 12px;
+}
+.studio-connection-dialog button {
+	box-sizing: border-box;
+	font: inherit;
+	cursor: pointer;
+	transition:
+		background 0.15s,
+		border-color 0.15s;
+}
+.studio-connection-dialog button:disabled {
+	cursor: default;
+	opacity: 0.4;
+}
+.studio-connection-dialog .connection-close {
+	display: grid;
+	place-items: center;
+	flex-shrink: 0;
+	width: 32px;
+	height: 32px;
+	margin: 0;
+	padding: 0;
+	background: transparent;
+	border: 1px solid transparent;
+	color: #9992a9;
+	border-radius: 8px;
+}
+.studio-connection-dialog .connection-close:hover {
+	color: #eeeaf5;
+	background: #ffffff08;
+	border-color: #ffffff12;
+}
+.connection-provider-switch {
+	display: flex;
+	gap: 5px;
+	padding: 5px;
+	margin: 0 24px 22px;
+	background: #121119;
+	border: 1px solid #ffffff08;
+	border-radius: 11px;
+	flex-shrink: 0;
+}
+.studio-connection-dialog .connection-provider-switch button {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 8px;
+	flex: 1;
+	min-width: 0;
+	margin: 0;
+	padding: 10px 8px;
+	border: 1px solid transparent;
+	border-radius: 7px;
+	background: transparent;
+	color: #9992a6;
+	font-size: 12px;
+	font-weight: 500;
+}
+.studio-connection-dialog .connection-provider-switch button[aria-pressed="true"] {
+	border-color: #bca3ed23;
+	background: #2c2739;
+	color: #e6d9ff;
+	box-shadow: 0 2px 6px #0002;
+}
+.connection-provider-switch button > span {
+	display: grid;
+	place-items: center;
+	width: 20px;
+	height: 20px;
+	border-radius: 5px;
+	color: inherit;
+	background: #ffffff09;
+	font-size: 9px;
+	font-weight: 700;
+}
+.connection-provider-switch i,
+.connection-state-dot {
+	width: 5px;
+	height: 5px;
+	border-radius: 50%;
+	background: #625c6c;
+	flex-shrink: 0;
+}
+.connection-provider-switch i.is-connected,
+.connection-state-dot.is-connected {
+	background: #82c8a7;
+}
+.connection-body {
+	padding: 0 24px 24px;
+	min-height: 0;
+	overflow-y: auto;
+}
+.studio-connection-dialog .connection-provider-panel {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	border: 0;
+	margin: 0;
+	padding: 0;
+}
+.connection-provider-title {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 12px;
+}
+.studio-connection-dialog .connection-provider-title h4 {
+	color: #e6e0ef;
+	font-size: 13px;
+	font-weight: 600;
+	margin: 0;
+}
+.connection-badge {
+	white-space: nowrap;
+	padding: 3px 8px;
+	font-size: 10px;
+	border-radius: 5px;
+	color: #aaa1b9;
+	background: #ffffff06;
+	border: 1px solid #ffffff0b;
+}
+.connection-badge.is-connected {
+	color: #9dd4b7;
+	background: #7bc8a00a;
+	border-color: #7bc8a022;
+}
+.studio-connection-dialog .connection-provider-panel > p {
+	margin: -8px 0 0;
+	color: #a19aac;
+	font-size: 12px;
+	line-height: 1.7;
+}
+.studio-connection-dialog .connection-key-field label {
+	display: block;
+	margin: 0 0 8px;
+	color: #c4bbd2;
+	font-size: 12px;
+	line-height: 1.5;
+}
+.connection-key-input {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	padding: 0 12px;
+	min-height: 44px;
+	border: 1px solid #ffffff19;
+	border-radius: 9px;
+	background: #14131b;
+	color: #716a80;
+}
+.connection-key-input:focus-within {
+	border-color: #b39ad1;
+	box-shadow: 0 0 0 3px #b39ad114;
+}
+.studio-connection-dialog .connection-key-input input {
+	flex: 1;
+	min-width: 0;
+	width: 0;
+	height: 42px;
+	padding: 0;
+	margin: 0;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	outline: none;
+	color: #e8e1f0;
+	font:
+		12px / 1.5 system-ui,
+		sans-serif;
+}
+.studio-connection-dialog .connection-key-input input::placeholder {
+	color: #6f687d;
+}
+.studio-connection-dialog .connection-reveal {
+	display: grid;
+	place-items: center;
+	width: 26px;
+	height: 30px;
+	padding: 0;
+	margin: 0;
+	border: 0;
+	border-radius: 5px;
+	background: transparent;
+	color: #8e859e;
+}
+.studio-connection-dialog .connection-reveal:hover {
+	background: #ffffff08;
+	color: #cbb9e3;
+}
+.connection-key-link {
+	align-self: flex-start;
+	margin-top: -8px;
+	color: #baa4dc;
+	text-decoration: none;
+	font-size: 11px;
+}
+.connection-key-link:hover {
+	text-decoration: underline;
+}
+.connection-form-actions {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+.studio-connection-dialog .connection-save {
+	margin: 0;
+	padding: 9px 14px;
+	border-radius: 8px;
+	border: 1px solid #baa3e240;
+	background: #b6a0d8;
+	color: #21182f;
+	font-size: 12px;
+	font-weight: 600;
+}
+.studio-connection-dialog .connection-save:hover:not(:disabled) {
+	background: #c6b2e6;
+}
+.studio-connection-dialog .connection-remove {
+	margin: 0;
+	padding: 9px 12px;
+	border: 1px solid #ffffff13;
+	border-radius: 8px;
+	background: transparent;
+	color: #b79bab;
+	font-size: 12px;
+}
+.connection-security {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	padding: 12px;
+	border: 1px solid #ffffff08;
+	border-radius: 8px;
+	color: #8b8299;
+	background: #ffffff02;
+}
+.connection-security svg {
+	flex-shrink: 0;
+	margin-top: 1px;
+	color: #8f9f97;
+}
+.studio-connection-dialog .connection-security p {
+	margin: 0;
+	font-size: 11px;
+	line-height: 1.7;
+	color: #9d94ab;
+}
+.studio-connection-dialog .connection-provider-panel > .connection-message,
+.studio-connection-dialog .connection-message {
+	margin: 12px 0 0;
+	padding: 10px 12px;
+	border-radius: 8px;
+	background: #b9a2f709;
+	color: #c7b9da;
+	font-size: 11px;
+	line-height: 1.7;
+}
+.connection-codex-state {
+	display: flex;
+	gap: 12px;
+	align-items: flex-start;
+	border: 1px solid #ffffff0c;
+	background: #ffffff03;
+	border-radius: 10px;
+	padding: 16px;
+}
+.connection-codex-state .connection-state-dot {
+	margin-top: 6px;
+	width: 7px;
+	height: 7px;
+}
+.connection-codex-state strong {
+	font-size: 13px;
+	font-weight: 500;
+}
+.studio-connection-dialog .connection-codex-state p {
+	margin: 6px 0 0;
+	color: #9890a4;
+	font-size: 12px;
+	line-height: 1.7;
+}
+.studio-connection-dialog .connection-footer {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	flex-shrink: 0;
+	gap: 12px;
+	padding: 16px 24px;
+	border-top: 1px solid #ffffff0b;
+	background: #17161e;
+}
+.studio-connection-dialog .connection-refresh {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	margin: 0;
+	padding: 7px 0;
+	border: 0;
+	background: transparent;
+	color: #a69bb8;
+	font-size: 11px;
+}
+.studio-connection-dialog .connection-done {
+	min-width: 84px;
+	margin: 0;
+	padding: 9px 18px;
+	border: 1px solid #ffffff15;
+	border-radius: 8px;
+	background: #34303f;
+	color: #e6dced;
+	font-size: 12px;
+	font-weight: 500;
+}
+.studio-connection-dialog .connection-done:hover {
+	background: #40384f;
+}
+.studio-connection-dialog button:focus-visible,
+.studio-connection-dialog a:focus-visible {
+	outline: 2px solid #baa5dd;
+	outline-offset: 3px;
+}
+@media (max-width: 480px) {
+	.studio-connection-dialog .connection-header {
+		padding: 20px 18px 16px;
+	}
+	.connection-provider-switch {
+		margin: 0 18px 18px;
+	}
+	.connection-body {
+		padding: 0 18px 20px;
+	}
+	.studio-connection-dialog .connection-footer {
+		padding: 14px 18px;
+	}
+	.connection-provider-switch button > span {
+		display: none;
+	}
+	.connection-provider-title {
+		flex-wrap: wrap;
+	}
+}

@@ -1,6 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  byteplusKeyStatus: () => ipcRenderer.invoke('byteplus-key-status'),
+  byteplusSaveKey: (key: string) => ipcRenderer.invoke('byteplus-save-key', key),
+  byteplusClearKey: () => ipcRenderer.invoke('byteplus-clear-key'),
+  byteplusLedger: () => ipcRenderer.invoke('byteplus-ledger'),
+  byteplusRecover: (id: string) => ipcRenderer.invoke('byteplus-recover', id),
   geminiKeyStatus: () => ipcRenderer.invoke('gemini-key-status'),
   geminiSaveKey: (key: string) => ipcRenderer.invoke('gemini-save-key', key),
   geminiClearKey: () => ipcRenderer.invoke('gemini-clear-key'),

@@ -1,6 +1,11 @@
 export type ImageUsage = {
-	provider: "codex" | "gemini";
+	provider: "codex" | "gemini" | "byteplus";
 	scope: "agent" | "request";
+	model?: string;
+	generatedImages?: number;
+	estimatedCostUSD?: number;
+	priceDate?: string;
+	priceSource?: string;
 	inputTokens?: number;
 	outputTokens?: number;
 	cachedTokens?: number;
@@ -48,8 +53,12 @@ export function addAgentUsage(
 	};
 }
 export type ImageRunMetadata = {
-	requestedResolution?: import("./imageGenerationSettings").ImageResolution;
+	requestedResolution?:
+		| import("./imageGenerationSettings").ImageResolution
+		| import("./byteplusSettings").ByteplusSize;
+	actualWidth?: number;
+	actualHeight?: number;
 	usage?: ImageUsage;
 	durationMs?: number;
-	provider?: "codex" | "gemini";
+	provider?: "codex" | "gemini" | "byteplus";
 };

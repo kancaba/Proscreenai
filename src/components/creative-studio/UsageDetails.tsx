@@ -1,6 +1,41 @@
 import type { ImageUsage } from "../../lib/imageUsage";
 export function UsageDetails({ usage, durationMs }: { usage?: ImageUsage; durationMs?: number }) {
 	const fmt = (n?: number) => (n === undefined ? "Bildirilmiyor" : n.toLocaleString("tr-TR"));
+	if (usage?.provider === "byteplus")
+		return (
+			<details className="creative-usage">
+				<summary>
+					{fmt(usage.generatedImages)} görsel
+					{usage.estimatedCostUSD !== undefined
+						? ` · Tahmini $${usage.estimatedCostUSD.toFixed(3)} USD`
+						: ""}
+					{durationMs !== undefined ? ` · ${Math.round(durationMs / 1000)} sn` : ""}
+				</summary>
+				<dl>
+					<div>
+						<dt>Model</dt>
+						<dd>{usage.model || "Bildirilmiyor"}</dd>
+					</div>
+					<div>
+						<dt>Üretilen görsel</dt>
+						<dd>{fmt(usage.generatedImages)}</dd>
+					</div>
+					<div>
+						<dt>Raporlanan çıktı tokenı</dt>
+						<dd>{fmt(usage.outputTokens)}</dd>
+					</div>
+					<div>
+						<dt>Raporlanan toplam token</dt>
+						<dd>{fmt(usage.totalTokens)}</dd>
+					</div>
+				</dl>
+				<p>
+					BytePlus görsel tarifesine göre tahmini bedel; kesin fatura veya kalan kredi değildir.
+					Token sayısı doğrudan ücret hesabı değildir. Fiyat tarihi:{" "}
+					{usage.priceDate || "Bilinmiyor"}.
+				</p>
+			</details>
+		);
 	return (
 		<details className="creative-usage">
 			<summary>
@@ -16,7 +51,12 @@ export function UsageDetails({ usage, durationMs }: { usage?: ImageUsage; durati
 							<dt>Girdi</dt>
 							<dd>{fmt(usage.inputTokens)}</dd>
 						</div>
-						{usage.inputTokens !== undefined && usage.cachedTokens !== undefined && <div><dt>Yeni girdi (önbellek hariç)</dt><dd>{fmt(Math.max(0, usage.inputTokens - usage.cachedTokens))}</dd></div>}
+						{usage.inputTokens !== undefined && usage.cachedTokens !== undefined && (
+							<div>
+								<dt>Yeni girdi (önbellek hariç)</dt>
+								<dd>{fmt(Math.max(0, usage.inputTokens - usage.cachedTokens))}</dd>
+							</div>
+						)}
 						<div>
 							<dt>Çıktı</dt>
 							<dd>{fmt(usage.outputTokens)}</dd>

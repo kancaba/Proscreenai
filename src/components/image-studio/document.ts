@@ -1,3 +1,4 @@
+import { isByteplusOptions } from "../../lib/byteplusSettings";
 export type Layer = {
 	id: string;
 	kind: "text" | "image" | "rect" | "ellipse" | "arrow";
@@ -34,7 +35,8 @@ export type Layer = {
 };
 export type ImageBrief = {
 	imageSize?: import("../../lib/imageGenerationSettings").ImageResolution;
-	provider?: "gemini" | "codex";
+	provider?: "gemini" | "codex" | "byteplus";
+	byteplus?: import("../../lib/byteplusSettings").ByteplusOptions;
 	styleLocked?: boolean;
 	styleVersion?: number;
 	brand: string;
@@ -105,7 +107,7 @@ export function parseDocument(value: unknown): ImageDocument {
 	)
 		throw Error("Geçersiz görsel projesi");
 	if (d.ai) {
-		if (d.ai.provider !== undefined && !["gemini", "codex"].includes(d.ai.provider))
+		if (d.ai.provider !== undefined && !["gemini", "codex", "byteplus"].includes(d.ai.provider))
 			throw Error("Geçersiz görsel aracı");
 		if (
 			(d.ai.styleLocked !== undefined && typeof d.ai.styleLocked !== "boolean") ||
@@ -125,7 +127,10 @@ export function parseDocument(value: unknown): ImageDocument {
 			)
 		)
 			throw Error("Geçersiz brief");
-		if (d.ai.imageSize !== undefined && !["1K", "2K", "4K"].includes(d.ai.imageSize)) throw Error("Geçersiz çözünürlük");
+		if (d.ai.byteplus !== undefined && !isByteplusOptions(d.ai.byteplus))
+			throw Error("Geçersiz BytePlus ayarları");
+		if (d.ai.imageSize !== undefined && !["1K", "2K", "4K"].includes(d.ai.imageSize))
+			throw Error("Geçersiz çözünürlük");
 	}
 	const ids = new Set<string>();
 	for (const l of d.layers) {
