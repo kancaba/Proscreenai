@@ -147,7 +147,7 @@ export function registerImageStudioHandlers() {
 			!["prompt", "generate", "edit"].includes(String(x.mode)) ||
 			typeof x.prompt !== "string" ||
 			!x.prompt.trim() ||
-			x.prompt.length > 16000 ||
+			x.prompt.length > 20000 ||
 			(x.imageSize !== undefined && !isImageResolution(x.imageSize)) ||
 			(x.tool === "byteplus" && (!isByteplusOptions(x.byteplus) || x.mode === "prompt")) ||
 			(x.referenceNames !== undefined &&

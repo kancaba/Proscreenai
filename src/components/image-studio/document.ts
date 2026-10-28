@@ -37,6 +37,7 @@ export type ImageBrief = {
 	imageSize?: import("../../lib/imageGenerationSettings").ImageResolution;
 	provider?: "gemini" | "codex" | "byteplus";
 	byteplus?: import("../../lib/byteplusSettings").ByteplusOptions;
+	posterMethod?: boolean;
 	styleLocked?: boolean;
 	styleVersion?: number;
 	brand: string;
@@ -131,6 +132,8 @@ export function parseDocument(value: unknown): ImageDocument {
 			throw Error("Geçersiz BytePlus ayarları");
 		if (d.ai.imageSize !== undefined && !["1K", "2K", "4K"].includes(d.ai.imageSize))
 			throw Error("Geçersiz çözünürlük");
+		if (d.ai.posterMethod !== undefined && typeof d.ai.posterMethod !== "boolean")
+			throw Error("Geçersiz poster yapısı");
 	}
 	const ids = new Set<string>();
 	for (const l of d.layers) {

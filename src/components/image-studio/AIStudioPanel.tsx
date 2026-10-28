@@ -1,4 +1,5 @@
 import "./connection-settings.css";
+import "./poster-method.css";
 import { KeyRound, RefreshCw, ShieldCheck, X } from "lucide-react";
 import { type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { byteplusPayload } from "../../lib/byteplusPayload";
@@ -9,6 +10,7 @@ import {
 } from "../../lib/byteplusSettings";
 import { IMAGE_RESOLUTIONS, type ImageResolution } from "../../lib/imageGenerationSettings";
 import type { ImageRunMetadata } from "../../lib/imageUsage";
+import { POSTER_PROMPT_TEMPLATE, withPosterMethod } from "../../lib/posterPromptMethod";
 import { GenerationProgress } from "../creative-studio/GenerationProgress";
 import { UsageDetails } from "../creative-studio/UsageDetails";
 import { ByteplusConnection, ByteplusControls } from "./ByteplusControls";
@@ -58,6 +60,7 @@ export function AIStudioPanel({
 		[ledger, setLedger] = useState<ByteplusLedger>(),
 		[preview, setPreview] = useState(""),
 		[mode, setMode] = useState<"auto" | "generate" | "edit">("auto"),
+		[posterMethod, setPosterMethod] = useState(settings?.posterMethod ?? false),
 		[imageSize, setImageSize] = useState<ImageResolution>(settings?.imageSize ?? "1K"),
 		[refs, setRefs] = useState<string[]>(
 			settings?.refs.length
@@ -113,8 +116,9 @@ export function AIStudioPanel({
 			provider,
 			imageSize,
 			byteplus,
+			posterMethod,
 		});
-	}, [requestText, refs, provider, imageSize, byteplus]);
+	}, [requestText, refs, provider, imageSize, byteplus, posterMethod]);
 	useEffect(() => {
 		setRefs((old) => {
 			const added = layers.filter(
@@ -209,7 +213,10 @@ export function AIStudioPanel({
 						)
 					: mode;
 			const body = byteplusPayload({
-				prompt: (context ? context.slice(0, 6000) + "\nUSER REQUEST:\n" : "") + requestText,
+				prompt: withPosterMethod(
+					(context ? context.slice(0, 6000) + "\nUSER REQUEST:\n" : "") + requestText,
+					posterMethod,
+				),
 				references: references.map((l) => l.src!),
 				referenceNames: references.map((l) => l.name.slice(0, 200)),
 				width: target.width,
@@ -317,12 +324,14 @@ export function AIStudioPanel({
 				requestId: id,
 				mode: resolved,
 				tool: provider,
-				prompt:
+				prompt: withPosterMethod(
 					(context ? context.slice(0, 6000) + "\nUSER REQUEST:\n" : "") +
-					requestText +
-					(provider === "byteplus"
-						? ""
-						: `\nComposition aspect ratio: ${target.width}:${target.height}. Native resolution preset: ${imageSize}. Preserve this aspect ratio; do not upscale to simulate native detail.`),
+						requestText +
+						(provider === "byteplus"
+							? ""
+							: `\nComposition aspect ratio: ${target.width}:${target.height}. Native resolution preset: ${imageSize}. Preserve this aspect ratio; do not upscale to simulate native detail.`),
+					posterMethod,
+				),
 				references: references.map((l) => l.src!),
 				referenceNames: references.map((l) => l.name.slice(0, 200)),
 				...(provider === "byteplus" ? { byteplus } : {}),
@@ -469,6 +478,41 @@ export function AIStudioPanel({
 				<span>
 					{requestText.length.toLocaleString("tr-TR")} / {context ? "8.500" : "12.000"}
 				</span>
+			</div>
+			<div className="image-poster-method">
+				<label>
+					<input
+						type="checkbox"
+						aria-label="Kusursuz poster yapısı"
+						checked={posterMethod}
+						disabled={busy}
+						onChange={(e) => setPosterMethod(e.target.checked)}
+					/>
+					<span>
+						Kusursuz poster yapısı
+						<small>
+							Konsept, HEX renkler, % konumlar, ışık, ince + kalın başlık ve NEGATIVE kurallarıyla
+							üretir. Ek ücret veya ayrı istek yok.
+						</small>
+					</span>
+				</label>
+				<button
+					type="button"
+					disabled={
+						busy ||
+						requestText.length + POSTER_PROMPT_TEMPLATE.length + 2 > (context ? 8500 : 12000)
+					}
+					title="Köşeli parantezleri doldur; boş bıraktıklarını AI tamamlar."
+					onClick={() => {
+						setPosterMethod(true);
+						setRequestText((old) =>
+							old.trim() ? `${old.trimEnd()}\n\n${POSTER_PROMPT_TEMPLATE}` : POSTER_PROMPT_TEMPLATE,
+						);
+						requestInput.current?.focus();
+					}}
+				>
+					Şablonu ekle
+				</button>
 			</div>
 			<div className="image-ai-attachments">
 				{refs.map((id, i) => {
