@@ -13,6 +13,10 @@ import type {
   Span,
 } from "dnd-timeline";
 
+/** Pointer movement (px) under which letting go of an item counts as a click. */
+const CLICK_SLOP_PX = 3;
+const isClick = (delta: { x: number; y?: number }) => Math.abs(delta.x) < CLICK_SLOP_PX && Math.abs(delta.y ?? 0) < CLICK_SLOP_PX;
+
 interface TimelineWrapperProps {
   children: ReactNode;
   range: Range;
@@ -208,6 +212,7 @@ export default function TimelineWrapper({
 
   const onResizeEnd = useCallback(
     (event: ResizeEndEvent) => {
+      if (isClick(event.delta)) return;
       const resizedSpan = event.active.data.current.getSpanFromResizeEvent?.(event);
       if (!resizedSpan) return;
 
@@ -239,6 +244,9 @@ export default function TimelineWrapper({
 
   const onDragEnd = useCallback(
     (event: DragEndEvent) => {
+      // A click is not a move: without this, letting go snaps the item to a nearby point and,
+      // once it overlaps its neighbour, pushes that neighbour onto another lane.
+      if (isClick(event.delta)) return;
       const activeRowId = event.over?.id as string;
       const draggedSpan = event.active.data.current.getSpanFromDragEvent?.(event);
       showGuide(null);
