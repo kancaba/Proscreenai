@@ -1164,6 +1164,11 @@ interface CursorTelemetryPoint {
 let cursorCaptureInterval: NodeJS.Timeout | null = null
 let activeCursorSamples: CursorTelemetryPoint[] = []
 let pendingCursorSamples: CursorTelemetryPoint[] = []
+// When keys were pressed (recording time, ms), so the editor can find typing to speed up or cut.
+// Only the time is kept: which key, or what was typed, is never recorded.
+let activeKeyTimes: number[] = []
+let pendingKeyTimes: number[] = []
+const MAX_KEY_TIMES = 200_000
 let isCursorCaptureActive = false
 let interactionCaptureCleanup: (() => void) | null = null
 let hasLoggedInteractionHookFailure = false
@@ -1371,17 +1376,21 @@ function sampleCursorPoint() {
 
 async function persistPendingCursorTelemetry(videoPath: string) {
   const telemetryPath = getTelemetryPathForVideo(videoPath)
-  if (pendingCursorSamples.length > 0) {
+  if (pendingCursorSamples.length > 0 || pendingKeyTimes.length > 0) {
     await fs.writeFile(
       telemetryPath,
-      JSON.stringify({ version: CURSOR_TELEMETRY_VERSION, samples: pendingCursorSamples }, null, 2),
+      JSON.stringify({ version: CURSOR_TELEMETRY_VERSION, samples: pendingCursorSamples, keys: pendingKeyTimes }, null, 2),
       'utf-8'
     )
   }
   pendingCursorSamples = []
+  pendingKeyTimes = []
 }
 
 function snapshotCursorTelemetryForPersistence() {
+  const lastPendingKeyMs = pendingKeyTimes[pendingKeyTimes.length - 1] ?? -1
+  pendingKeyTimes = [...pendingKeyTimes, ...activeKeyTimes.filter((timeMs) => timeMs > lastPendingKeyMs)]
+
   if (activeCursorSamples.length === 0) {
     return
   }
@@ -1507,9 +1516,18 @@ async function startInteractionCapture() {
       linuxCursorScreenPoint = { x: point.x, y: point.y, updatedAt: Date.now() }
     }
 
+    // Typing: only when a key went down, never which key. Shortcuts with Cmd or Ctrl are not typing.
+    const onKeyDown = (event: { metaKey?: boolean; ctrlKey?: boolean } | undefined) => {
+      if (!isCursorCaptureActive || !recordingClock.recording || recordingClock.paused) return
+      if (event?.metaKey || event?.ctrlKey) return
+      activeKeyTimes.push(Math.max(0, Math.round(recordingClock.elapsed())))
+      if (activeKeyTimes.length > MAX_KEY_TIMES) activeKeyTimes.shift()
+    }
+
     hook.on('mousedown', onMouseDown)
     hook.on('mouseup', onMouseUp)
     hook.on('mousemove', onMouseMove)
+    hook.on('keydown', onKeyDown)
 
     hook.start()
 
@@ -1519,10 +1537,12 @@ async function startInteractionCapture() {
           hook.off('mousedown', onMouseDown)
           hook.off('mouseup', onMouseUp)
           hook.off('mousemove', onMouseMove)
+          hook.off('keydown', onKeyDown)
         } else if (typeof hook.removeListener === 'function') {
           hook.removeListener('mousedown', onMouseDown)
           hook.removeListener('mouseup', onMouseUp)
           hook.removeListener('mousemove', onMouseMove)
+          hook.removeListener('keydown', onKeyDown)
         }
       } catch {
         // ignore listener cleanup errors
@@ -2423,13 +2443,15 @@ export function registerIpcHandlers(
       isCursorCaptureActive = true
       activeCursorSamples = []
       pendingCursorSamples = []
+      activeKeyTimes = []
+      pendingKeyTimes = []
       linuxCursorScreenPoint = null
       lastLeftClick = null
       sampleCursorPoint()
       cursorCaptureInterval = setInterval(sampleCursorPoint, CURSOR_SAMPLE_INTERVAL_MS)
       void startInteractionCapture()
     } else {
-      if (recording) { activeCursorSamples = []; pendingCursorSamples = [] }
+      if (recording) { activeCursorSamples = []; pendingCursorSamples = []; activeKeyTimes = []; pendingKeyTimes = [] }
       isCursorCaptureActive = false
       stopCursorCapture()
       stopInteractionCapture()
@@ -2438,6 +2460,7 @@ export function registerIpcHandlers(
       linuxCursorScreenPoint = null
       snapshotCursorTelemetryForPersistence()
       activeCursorSamples = []
+      activeKeyTimes = []
     }
 
     const source = selectedSource || { name: 'Screen' }
@@ -2499,8 +2522,11 @@ export function registerIpcHandlers(
           }
         })
         .sort((a: CursorTelemetryPoint, b: CursorTelemetryPoint) => a.timeMs - b.timeMs)
+      const keys: number[] = (Array.isArray(parsed?.keys) ? parsed.keys : [])
+        .filter((timeMs: unknown): timeMs is number => typeof timeMs === 'number' && Number.isFinite(timeMs) && timeMs >= 0)
+        .sort((a: number, b: number) => a - b)
 
-      return { success: true, samples }
+      return { success: true, samples, keys }
     } catch (error) {
       const nodeError = error as NodeJS.ErrnoException
       if (nodeError.code === 'ENOENT') {

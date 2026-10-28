@@ -33,7 +33,8 @@ export function firstFreeAudioTrack(regions: AudioRegion[], span: TimeSpan, map:
 
 /** Where the clip sits on the edited timeline. */
 export function audioTimelineSpan(region: AudioRegion, map: CutMap): TimeSpan {
-  const start = toOutputMs(map, region.startMs);
+  // Whole ms, like the spans the timeline hands back (sped-up parts make fractions).
+  const start = Math.round(toOutputMs(map, region.startMs));
   return { start, end: start + (region.endMs - region.startMs) };
 }
 

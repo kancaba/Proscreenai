@@ -79,6 +79,21 @@ export function SourceVideoTrack({ path, durationMs, trims, clip, selectedCutId 
         style={{ left: percent(segment.outStart), width: percent(segment.outEnd - segment.outStart) }}
       />
     })}
+    {/* Typing found while recording; clicking one opens its card to speed it up or cut it. */}
+    {clip?.typing?.map((stretch) => {
+      const selected = clip.selectedTypingStart === stretch.startMs
+      return <button
+        key={`typing-${stretch.startMs}`}
+        type="button"
+        data-testid="typing-stretch"
+        data-start={stretch.startMs}
+        aria-pressed={selected}
+        title={t('clip.typing')}
+        onClick={(event) => { event.stopPropagation(); clip.onSelectTyping?.(stretch.startMs) }}
+        className={`absolute top-[25px] z-[16] flex h-4 items-center gap-1 overflow-hidden rounded-full px-1.5 text-[9px] font-medium leading-none text-white shadow ${selected ? 'bg-sky-400 ring-2 ring-white' : 'bg-sky-500/80 hover:bg-sky-400'}`}
+        style={{ left: `calc(${percent(stretch.outStart)} + 2px)`, width: `max(18px, calc(${percent(stretch.outEnd - stretch.outStart)} - 4px))` }}
+      ><Keyboard size={10} className="shrink-0" /></button>
+    })}
     {/* Speed changes sit on the video they speed up; clicking one selects its part. */}
     {clip?.speeds?.map((badge) => <button
       key={badge.id}

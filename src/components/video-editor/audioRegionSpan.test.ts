@@ -50,6 +50,23 @@ describe("audio clips on a video with cuts", () => {
   });
 });
 
+describe("audio clips on a sped-up video", () => {
+  // 5 s–9 s of the video plays at 4× under a voiceover that starts at 2 s.
+  const sped = createCutMap([], 60000, [{ startMs: 5000, endMs: 9000, speed: 4 }]);
+
+  it("keeps playing at normal speed while the video under it is sped up", () => {
+    expect(audioTimelineSpan(clip, sped)).toEqual({ start: 2000, end: 17000 });
+    // 4 s after the clip starts the video is already at 9 s, but the voice is 4 s in.
+    expect(audioFileOffsetSeconds(clip, 6000, sped)).toBe(4);
+    expect(isAudioActive(clip, 16999, sped)).toBe(true);
+  });
+
+  it("a clip after the sped-up part moves up with its frame", () => {
+    const later: AudioRegion = { ...clip, startMs: 12000, endMs: 15000 };
+    expect(audioTimelineSpan(later, sped)).toEqual({ start: 9000, end: 12000 });
+  });
+});
+
 describe("audio clip trimming", () => {
   it("dragging the left edge cuts the start of the sound, not its end", () => {
     const trimmed = applyAudioTimelineChange(clip, { start: 5000, end: 17000 }, noCuts);

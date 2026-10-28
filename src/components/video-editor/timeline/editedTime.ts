@@ -1,7 +1,8 @@
 /**
  * The timeline shows the video as edited: cut parts are removed and what follows moves up
- * (like a ripple delete in Premiere or Screen Studio). Edits are still stored in source
- * time; these functions convert between the two.
+ * (like a ripple delete in Premiere or Screen Studio), and sped-up parts take the time they
+ * take in the export. Edits are still stored in source time; these functions convert
+ * between the two.
  */
 
 export interface TimeSpan {
@@ -17,14 +18,31 @@ export interface CutRange {
   crossfade?: boolean;
 }
 
+/** A sped-up (or slowed) source range. */
+export interface SpeedRange {
+  startMs: number;
+  endMs: number;
+  speed: number;
+}
+
+/** A kept source range played at one speed, and where it starts on the edited timeline. */
+interface KeptPiece {
+  srcStart: number;
+  srcEnd: number;
+  outStart: number;
+  speed: number;
+}
+
 export interface CutMap {
   /** Cuts merged, sorted and clamped to the video. */
   cuts: CutRange[];
+  /** The kept video in order, each piece at one speed. */
+  pieces: KeptPiece[];
   sourceMs: number;
   outputMs: number;
 }
 
-export function createCutMap(trims: CutRange[], sourceMs: number): CutMap {
+export function createCutMap(trims: CutRange[], sourceMs: number, speeds: SpeedRange[] = []): CutMap {
   const sorted = trims
     .map((trim) => ({ ...trim, startMs: Math.max(0, trim.startMs), endMs: Math.min(sourceMs, trim.endMs) }))
     .filter((trim) => trim.endMs > trim.startMs)
@@ -38,17 +56,41 @@ export function createCutMap(trims: CutRange[], sourceMs: number): CutMap {
       if (trim.crossfade) previous.crossfade = true;
     } else cuts.push({ ...trim });
   }
-  const removed = cuts.reduce((sum, cut) => sum + (cut.endMs - cut.startMs), 0);
-  return { cuts, sourceMs, outputMs: Math.max(0, sourceMs - removed) };
+
+  const speedRanges = speeds.filter((range) => Number.isFinite(range.speed) && range.speed > 0 && range.speed !== 1 && range.endMs > range.startMs);
+  const edges = new Set([0, sourceMs]);
+  for (const range of [...cuts, ...speedRanges]) {
+    if (range.startMs > 0 && range.startMs < sourceMs) edges.add(range.startMs);
+    if (range.endMs > 0 && range.endMs < sourceMs) edges.add(range.endMs);
+  }
+  const bounds = [...edges].sort((a, b) => a - b);
+  const pieces: KeptPiece[] = [];
+  let outMs = 0;
+  for (let index = 0; index < bounds.length - 1; index += 1) {
+    const srcStart = bounds[index];
+    const srcEnd = bounds[index + 1];
+    const middle = (srcStart + srcEnd) / 2;
+    if (cuts.some((cut) => middle > cut.startMs && middle < cut.endMs)) continue;
+    const speed = speedRanges.find((range) => middle > range.startMs && middle < range.endMs)?.speed ?? 1;
+    const previous = pieces[pieces.length - 1];
+    if (previous && previous.srcEnd === srcStart && previous.speed === speed) previous.srcEnd = srcEnd;
+    else pieces.push({ srcStart, srcEnd, outStart: outMs, speed });
+    outMs += (srcEnd - srcStart) / speed;
+  }
+  return { cuts, pieces, sourceMs, outputMs: outMs };
 }
 
-/** Where a source moment appears on the edited timeline (a cut moment maps to the cut point). */
+const pieceOutEnd = (piece: KeptPiece) => piece.outStart + (piece.srcEnd - piece.srcStart) / piece.speed;
+
+/**
+ * Where a source moment appears on the edited timeline (a cut moment maps to the cut point).
+ * Time after the video's end (the ending extension) runs on at 1×: source and timeline
+ * moments past the end are the same distance from it.
+ */
 export function toOutputMs(map: CutMap, sourceMs: number): number {
-  let removed = 0;
-  for (const cut of map.cuts) {
-    if (sourceMs <= cut.startMs) break;
-    if (sourceMs < cut.endMs) return cut.startMs - removed;
-    removed += cut.endMs - cut.startMs;
+  for (const piece of map.pieces) {
+    if (sourceMs < piece.srcStart) return piece.outStart;
+    if (sourceMs <= piece.srcEnd) return piece.outStart + (Math.max(piece.srcStart, sourceMs) - piece.srcStart) / piece.speed;
   }
   return Math.max(0, Math.min(map.outputMs, sourceMs - removed));
 }
@@ -58,11 +100,11 @@ export function toOutputMs(map: CutMap, sourceMs: number): number {
  * first kept moment after the cut (where playback continues), "before" the last one before it.
  */
 export function toSourceMs(map: CutMap, outputMs: number, bias: "after" | "before" = "after"): number {
-  let removed = 0;
-  for (const cut of map.cuts) {
-    const cutAt = cut.startMs - removed;
-    if (outputMs < cutAt || (outputMs === cutAt && bias === "before")) break;
-    removed += cut.endMs - cut.startMs;
+  if (outputMs <= 0 && bias === "before") return 0;
+  for (const piece of map.pieces) {
+    const end = pieceOutEnd(piece);
+    if (outputMs < end) return Math.min(piece.srcEnd, piece.srcStart + Math.max(0, outputMs - piece.outStart) * piece.speed);
+    if (outputMs === end && bias === "before") return piece.srcEnd;
   }
   return Math.max(0, Math.min(map.sourceMs, outputMs + removed));
 }
@@ -107,7 +149,7 @@ export function clipSegments(map: CutMap, splits: number[]): ClipSegment[] {
     }
     for (const piece of pieces) {
       if (piece.end - piece.start < 1) continue;
-      segments.push({ startMs: piece.start, endMs: piece.end, outStart: toOutputMs(map, piece.start), outEnd: toOutputMs(map, piece.start) + (piece.end - piece.start) });
+      segments.push({ startMs: piece.start, endMs: piece.end, outStart: toOutputMs(map, piece.start), outEnd: toOutputMs(map, piece.end) });
     }
   }
   return segments;

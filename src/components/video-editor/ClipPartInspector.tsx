@@ -2,7 +2,7 @@ import { Gauge, Scissors } from 'lucide-react'
 import { useI18n } from '@/contexts/I18nContext'
 import type { PlaybackSpeed } from './types'
 
-const SPEEDS: Array<PlaybackSpeed | 1> = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
+const SPEEDS: Array<PlaybackSpeed | 1> = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 3, 4]
 const seconds = (ms: number, locale: string) => `${(ms / 1000).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`
 
 /** The selected part of the video (split with C): its speed and cutting it out. */
@@ -24,7 +24,7 @@ export function ClipPartInspector({ index, part, speed, canCut, onSpeedChange, o
       <h2 className="text-xs font-medium text-cyan-100">{tr ? `Video parçası ${index + 1}` : `Video part ${index + 1}`}</h2>
       <p className="mt-0.5 text-[10px] tabular-nums text-slate-400">{seconds(part.outStart, locale)} – {seconds(part.outEnd, locale)} {unit}</p>
       <div className="mt-3 flex items-center gap-1.5 text-[11px] text-slate-200"><Gauge size={13} className="text-amber-300" />{tr ? 'Hız' : 'Speed'}</div>
-      <div role="radiogroup" aria-label={tr ? 'Parçanın hızı' : 'Part speed'} className="mt-2 grid grid-cols-4 gap-1.5">
+      <div role="radiogroup" aria-label={tr ? 'Parçanın hızı' : 'Part speed'} className="mt-2 grid grid-cols-5 gap-1.5">
         {SPEEDS.map((option) => (
           <button
             key={option}

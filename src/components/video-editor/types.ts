@@ -200,6 +200,8 @@ export const SPEED_OPTIONS: Array<{ speed: PlaybackSpeed; label: string }> = [
   { speed: 1.5, label: "1.5×" },
   { speed: 1.75, label: "1.75×" },
   { speed: 2, label: "2×" },
+  { speed: 3, label: "3×" },
+  { speed: 4, label: "4×" },
 ];
 
 export const DEFAULT_PLAYBACK_SPEED: PlaybackSpeed = 1.5;

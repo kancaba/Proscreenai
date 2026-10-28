@@ -38,6 +38,32 @@ describe("edited timeline", () => {
     expect(cutMarkers(map).map((m) => [m.outMs, m.cut.id])).toEqual([[2000, "a"], [8000, "b"]]);
   });
 
+  it("shows sped-up parts as long as they play", () => {
+    // 20 s video, 4 s–8 s at 4×, 12 s–14 s cut, 14 s–16 s at 2× right after the cut.
+    const sped = createCutMap([{ id: "c", startMs: 12000, endMs: 14000 }], 20000, [
+      { startMs: 4000, endMs: 8000, speed: 4 },
+      { startMs: 14000, endMs: 16000, speed: 2 },
+    ]);
+    expect(sped.outputMs).toBe(4000 + 1000 + 4000 + 1000 + 4000);
+    expect(toOutputMs(sped, 6000)).toBe(4500);
+    expect(toOutputMs(sped, 8000)).toBe(5000);
+    expect(toOutputMs(sped, 13000)).toBe(9000); // inside the cut → the cut point
+    expect(toOutputMs(sped, 15000)).toBe(9500);
+    expect(toSourceMs(sped, 4500)).toBe(6000);
+    expect(toSourceMs(sped, 9000)).toBe(14000);
+    expect(toSourceMs(sped, 9000, "before")).toBe(12000);
+    for (const out of [0, 3999, 4250, 5000, 8999, 9001, 10500, 13999]) expect(toOutputMs(sped, toSourceMs(sped, out))).toBeCloseTo(out, 6);
+    expect(clipSegments(sped, []).map((p) => [p.startMs, p.endMs, p.outStart, p.outEnd])).toEqual([
+      [0, 12000, 0, 9000],
+      [14000, 20000, 9000, 14000],
+    ]);
+    expect(spanToOutput(sped, { start: 4000, end: 8000 })).toEqual({ start: 4000, end: 5000 });
+  });
+
+  it("is unchanged by 1× speeds", () => {
+    expect(createCutMap(map.cuts, 20000, [{ startMs: 0, endMs: 9000, speed: 1 }])).toEqual(map);
+  });
+
   it("cleans split points", () => {
     expect(normalizeSplits([5000.4, 0, 5000, -1, 30000, "x", 1200], 20000)).toEqual([1200, 5000]);
   });

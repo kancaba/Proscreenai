@@ -8,6 +8,8 @@ import { outputDimensions, exportBitrate, fitCustomSizeToRatio, matchesRatio, ty
 import { AudioClipControls } from './AudioInspector';
 import { audioClipName } from './audioClipName';
 import { ClipPartInspector } from './ClipPartInspector';
+import { TypingInspector } from './TypingInspector';
+import { findTypingStretches, isStretchCut } from './typingStretches';
 import { setPartSpeed, speedOfPart } from './clipSpeed';
 import type { Span } from "dnd-timeline";
 import { Home, FolderOpen, Languages, Monitor, Settings2 } from "lucide-react";
@@ -175,6 +177,8 @@ export default function VideoEditor() {
   const [cropRegion, setCropRegion] = useState<CropRegion>(DEFAULT_CROP_REGION);
   const [zoomRegions, setZoomRegions] = useState<ZoomRegion[]>([]);
   const [cursorTelemetry, setCursorTelemetry] = useState<CursorTelemetryPoint[]>([]);
+  /** When keys were pressed while recording (source ms); only the time, never the key. */
+  const [keyTimes, setKeyTimes] = useState<number[]>([]);
   // Video whose telemetry has finished loading (empty or not), so "no clicks" can be told apart from "not loaded yet".
   const [cursorTelemetryPath, setCursorTelemetryPath] = useState<string | null>(null);
   const [autoZoomSettings, setAutoZoomSettingsState] = useState<AutoZoomSettings>(loadAutoZoomSettings);
@@ -199,6 +203,8 @@ export default function VideoEditor() {
   const previewFade = fadeAmount(toOutputMs(cutMap, currentTime * 1000), cutMap.outputMs, fades);
   /** The selected video part, by its source start. */
   const [selectedClipStart, setSelectedClipStart] = useState<number | null>(null);
+  /** Start (source ms) of the selected typing stretch, if any. */
+  const [selectedTypingStart, setSelectedTypingStart] = useState<number | null>(null);
   const [selectedAudioId, setSelectedAudioId] = useState<string | null>(null);
   const [exportResolution, setExportResolution] = useState<ResolutionPreset>('source');
   const [exportFps, setExportFps] = useState<VideoFps>(60);
@@ -855,6 +861,7 @@ export default function VideoEditor() {
       if (!videoPath) {
         if (mounted) {
           setCursorTelemetry([]);
+          setKeyTimes([]);
           setCursorTelemetryPath(null);
         }
         return;
@@ -864,12 +871,14 @@ export default function VideoEditor() {
         const result = await window.electronAPI.getCursorTelemetry(fromFileUrl(videoPath));
         if (mounted) {
           setCursorTelemetry(result.success ? result.samples : []);
+          setKeyTimes(result.success ? result.keys ?? [] : []);
           setCursorTelemetryPath(videoPath);
         }
       } catch (telemetryError) {
         console.warn('Unable to load cursor telemetry:', telemetryError);
         if (mounted) {
           setCursorTelemetry([]);
+          setKeyTimes([]);
           setCursorTelemetryPath(videoPath);
         }
       }
@@ -1859,13 +1868,14 @@ export default function VideoEditor() {
       const audio = audioElementsRef.current.get(region.id);
       if (!audio) continue;
 
-      // Added audio follows the edited timeline, so it plays on without gaps where the video is cut.
+      // Added audio follows the edited timeline, so it plays on without gaps where the video is cut
+      // and at its own speed where the video is sped up.
       const timelineMs = toOutputMs(cutMap, currentTime * 1000);
       const isInRegion = isAudioActive(region, timelineMs, cutMap);
       audio.volume = Math.max(0, Math.min(1, region.volume * (1 - previewFade)));
 
       if (isPlaying && isInRegion) {
-        audio.playbackRate = videoPlaybackRef.current?.video?.playbackRate ?? 1;
+        audio.playbackRate = 1;
         const audioOffset = audioFileOffsetSeconds(region, timelineMs, cutMap);
         // Only seek if significantly out of sync (> 200ms)
         if (Math.abs(audio.currentTime - audioOffset) > 0.2) {
@@ -2254,6 +2264,7 @@ export default function VideoEditor() {
   const handleSelectClip = useCallback((startMs: number | null) => {
     setSelectedClipStart(startMs);
     if (startMs !== null) {
+      setSelectedTypingStart(null);
       setSelectedZoomId(null);
       setSelectedTrimId(null);
       setSelectedSpeedId(null);
@@ -2264,7 +2275,7 @@ export default function VideoEditor() {
 
   // Selecting any other item deselects the video part.
   useEffect(() => {
-    if (selectedZoomId || selectedTrimId || selectedSpeedId || selectedAnnotationId || selectedAudioId) setSelectedClipStart(null);
+    if (selectedZoomId || selectedTrimId || selectedSpeedId || selectedAnnotationId || selectedAudioId) { setSelectedClipStart(null); setSelectedTypingStart(null); }
   }, [selectedZoomId, selectedTrimId, selectedSpeedId, selectedAnnotationId, selectedAudioId]);
 
   /** Splits the video at the playhead into two parts (C or the Cut button). */
@@ -2574,7 +2585,7 @@ export default function VideoEditor() {
           <div className="workspace-inspector" hidden={!inspectorVisible || focusMode}>
           <SettingsPanel
           focusRequest={settingsFocusRequest}
-          hasSelectedClipPart={selectedPart !== null}
+          hasSelectedClipPart={selectedPart !== null || selectedTyping !== null}
           sourceAudioVolume={sourceAudioVolume}
           onSourceAudioVolumeChange={setSourceAudioVolume}
           fades={fades}
@@ -2584,6 +2595,9 @@ export default function VideoEditor() {
           selectedAudioId={selectedAudioId}
           aiPanel={<div className="space-y-3"><h2 className="text-sm font-semibold text-white">AI stüdyo</h2><AutoCaptionsSection state={autoCaptions} existingCount={transcriptCaptionCount} captionStyle={captionStyle} onCaptionStyleChange={handleCaptionStyleChange} /><AgentPanel state={agent} available={Boolean(agentVideoPath) && duration > 0} onApply={handleAgentApply} onSeek={handleSeek} onExpand={() => setAgentWideOpen(true)} /><p className="text-xs leading-relaxed text-slate-400">{locale === 'tr' ? 'Videonuz için yazılar üretin; Ema Lightning, Fish Audio veya ElevenLabs ile seslendirin.' : 'Generate captions and narrate with Ema Lightning, Fish Audio or ElevenLabs.'}</p><button onClick={() => setAiCaptionsOpen(true)} className="w-full rounded-lg bg-violet-300/15 p-3 text-left text-xs text-violet-200">{locale === 'tr' ? '✦ AI video yazıları' : '✦ AI captions'}</button><button onClick={() => openVoiceover()} className="w-full rounded-lg bg-violet-300/15 p-3 text-left text-xs text-violet-200">{locale === 'tr' ? '♫ Metni seslendir' : '♫ Text to speech'}</button><button onClick={() => setAiSettingsOpen(true)} className="w-full rounded-lg border border-white/10 p-3 text-left text-xs text-slate-400">{locale === 'tr' ? 'AI bağlantısı ve API anahtarı' : 'AI connection and API key'}</button></div>}
           header={<>
+            {selectedTyping && <TypingInspector index={selectedTypingIndex} total={timelineTyping.length} stretch={selectedTyping}
+              speed={speedOfPart(selectedTyping, speedRegions)} onSpeedChange={(speed) => speedUpTyping([selectedTyping], speed)}
+              onCut={() => cutTyping([selectedTyping])} onSpeedAll={(speed) => speedUpTyping(timelineTyping, speed)} onCutAll={() => cutTyping(timelineTyping)} />}
             {selectedPart && <ClipPartInspector index={selectedPartIndex} part={selectedPart} speed={speedOfPart(selectedPart, speedRegions)}
               canCut={clipParts.length > 1} onSpeedChange={handleSetPartSpeed} onCut={handleDeleteClipPart} />}
             {activeRegion && <RegionInspector region={activeRegion}
