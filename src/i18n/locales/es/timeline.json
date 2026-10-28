@@ -58,6 +58,22 @@
     "segment": "Parte del vídeo {{start}}–{{end}} s · selecciónala y pulsa Supr para cortarla",
     "cut": "Corte de {{seconds}} s · selecciónalo y pulsa Supr para recuperarlo",
     "cannotSplit": "Coloca el cabezal dentro de una parte del vídeo (no justo en su borde).",
-    "keepOne": "Debe quedar al menos una parte del vídeo."
+    "keepOne": "Debe quedar al menos una parte del vídeo.",
+    "typing": "Escritura: haz clic para acelerarla o cortarla"
+  },
+  "addVideo": {
+    "button": "Añadir vídeo",
+    "fromFile": "Añadir un archivo de vídeo…",
+    "record": "Grabar un vídeo nuevo y añadirlo",
+    "adding": "Añadiendo el vídeo… {{percent}} %",
+    "added": "{{name}} se añadió al final.",
+    "failed": "No se pudo añadir el vídeo: {{error}}",
+    "title": "Añadir un vídeo al final de la edición"
+  },
+  "ending": {
+    "extend": "Alargar el final",
+    "title": "Final: haz clic para cambiarlo",
+    "freeze": "Último fotograma",
+    "background": "Fondo"
   }
 }

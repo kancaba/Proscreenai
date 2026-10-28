@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useItem } from 'dnd-timeline'
-import { Film, Scissors } from 'lucide-react'
+import { Film, Hourglass, Keyboard, Scissors } from 'lucide-react'
 import { useScopedT } from '@/contexts/I18nContext'
 import { toFileUrl } from '../projectPersistence'
 import type { TrimRegion } from '../types'
@@ -59,11 +59,24 @@ export function SourceVideoTrack({ path, durationMs, trims, clip, selectedCutId 
     return () => { cancelled = true; video.pause(); video.removeEventListener('loadedmetadata', ready); video.removeAttribute('src'); video.load() }
   }, [path, frameKey])
   const name = path.split(/[\\/]/).pop() || 'Video'
+  const videos = clip?.videos ?? []
   const percent = (ms: number) => `${(ms / Math.max(1, durationMs)) * 100}%`
 
   return <div ref={setNodeRef} style={itemStyle} data-testid="source-video-track" aria-label={`Ana video: ${name}`}><div style={{ ...itemContentStyle, height: 52 }} className="relative overflow-hidden rounded-lg border-2 border-cyan-300/60 bg-cyan-900/30">
     <div className="pointer-events-none absolute inset-0 flex opacity-45">{frames.map((frame,index) => <img key={index} src={frame} alt="" draggable={false} className="h-full min-w-0 flex-1 object-cover" />)}</div>
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center gap-2 bg-black/55 px-3 py-1 text-[11px] text-cyan-100"><Film size={13} /><span className="truncate font-medium">{name}</span><span className="ml-auto shrink-0 tabular-nums">{(durationMs / 1000).toFixed(1)}s</span></div>
+    {videos.length > 1
+      ? <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[21px] bg-black/55 text-[11px] text-cyan-100">
+        {videos.map((video, index) => {
+          const end = videos[index + 1]?.outStart ?? durationMs
+          return <div key={video.outStart} data-testid="video-label" className="absolute inset-y-0 flex min-w-0 items-center gap-1.5 px-2" style={{ left: percent(video.outStart), width: percent(end - video.outStart) }}>
+            <Film size={12} className="shrink-0" /><span className="truncate font-medium">{video.name}</span>
+          </div>
+        })}
+        <span className="absolute right-2 top-1 tabular-nums">{(durationMs / 1000).toFixed(1)}s</span>
+      </div>
+      : <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center gap-2 bg-black/55 px-3 py-1 text-[11px] text-cyan-100"><Film size={13} /><span className="truncate font-medium">{name}</span><span className="ml-auto shrink-0 tabular-nums">{(durationMs / 1000).toFixed(1)}s</span></div>}
+    {/* Where an added video starts. */}
+    {videos.slice(1).map((video) => <div key={`boundary-${video.outStart}`} data-testid="video-boundary" aria-hidden className="pointer-events-none absolute inset-y-0 z-[12] w-[3px] -translate-x-1/2 bg-cyan-200 shadow-[0_0_6px_rgba(165,243,252,0.8)]" style={{ left: percent(video.outStart) }} />)}
     {!clip && trims.map(trim => <div key={trim.id} title="Kesilen bölüm" className="pointer-events-none absolute inset-y-0 border-x border-red-400/70 bg-red-500/35" style={{ left: `${trim.startMs / durationMs * 100}%`, width: `${(trim.endMs - trim.startMs) / durationMs * 100}%`, backgroundImage: 'repeating-linear-gradient(135deg,transparent,transparent 4px,#ef444433 4px,#ef444433 8px)' }} />)}
     {clip?.segments.map((segment) => {
       const selected = clip.selectedStart === segment.startMs

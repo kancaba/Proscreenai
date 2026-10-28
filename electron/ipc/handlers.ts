@@ -19,6 +19,7 @@ import { ProjectLibrary } from '../projectLibrary'
 import { writeExportFile } from '../exportFile'
 import { registerTranscriptionHandlers } from '../transcription'
 import { registerAudioWaveformHandlers } from '../audioWaveform'
+import { registerVideoAppendHandlers } from '../videoAppend'
 import { registerAgentHandlers } from '../agents/agentManager'
 import { isAllowedExternalUrl, resolveReadableMediaPath, resolveRecordingFilePath } from '../ipcValidation'
 import { createCountdownWindow, getCountdownWindow, closeCountdownWindow, setHudRecordingState, createRegionSelectorWindow } from '../windows'
@@ -37,6 +38,35 @@ let nativeAudioPaths: string[] = []
 const recordingClock = new RecordingClock()
 let pauseTransition = false
 let recoveredProject: { project: unknown; id: string } | null = null
+/** A project waiting while the user records a video to add to its end. */
+let appendSession: { project: unknown; projectPath: string | null; unsaved: boolean } | null = null
+/** That project, reopened once the recording is done, with the recording to add (none when cancelled). */
+let returningProject: { project: unknown; projectPath: string | null; unsaved: boolean; recordingPath: string | null } | null = null
+
+/** Keeps the open project (with its unsaved edits) while the user records a video to add to it. */
+export function startAppendSession(project: unknown, unsaved: boolean) {
+  if (!project || typeof project !== 'object' || typeof (project as { videoPath?: unknown }).videoPath !== 'string') return false
+  appendSession = { project, projectPath: currentProjectPath, unsaved }
+  return true
+}
+
+/** The editor reopens with the waiting project; the recording is added to it unless it was cancelled. */
+function finishAppendSession(recordingPath: string | null) {
+  if (!appendSession) return false
+  const session = appendSession
+  appendSession = null
+  returningProject = { ...session, recordingPath }
+  recoveredProject = null
+  currentProjectPath = session.projectPath
+  const videoPath = (session.project as { videoPath: string }).videoPath
+  currentVideoPath = normalizeVideoSourcePath(videoPath) ?? videoPath
+  return true
+}
+
+/** Closing the recorder while a project waits brings the project back unchanged. */
+export function cancelAppendSession() {
+  return finishAppendSession(null)
+}
 
 const projectLibrary = new ProjectLibrary(path.join(userDataDirectory, 'recent-projects.json'))
 
@@ -1582,6 +1612,12 @@ export function registerIpcHandlers(
   }
   registerTranscriptionHandlers(transcriptionDeps)
   registerAudioWaveformHandlers(getFfmpegBinaryPath)
+  registerVideoAppendHandlers({
+    getFfmpegPath: getFfmpegBinaryPath,
+    getRecordingsDir,
+    // The project stays open; only the video it edits becomes the joined one.
+    onJoined: (videoPath) => { currentVideoPath = normalizeVideoSourcePath(videoPath) ?? videoPath },
+  })
   registerAgentHandlers(transcriptionDeps)
 
   ipcMain.handle('get-sources', async (_, opts) => {
@@ -1849,6 +1885,8 @@ export function registerIpcHandlers(
   })
 
   ipcMain.handle('switch-to-editor', () => {
+    // A recording made to add to a project goes back to that project.
+    if (appendSession) finishAppendSession(currentVideoPath)
     const mainWin = getMainWindow()
     if (mainWin) {
       mainWin.close()
@@ -3013,6 +3051,11 @@ export function registerIpcHandlers(
 
   ipcMain.handle('load-current-project-file', async () => {
     try {
+      if (returningProject) {
+        const { project, projectPath, unsaved, recordingPath } = returningProject
+        returningProject = null
+        return { success: true, project, path: projectPath ?? undefined, recovered: unsaved, appendRecordingPath: recordingPath ?? undefined }
+      }
       if (recoveredProject) return { success: true, project: recoveredProject.project, recovered: true }
       if (!currentProjectPath) {
         return { success: false, message: 'No active project' }

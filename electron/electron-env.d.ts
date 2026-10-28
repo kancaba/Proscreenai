@@ -46,6 +46,9 @@ interface Window {
     >
     cancelTranscription: (requestId: string) => Promise<void>
     getAudioWaveform: (audioPath: string) => Promise<{ durationMs: number; peaksPerSecond: number; peaks: number[] }>
+    /** Joins a video (picked by the user when no path is given) to the end of the current one. */
+    appendVideo: (currentVideoPath: string, addedVideoPath?: string) => Promise<import('./videoAppend').AppendVideoResult>
+    onVideoAppendProgress: (callback: (progress: { fraction: number }) => void) => () => void
     agentDetectTools: (force?: boolean) => Promise<import('../src/lib/agent/agentApi').AgentToolInfo[]>
     agentStart: (input: import('../src/lib/agent/agentApi').AgentStartInput) => Promise<{ success: true; runId: string } | { success: false; code: string; message: string }>
     agentCancel: (runId: string) => Promise<void>
@@ -69,6 +72,8 @@ interface Window {
     elevenLabsCancelSpeech: (requestId: string) => Promise<void>
     getSources: (opts: Electron.SourcesOptions) => Promise<ProcessedDesktopSource[]>
     showRecorder: () => Promise<void>
+    /** Closes the editor for the recorder; the project (with `unsaved` edits) comes back after recording, with the recording to add. */
+    recordAndAppend: (project: unknown, unsaved: boolean) => Promise<boolean>
     autosaveProjectDraft: (project: unknown, projectPath?: string) => Promise<{ success: boolean; updatedAt?: string; message?: string }>
     getRecordingStatus: () => Promise<{ recording: boolean; paused: boolean; elapsedMs: number; pauseSupported: boolean }>
     setRecordingPaused: (paused: boolean) => Promise<{ success: boolean; paused?: boolean; elapsedMs?: number; message?: string }>
@@ -134,7 +139,7 @@ interface Window {
     clearCurrentVideoPath: () => Promise<{ success: boolean }>
     saveProjectFile: (projectData: unknown, suggestedName?: string, existingProjectPath?: string) => Promise<{ success: boolean; path?: string; message?: string; canceled?: boolean; error?: string }>
     loadProjectFile: () => Promise<{ success: boolean; path?: string; project?: unknown; message?: string; canceled?: boolean; error?: string }>
-    loadCurrentProjectFile: () => Promise<{ recovered?: boolean; success: boolean; path?: string; project?: unknown; message?: string; canceled?: boolean; error?: string }>
+    loadCurrentProjectFile: () => Promise<{ recovered?: boolean; success: boolean; path?: string; project?: unknown; message?: string; canceled?: boolean; error?: string; /** A recording made to add to the end of this project. */ appendRecordingPath?: string }>
     onMenuLoadProject: (callback: () => void) => () => void
     onMenuSaveProject: (callback: () => void) => () => void
     onMenuSaveProjectAs: (callback: () => void) => () => void

@@ -58,6 +58,22 @@
     "segment": "视频片段 {{start}}–{{end}} 秒 · 选中后按 Delete 剪掉",
     "cut": "已剪掉 {{seconds}} 秒 · 选中后按 Delete 恢复",
     "cannotSplit": "请把播放头移到视频片段内部（不要贴着边缘）。",
-    "keepOne": "视频至少要保留一个片段。"
+    "keepOne": "视频至少要保留一个片段。",
+    "typing": "打字片段：点击以加速或剪掉"
+  },
+  "addVideo": {
+    "button": "添加视频",
+    "fromFile": "添加视频文件…",
+    "record": "录制新视频并添加",
+    "adding": "正在添加视频… {{percent}}%",
+    "added": "已将 {{name}} 添加到末尾。",
+    "failed": "无法添加视频：{{error}}",
+    "title": "在剪辑末尾添加视频"
+  },
+  "ending": {
+    "extend": "延长片尾",
+    "title": "片尾：点击修改",
+    "freeze": "最后一帧",
+    "background": "背景"
   }
 }

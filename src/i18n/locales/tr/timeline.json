@@ -58,6 +58,22 @@
     "segment": "Video parçası {{start}}–{{end}} sn · seçip Delete ile kesin",
     "cut": "Kesilen {{seconds}} sn · seçip Delete ile geri getirin",
     "cannotSplit": "İmleci bir video parçasının içine getirin (kenarlara çok yakın bölünmez).",
-    "keepOne": "Videonun en az bir parçası kalmalı."
+    "keepOne": "Videonun en az bir parçası kalmalı.",
+    "typing": "Yazma bölümü: hızlandırmak ya da kesmek için tıklayın"
+  },
+  "addVideo": {
+    "button": "Video ekle",
+    "fromFile": "Dosyadan video ekle…",
+    "record": "Yeni kayıt çek ve sona ekle",
+    "adding": "Video ekleniyor… %{{percent}}",
+    "added": "{{name}} sona eklendi.",
+    "failed": "Video eklenemedi: {{error}}",
+    "title": "Kurgunun sonuna video ekle"
+  },
+  "ending": {
+    "extend": "Sonu uzat (son kare / arka plan)",
+    "title": "Videonun sonu: değiştirmek için tıkla",
+    "freeze": "Son kare",
+    "background": "Arka plan"
   }
 }

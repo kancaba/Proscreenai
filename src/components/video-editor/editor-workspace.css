@@ -28,7 +28,7 @@
 @media(prefers-reduced-motion:reduce){.editor-workspace *{transition:none!important;animation:none!important}}
 
 .workspace-timeline-actions>button:nth-child(1),.workspace-timeline-actions>button:nth-child(3),.workspace-timeline-actions>button:nth-child(4),.workspace-timeline-actions>button:nth-child(5){display:none}
-.workspace-timeline-actions>button:nth-child(2),.workspace-timeline-actions>button:nth-child(6){width:auto;gap:6px;padding:0 8px;font-size:10px;background:#ffffff05;border:1px solid #ffffff07;border-radius:6px;height:27px}
+.workspace-timeline-actions>button:nth-child(2),.workspace-timeline-actions>.workspace-timeline-action{width:auto;gap:6px;padding:0 8px;font-size:10px;background:#ffffff05;border:1px solid #ffffff07;border-radius:6px;height:27px}
 .workspace-timeline-actions>button:nth-child(2){color:#c2b6ff}.workspace-timeline-action-label{font-size:10px}
 @media(max-width:900px){.workspace-timeline-action-label{display:none}.workspace-toolbar .workspace-tool-group button>span{display:none}.workspace-toolbar .workspace-project{max-width:150px}.workspace-inspector{flex-basis:252px}}
 .workspace-draft-status{font-size:9px;color:#8ebda9;display:block;margin-top:4px;white-space:nowrap}.workspace-draft-status.workspace-draft-error{color:#f2b278}.workspace-toolbar .workspace-draft-error button{font-size:9px;padding:0;height:auto;color:inherit;white-space:normal;text-align:left;justify-content:flex-start}

@@ -11,7 +11,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Scissors, ZoomIn, MessageSquare, ChevronDown, Check, Gauge, WandSparkles, Music } from "lucide-react";
+import { Plus, Scissors, ZoomIn, MessageSquare, ChevronDown, Check, Gauge, WandSparkles, Music, Film, FolderOpen, Video, LoaderCircle, Hourglass } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useShortcuts } from "@/contexts/ShortcutsContext";
@@ -76,6 +76,12 @@ interface TimelineEditorProps {
   onSelectSpeed?: (id: string | null) => void;
   audioRegions?: AudioRegion[];
   onAudioAdded?: (span: Span, audioPath: string, sourceDurationMs?: number) => void;
+  /** Adds a video to the end of the edit, from a file or from a new recording. */
+  onAddVideo?: (from: "file" | "record") => void;
+  /** Adds time after the video's end (or shows the controls of the one there is). */
+  onExtendEnding?: () => void;
+  /** Progress (0–1) while a video is being added. */
+  addingVideo?: number | null;
   /** `track` is set when the clip was dropped on another audio track. */
   onAudioSpanChange?: (id: string, span: Span, track?: number) => void;
   onAudioDelete?: (id: string) => void;
@@ -106,6 +112,14 @@ export interface ClipTrackProps {
   /** Speed changes on the edited timeline, drawn as badges on the video track. */
   speeds?: Array<{ id: string; speed: number; outStart: number; outEnd: number }>;
   onSelectSpeed?: (id: string) => void;
+  /** Stretches where the user was typing while recording, on the edited timeline. */
+  typing?: Array<{ startMs: number; outStart: number; outEnd: number }>;
+  selectedTypingStart?: number | null;
+  onSelectTyping?: (sourceStartMs: number) => void;
+  /** The videos joined into the edit, where each starts on the edited timeline (only when there are several). */
+  videos?: Array<{ name: string; outStart: number }>;
+  /** Time added after the video's end; clicking it opens its controls. */
+  ending?: { durationMs: number; mode: "freeze" | "background"; onSelect: () => void };
 }
 
 interface TimelineScaleConfig {
@@ -574,7 +588,7 @@ function Timeline({
 				keyframes={keyframes}
 			/>
 
-			<Row id="source-video-row" label="ANA VİDEO" labelColor="#67e8f9"><SourceVideoTrack path={sourcePath} durationMs={videoDurationMs} trims={clip ? [] : sourceTrims} clip={clip} selectedCutId={selectedTrimId ?? null} onSelectCut={(id) => { clip?.onSelectSegment(null); onSelectTrim?.(id); }} /></Row>
+			<Row id="source-video-row" label="ANA VİDEO" labelColor="#67e8f9">{clip?.ending && <EndingTrackItem startMs={videoDurationMs - clip.ending.durationMs} {...clip.ending} />}<SourceVideoTrack path={sourcePath} durationMs={videoDurationMs - (clip?.ending?.durationMs ?? 0)} trims={clip ? [] : sourceTrims} clip={clip} selectedCutId={selectedTrimId ?? null} onSelectCut={(id) => { clip?.onSelectSegment(null); onSelectTrim?.(id); }} /></Row>
       <Row label="ZOOM" labelColor="#93c5fd" id={ZOOM_ROW_ID} isEmpty={zoomItems.length === 0} hint={t('zoom.addZoom')}>
 				{zoomItems.map((item) => (
 					<Item
@@ -695,6 +709,9 @@ export default function TimelineEditor({
   onSelectSpeed,
   audioRegions = [],
   onAudioAdded,
+  onAddVideo,
+  onExtendEnding,
+  addingVideo = null,
   onAudioSpanChange,
   onAudioDelete,
   selectedAudioId,
@@ -1529,11 +1546,31 @@ export default function TimelineEditor({
           >
             <Gauge className="w-4 h-4" />
           </Button>
+          {onAddVideo && <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={addingVideo !== null}
+                data-testid="add-video"
+                className="workspace-timeline-action h-7 w-7 text-slate-400 hover:text-cyan-300 hover:bg-cyan-300/10 transition-all"
+                title={tTimeline('addVideo.title')} aria-label={tTimeline('addVideo.title')}
+              >
+                {addingVideo !== null ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <Film className="w-4 h-4" />}
+                <span className="workspace-timeline-action-label">{addingVideo !== null ? `${Math.round(addingVideo * 100)}%` : tTimeline('addVideo.button')}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="bg-[#1a1a1a] border-white/10">
+              <DropdownMenuItem data-testid="add-video-file" onClick={() => onAddVideo("file")} className="text-slate-300 cursor-pointer gap-2"><FolderOpen className="w-4 h-4" />{tTimeline('addVideo.fromFile')}</DropdownMenuItem>
+              <DropdownMenuItem data-testid="add-video-record" onClick={() => onAddVideo("record")} className="text-slate-300 cursor-pointer gap-2"><Video className="w-4 h-4" />{tTimeline('addVideo.record')}</DropdownMenuItem>
+              {onExtendEnding && <DropdownMenuItem data-testid="extend-ending" onClick={onExtendEnding} className="text-slate-300 cursor-pointer gap-2"><Hourglass className="w-4 h-4" />{tTimeline('ending.extend')}</DropdownMenuItem>}
+            </DropdownMenuContent>
+          </DropdownMenu>}
           <Button
             onClick={handleAddAudio}
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-slate-400 hover:text-[#a855f7] hover:bg-[#a855f7]/10 transition-all"
+            className="workspace-timeline-action h-7 w-7 text-slate-400 hover:text-[#a855f7] hover:bg-[#a855f7]/10 transition-all"
             title="Ses dosyası ekle" aria-label="Ses dosyası ekle"
           >
             <Music className="w-4 h-4" /><span className="workspace-timeline-action-label">Ses ekle</span>

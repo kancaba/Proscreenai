@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import { createHudOverlayWindow, createEditorWindow, createSourceSelectorWindow, createWelcomeWindow } from './windows'
-import { registerIpcHandlers, getSelectedSourceId, killWgcCaptureProcess } from './ipc/handlers'
+import { registerIpcHandlers, getSelectedSourceId, killWgcCaptureProcess, startAppendSession, cancelAppendSession } from './ipc/handlers'
 import { isAllowedExternalUrl } from './ipcValidation'
 import { registerByteplusKeys } from './byteplusKeys'
 import { registerGeminiKeys } from './geminiKeys'
@@ -475,7 +475,22 @@ app.whenReady().then(async () => {
     }
   })
 
+  // Record a video to add to the end of the open project: the editor hands over its project
+  // (unsaved edits included) and closes without asking; the project comes back after recording.
+  ipcMain.handle('record-and-append', (event, project: unknown, unsaved: boolean) => {
+    if (!mainWindow || event.sender !== mainWindow.webContents || !isEditorWindow(mainWindow)) return false
+    if (!startAppendSession(project, unsaved === true)) return false
+    afterEditorClose = () => { mainWindow = createHudOverlayWindow() }
+    closeEditorWindowBypassingUnsavedPrompt(mainWindow)
+    return true
+  })
+
   ipcMain.on('hud-overlay-close', () => {
+    // Closing the recorder while a project waits for a recording brings the project back.
+    if (cancelAppendSession()) {
+      createEditorWindowWrapper()
+      return
+    }
     app.quit();
   });
   syncDockIcon()

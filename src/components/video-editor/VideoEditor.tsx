@@ -61,6 +61,7 @@ import {
   type CropRegion,
   type FigureData,
   type SpeedRegion,
+  type VideoClip,
   type AudioRegion,
   type PlaybackSpeed,
 } from "./types";
@@ -201,6 +202,10 @@ export default function VideoEditor() {
   const [ending, setEnding] = useState<EndingHold>(NO_ENDING);
   /** Points (source ms) where the video track is split into parts that can be cut. */
   const [clipSplits, setClipSplits] = useState<number[]>([]);
+  /** The videos joined into the edit when videos were added to the end (empty for a single video). */
+  const [videoClips, setVideoClips] = useState<VideoClip[]>([]);
+  /** Progress (0–1) while a video is being added to the end. */
+  const [addingVideo, setAddingVideo] = useState<number | null>(null);
   const totalSourceMs = Math.round(duration * 1000);
   const cutMap = useMemo(() => createCutMap(trimRegions, totalSourceMs, speedRegions), [trimRegions, totalSourceMs, speedRegions]);
   /** The ending extension after the video, and the whole edited timeline with it. */
@@ -245,6 +250,8 @@ export default function VideoEditor() {
   const [hasPendingExportSave, setHasPendingExportSave] = useState(false);
   const [recoveredDraft, setRecoveredDraft] = useState(false);
   const pendingPlayheadRef = useRef<number | null>(null);
+  /** A new recording to add to the end once the project it was made for is open again. */
+  const pendingAppendRecordingRef = useRef<string | null>(null);
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(null);
 
   const videoPlaybackRef = useRef<VideoPlaybackRef>(null);
@@ -556,6 +563,7 @@ export default function VideoEditor() {
     setFades(normalizedEditor.fades);
     setEnding(normalizedEditor.ending ?? NO_ENDING);
     setClipSplits(normalizedEditor.clipSplits);
+    setVideoClips(normalizedEditor.videoClips ?? []);
     setSelectedClipStart(null);
     setExportResolution(normalizedEditor.exportResolution ?? 'legacy');
     setExportFps(normalizedEditor.exportFps ?? 60);
@@ -619,6 +627,7 @@ export default function VideoEditor() {
         fades,
         ...(ending.durationMs > 0 ? { ending } : {}),
         clipSplits,
+        ...(videoClips.length > 1 ? { videoClips } : {}),
         aspectRatio,
         exportQuality, exportResolution, exportFps, exportCustomWidth, exportCustomHeight,
         exportFormat,
@@ -652,6 +661,7 @@ export default function VideoEditor() {
     fades,
     ending,
     clipSplits,
+    videoClips,
     annotationRegions,
     aspectRatio,
     exportQuality, exportResolution, exportFps, exportCustomWidth, exportCustomHeight,
@@ -771,6 +781,7 @@ export default function VideoEditor() {
             currentProjectResult.recovered ?? false,
           );
           if (restored) {
+            pendingAppendRecordingRef.current = currentProjectResult.appendRecordingPath ?? null;
             return;
           }
         }
@@ -831,6 +842,7 @@ export default function VideoEditor() {
       fades,
       ...(ending.durationMs > 0 ? { ending } : {}),
       clipSplits,
+      ...(videoClips.length > 1 ? { videoClips } : {}),
       aspectRatio,
       exportQuality, exportResolution, exportFps, exportCustomWidth, exportCustomHeight,
       exportFormat,
@@ -893,6 +905,7 @@ export default function VideoEditor() {
     fades,
     ending,
     clipSplits,
+    videoClips,
     aspectRatio,
     exportQuality, exportResolution, exportFps, exportCustomWidth, exportCustomHeight,
     exportFormat,
@@ -1454,6 +1467,79 @@ export default function VideoEditor() {
       setSelectedSpeedId(null);
     }
   }, []);
+
+  /**
+   * Joins a video (picked by the user when no path is given) to the end of the edit. Every edit
+   * keeps its place, since the current video stays at the start of the joined one; the added
+   * video becomes its own part on the timeline.
+   */
+  const appendVideo = useCallback(async (addedPath?: string) => {
+    const sourcePath = videoSourcePath ?? (videoPath ? fromFileUrl(videoPath) : null);
+    if (!sourcePath || addingVideo !== null) return;
+    pausePlayback();
+    setAddingVideo(0);
+    const stopProgress = window.electronAPI.onVideoAppendProgress(({ fraction }) => setAddingVideo(fraction));
+    try {
+      const result = await window.electronAPI.appendVideo(sourcePath, addedPath);
+      if (!result.success) {
+        if (!result.canceled) toast.error(t('timeline.addVideo.failed', undefined, { error: result.error ?? '' }));
+        return;
+      }
+      const fileName = (filePath: string) => filePath.split(/[\\/]/).pop() || 'Video';
+      setVideoClips((previous) => [
+        ...(previous.length > 1 ? previous : [{ name: fileName(sourcePath), startMs: 0 }]),
+        { name: result.addedName, startMs: result.offsetMs },
+      ]);
+      // The added video is its own part; this comes with the new video, not as an edit to undo.
+      expectAutomaticChange('clipSplits');
+      setClipSplits((previous) => normalizeSplits([...previous, result.offsetMs], 0));
+      const joinedUrl = toFileUrl(result.path);
+      // The joined video keeps the zooms already made instead of getting new automatic ones.
+      autoSuggestedVideoPathRef.current = joinedUrl;
+      autoZoomOfferPathRef.current = null;
+      pendingPlayheadRef.current = result.offsetMs / 1000;
+      setIsPlaying(false);
+      setVideoSourcePath(result.path);
+      setVideoPath(joinedUrl);
+      toast.success(t('timeline.addVideo.added', undefined, { name: result.addedName }));
+    } catch (error) {
+      toast.error(t('timeline.addVideo.failed', undefined, { error: String(error) }));
+    } finally {
+      stopProgress();
+      setAddingVideo(null);
+    }
+  }, [videoSourcePath, videoPath, addingVideo, expectAutomaticChange, t]);
+
+  /** "Yeni kayıt çek ve sona ekle": the recorder opens and the new recording comes back to this project's end. */
+  const recordAndAppend = useCallback(async () => {
+    if (!currentProjectSnapshot) return;
+    pausePlayback();
+    const project = { ...JSON.parse(currentProjectSnapshot), workspace: { playheadSeconds: currentTime } };
+    const started = await window.electronAPI.recordAndAppend(project, hasUnsavedChanges);
+    if (!started) toast.error(t('timeline.addVideo.failed', undefined, { error: '' }));
+  }, [currentProjectSnapshot, currentTime, hasUnsavedChanges, t]);
+  const handleAddVideo = useCallback((from: 'file' | 'record') => {
+    if (from === 'record') void recordAndAppend();
+    else void appendVideo();
+  }, [appendVideo, recordAndAppend]);
+  /** Opens the ending extension's controls in the inspector. */
+  const showEndingSettings = useCallback(() => {
+    setInspectorVisible(true);
+    setFocusMode(false);
+    setSettingsFocusRequest({ tab: "appearance", target: "ending", nonce: Date.now() });
+  }, []);
+  /** "Sonu uzat": holds the last frame for 3 s (unless there already is an extension) and shows its controls. */
+  const extendEnding = useCallback(() => {
+    setEnding((previous) => (previous.durationMs > 0 ? previous : { ...previous, durationMs: 3000 }));
+    showEndingSettings();
+  }, [showEndingSettings]);
+  // A recording made with "Yeni kayıt çek ve sona ekle" is added once its project is open again.
+  useEffect(() => {
+    const recordingPath = pendingAppendRecordingRef.current;
+    if (!recordingPath || duration <= 0 || !videoSourcePath) return;
+    pendingAppendRecordingRef.current = null;
+    void appendVideo(recordingPath);
+  }, [duration, videoSourcePath, appendVideo]);
 
   const handleAudioAdded = useCallback((span: Span, audioPath: string, sourceDurationMs?: number) => {
     const id = `audio-${nextAudioIdRef.current++}`;
@@ -2411,6 +2497,38 @@ export default function VideoEditor() {
     if (selectedZoomId || selectedTrimId || selectedSpeedId || selectedAnnotationId || selectedAudioId) { setSelectedClipStart(null); setSelectedTypingStart(null); }
   }, [selectedZoomId, selectedTrimId, selectedSpeedId, selectedAnnotationId, selectedAudioId]);
 
+  // Typing found in the recording's key press times; stretches already cut out are left out.
+  const typingStretches = useMemo(() => findTypingStretches(keyTimes, totalSourceMs || undefined).filter((stretch) => !isStretchCut(stretch, trimRegions)), [keyTimes, totalSourceMs, trimRegions]);
+  const timelineTyping = useMemo(() => typingStretches.flatMap((stretch) => {
+    const span = spanToOutput(cutMap, { start: stretch.startMs, end: stretch.endMs });
+    return span ? [{ ...stretch, outStart: span.start, outEnd: span.end }] : [];
+  }), [typingStretches, cutMap]);
+  /** Joined videos on the edited timeline, each labelled where it starts. */
+  const timelineVideos = useMemo(() => videoClips.length > 1
+    ? videoClips.map((clip) => ({ name: clip.name, outStart: toOutputMs(cutMap, clip.startMs) }))
+    : undefined, [videoClips, cutMap]);
+  const selectedTypingIndex = timelineTyping.findIndex((stretch) => stretch.startMs === selectedTypingStart);
+  const selectedTyping = selectedTypingIndex >= 0 ? timelineTyping[selectedTypingIndex] : null;
+  const handleSelectTyping = useCallback((startMs: number) => {
+    setSelectedTypingStart(startMs);
+    setSelectedClipStart(null);
+    setSelectedZoomId(null);
+    setSelectedTrimId(null);
+    setSelectedSpeedId(null);
+    setSelectedAnnotationId(null);
+    setSelectedAudioId(null);
+  }, []);
+  const nextSpeedId = () => `speed-${nextSpeedIdRef.current++}`;
+  /** Speeds typing up (or back to 1×) using the same speed ranges as video parts. */
+  const speedUpTyping = (stretches: Array<{ startMs: number; endMs: number }>, speed: PlaybackSpeed | 1) => {
+    setSpeedRegions((previous) => stretches.reduce((regions, stretch) => setPartSpeed(regions, stretch, speed, nextSpeedId), previous));
+  };
+  /** Cuts typing out; what follows moves up, and the cut can be undone or restored from its marker. */
+  const cutTyping = (stretches: Array<{ startMs: number; endMs: number }>) => {
+    setTrimRegions((previous) => mergeTrims([...previous, ...stretches.map((stretch) => ({ id: `trim-${nextTrimIdRef.current++}`, startMs: stretch.startMs, endMs: stretch.endMs }))]));
+    setSelectedTypingStart(null);
+  };
+
   /** Splits the video at the playhead into two parts (C or the Cut button). */
   const handleSplitClip = useCallback(() => {
     const at = Math.round(currentTime * 1000);
@@ -2679,6 +2797,8 @@ export default function VideoEditor() {
               selectedSpeedId={selectedSpeedId}
               onSelectSpeed={handleSelectSpeed}
               audioRegions={timelineAudio}
+              onAddVideo={handleAddVideo}
+              addingVideo={addingVideo}
               onAudioAdded={(span, audioPath, sourceDurationMs) => { const start = toSourceMs(cutMap, span.start); handleAudioAdded({ start, end: start + (span.end - span.start) }, audioPath, sourceDurationMs); }}
               onAudioSpanChange={handleAudioTimelineChange}
               onAudioDelete={handleAudioDelete}
@@ -2698,6 +2818,10 @@ export default function VideoEditor() {
                 selectedStart: selectedClipStart,
                 onSelectSegment: handleSelectClip,
                 speeds: timelineSpeedBadges,
+                typing: timelineTyping.map((stretch) => ({ startMs: stretch.startMs, outStart: stretch.outStart, outEnd: stretch.outEnd })),
+                videos: timelineVideos,
+                selectedTypingStart,
+                onSelectTyping: handleSelectTyping,
                 onSelectSpeed: (id: string) => {
                   // A speed that fills a part selects the part; any other (from older projects) selects the speed itself.
                   const region = speedRegions.find((candidate) => candidate.id === id);

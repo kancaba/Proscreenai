@@ -58,6 +58,22 @@
     "segment": "Video part {{start}}–{{end}} s · select and press Delete to cut it",
     "cut": "Cut {{seconds}} s · select and press Delete to bring it back",
     "cannotSplit": "Move the playhead inside a video part (not right at its edge).",
-    "keepOne": "At least one part of the video must remain."
+    "keepOne": "At least one part of the video must remain.",
+    "typing": "Typing: click to speed it up or cut it"
+  },
+  "addVideo": {
+    "button": "Add video",
+    "fromFile": "Add a video file…",
+    "record": "Record a new video and add it",
+    "adding": "Adding the video… {{percent}}%",
+    "added": "{{name}} was added to the end.",
+    "failed": "The video could not be added: {{error}}",
+    "title": "Add a video to the end of the edit"
+  },
+  "ending": {
+    "extend": "Extend the ending",
+    "title": "Ending: click to change",
+    "freeze": "Last frame",
+    "background": "Background"
   }
 }

@@ -24,6 +24,7 @@ import {
   type AnnotationRegion,
   type CropRegion,
   type SpeedRegion,
+  type VideoClip,
   type TrimRegion,
   type AudioRegion,
   type ZoomRegion,
@@ -59,6 +60,8 @@ export interface ProjectEditorState {
   ending?: EndingHold;
   /** Where the video track is split into parts (source ms). */
   clipSplits: number[];
+  /** The videos joined into this one, when videos were added to the end; absent for a single video. */
+  videoClips?: VideoClip[];
   aspectRatio: AspectRatio;
   exportResolution?: ResolutionPreset;
   exportFps?: VideoFps;
@@ -69,6 +72,17 @@ export interface ProjectEditorState {
   gifFrameRate: GifFrameRate;
   gifLoop: boolean;
   gifSizePreset: GifSizePreset;
+}
+
+/** Joined videos sorted by where they start, the first at 0; nothing when there is only one. */
+function normalizeVideoClips(value: unknown): { videoClips?: VideoClip[] } {
+  if (!Array.isArray(value)) return {};
+  const clips = value
+    .filter((clip): clip is VideoClip => Boolean(clip) && typeof clip.name === "string" && isFiniteNumber(clip.startMs) && clip.startMs >= 0)
+    .map((clip) => ({ name: clip.name.slice(0, 200), startMs: Math.round(clip.startMs) }))
+    .sort((a, b) => a.startMs - b.startMs)
+    .filter((clip, index, all) => index === 0 || clip.startMs > all[index - 1].startMs);
+  return clips.length > 1 && clips[0].startMs === 0 ? { videoClips: clips } : {};
 }
 
 export interface EditorProjectData {
@@ -387,6 +401,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
     fades: normalizeFades((editor as Partial<ProjectEditorState>).fades),
     ending: normalizeEnding((editor as Partial<ProjectEditorState>).ending),
     clipSplits: normalizeSplits((editor as Partial<ProjectEditorState>).clipSplits, 0),
+    ...normalizeVideoClips((editor as Partial<ProjectEditorState>).videoClips),
     aspectRatio:
       typeof editor.aspectRatio === "string" &&
       (validAspectRatios.has(editor.aspectRatio as AspectRatio) || isCustomAspectRatio(editor.aspectRatio))

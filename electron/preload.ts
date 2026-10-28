@@ -24,6 +24,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   transcribeVideo: (input: { videoPath: string; language: string; requestId: string }) => ipcRenderer.invoke('transcribe-video', input),
   cancelTranscription: (requestId: string) => ipcRenderer.invoke('cancel-transcription', requestId),
   getAudioWaveform: (audioPath: string) => ipcRenderer.invoke('audio-waveform', audioPath),
+  appendVideo: (currentVideoPath: string, addedVideoPath?: string) => ipcRenderer.invoke('append-video', currentVideoPath, addedVideoPath),
+  onVideoAppendProgress: (callback: (progress: { fraction: number }) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, progress: { fraction: number }) => callback(progress)
+    ipcRenderer.on('video-append-progress', listener)
+    return () => ipcRenderer.removeListener('video-append-progress', listener)
+  },
   agentDetectTools: (force?: boolean) => ipcRenderer.invoke('agent-detect-tools', force === true),
   agentStart: (input: unknown) => ipcRenderer.invoke('agent-start', input),
   agentCancel: (runId: string) => ipcRenderer.invoke('agent-cancel', runId),
@@ -71,6 +77,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return await ipcRenderer.invoke('get-sources', opts)
   },
   showRecorder: () => ipcRenderer.invoke('show-recorder'),
+  recordAndAppend: (project: unknown, unsaved: boolean) => ipcRenderer.invoke('record-and-append', project, unsaved),
   autosaveProjectDraft: (project: unknown, projectPath?: string) => ipcRenderer.invoke('autosave-project-draft', project, projectPath),
   getRecordingStatus: () => ipcRenderer.invoke('get-recording-status'),
   setRecordingPaused: (paused: boolean) => ipcRenderer.invoke('set-recording-paused', paused),

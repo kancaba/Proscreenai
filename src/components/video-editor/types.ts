@@ -183,7 +183,13 @@ export interface AudioRegion {
   track?: number;
 }
 
-export type PlaybackSpeed = 0.25 | 0.5 | 0.75 | 1.25 | 1.5 | 1.75 | 2;
+export type PlaybackSpeed = 0.25 | 0.5 | 0.75 | 1.25 | 1.5 | 1.75 | 2 | 3 | 4;
+
+/** A video joined into the edit (see `src/lib/videoConcat.ts`): its file name and where it starts in the joined video (ms). */
+export interface VideoClip {
+  name: string;
+  startMs: number;
+}
 
 export interface SpeedRegion {
   id: string;
