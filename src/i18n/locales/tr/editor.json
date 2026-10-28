@@ -151,6 +151,12 @@
       "too-long": "Otomatik altyazı en fazla iki saatlik videolarda çalışır.",
       "failed": "Altyazı oluşturulamadı.",
       "cancelled": "İptal edildi."
+    },
+    "style": {
+      "title": "Altyazı stili",
+      "hint": "Tüm altyazılara uygulanır; yazı boyutu ve konum değişmez.",
+      "brandColor": "Marka rengi",
+      "highlightTip": "==kelime== şeklinde yazılan kelimeler vurgu rengini alır."
     }
   },
   "agent": {

@@ -151,6 +151,12 @@
 			"too-long": "Automatic captions work on videos up to two hours.",
 			"failed": "Captions could not be created.",
 			"cancelled": "Cancelled."
+		},
+		"style": {
+			"title": "Caption style",
+			"hint": "Applies to every caption; size and position stay as they are.",
+			"brandColor": "Brand colour",
+			"highlightTip": "Words written as ==word== get the highlight colour."
 		}
 	},
 	"agent": {

@@ -151,6 +151,12 @@
 			"too-long": "Los subtítulos automáticos funcionan con vídeos de hasta dos horas.",
 			"failed": "No se pudieron crear los subtítulos.",
 			"cancelled": "Cancelado."
+		},
+		"style": {
+			"title": "Estilo de subtítulos",
+			"hint": "Se aplica a todos los subtítulos; el tamaño y la posición no cambian.",
+			"brandColor": "Color de marca",
+			"highlightTip": "Las palabras escritas como ==palabra== toman el color de resaltado."
 		}
 	},
 	"agent": {

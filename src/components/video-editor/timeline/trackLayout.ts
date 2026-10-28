@@ -1,7 +1,10 @@
+/** Overlap small enough to keep two items on one lane: speech captions often run a few ms into the next. */
+const LANE_TOUCH_MS = 100
+
 export function layoutTrackLanes<T extends { id: string; span: { start: number; end: number } }>(items: T[]) {
   const ends: number[] = [], lanes = new Map<string, number>()
   for (const item of [...items].sort((a,b) => a.span.start-b.span.start || a.span.end-b.span.end)) {
-    let lane = ends.findIndex(end => end <= item.span.start)
+    let lane = ends.findIndex(end => end - LANE_TOUCH_MS <= item.span.start)
     if (lane < 0) lane = ends.length
     ends[lane] = item.span.end; lanes.set(item.id,lane)
   }

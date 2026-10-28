@@ -71,6 +71,7 @@ import { buildAutoZoomSpans, countClicks } from "./autoZoom";
 import { type AutoZoomSettings, loadAutoZoomSettings, saveAutoZoomSettings } from "./autoZoomSettings";
 import { AutoZoomControls } from "./AutoZoomControls";
 import { AutoCaptionsSection } from "./AutoCaptionsSection";
+import { applyCaptionStyle, captionLook, type CaptionStyleChoice, DEFAULT_CAPTION_STYLE, detectCaptionStyle } from "./captionStyles";
 import { useAutoCaptions } from "./useAutoCaptions";
 import { AgentPanel } from "./AgentPanel";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -1404,7 +1405,17 @@ export default function VideoEditor() {
     setSelectedAnnotationId(null);
   }, []);
 
-  /** Speech captions replace earlier ones as one undo step, styled with the subtitle preset. */
+  /** The caption look picked while there were no captions yet; captions that exist show their own. */
+  const [pickedCaptionStyle, setPickedCaptionStyle] = useState<CaptionStyleChoice>(DEFAULT_CAPTION_STYLE);
+  const captionStyle = useMemo(() => detectCaptionStyle(annotationRegions) ?? pickedCaptionStyle, [annotationRegions, pickedCaptionStyle]);
+  /** A ready-made look for every speech caption, as one undo step (dragging the brand colour stays one step). */
+  const handleCaptionStyleChange = useCallback((choice: CaptionStyleChoice) => {
+    setPickedCaptionStyle(choice);
+    if (choice.id !== captionStyle.id) startNewHistoryStep();
+    setAnnotationRegions((previous) => applyCaptionStyle(previous, choice));
+  }, [captionStyle.id, startNewHistoryStep]);
+
+  /** Speech captions replace earlier ones as one undo step, with the subtitle preset's size and motion and the chosen look. */
   const handleAutoCaptionsApply = useCallback((cues: CaptionCue[]) => {
     const preset = TEXT_STYLE_PRESETS.find((candidate) => candidate.id === 'subtitle');
     const newRegions = cues.map((cue): AnnotationRegion => ({
@@ -1417,7 +1428,7 @@ export default function VideoEditor() {
       // Room for two lines of subtitle text.
       position: { x: 10, y: 74 },
       size: { width: 80, height: 20 },
-      style: { ...DEFAULT_ANNOTATION_STYLE, ...preset?.style },
+      style: { ...DEFAULT_ANNOTATION_STYLE, ...preset?.style, ...captionLook(captionStyle) },
       zIndex: nextAnnotationZIndexRef.current++,
       animation: preset?.animation,
       generatedBy: 'transcript',
@@ -1430,7 +1441,7 @@ export default function VideoEditor() {
       duration: 8000,
       action: { label: t('editor.autoCaptions.undo'), onClick: () => handleUndo() },
     });
-  }, [t, handleUndo, startNewHistoryStep]);
+  }, [t, handleUndo, startNewHistoryStep, captionStyle]);
 
   const autoCaptions = useAutoCaptions(videoSourcePath ?? (videoPath ? fromFileUrl(videoPath) : null), trimRegions, handleAutoCaptionsApply);
   const transcriptCaptionCount = useMemo(() => annotationRegions.filter((region) => region.generatedBy === 'transcript').length, [annotationRegions]);
@@ -1482,7 +1493,8 @@ export default function VideoEditor() {
     setZoomRegions(next.zooms);
     setTrimRegions(next.trims);
     setSpeedRegions(next.speeds);
-    setAnnotationRegions(next.annotations);
+    // Captions the agent writes get the same look as the others.
+    setAnnotationRegions(applyCaptionStyle(next.annotations, captionStyle));
     setSelectedZoomId(null);
     setSelectedAnnotationId(null);
     agent.clearProposals();
@@ -2570,7 +2582,7 @@ export default function VideoEditor() {
           autoZoomControls={<AutoZoomControls settings={autoZoomSettings} onChange={updateAutoZoomSettings} onRegenerate={normalizedCursorTelemetry.length >= 2 && duration > 0 ? handleRegenerateAutoZoom : undefined} />}
           presets={<StylePresets appearance={appearance} onApply={applyAppearance} />}
           selectedAudioId={selectedAudioId}
-          aiPanel={<div className="space-y-3"><h2 className="text-sm font-semibold text-white">AI stüdyo</h2><AutoCaptionsSection state={autoCaptions} existingCount={transcriptCaptionCount} /><AgentPanel state={agent} available={Boolean(agentVideoPath) && duration > 0} onApply={handleAgentApply} onSeek={handleSeek} onExpand={() => setAgentWideOpen(true)} /><p className="text-xs leading-relaxed text-slate-400">{locale === 'tr' ? 'Videonuz için yazılar üretin; Ema Lightning, Fish Audio veya ElevenLabs ile seslendirin.' : 'Generate captions and narrate with Ema Lightning, Fish Audio or ElevenLabs.'}</p><button onClick={() => setAiCaptionsOpen(true)} className="w-full rounded-lg bg-violet-300/15 p-3 text-left text-xs text-violet-200">{locale === 'tr' ? '✦ AI video yazıları' : '✦ AI captions'}</button><button onClick={() => openVoiceover()} className="w-full rounded-lg bg-violet-300/15 p-3 text-left text-xs text-violet-200">{locale === 'tr' ? '♫ Metni seslendir' : '♫ Text to speech'}</button><button onClick={() => setAiSettingsOpen(true)} className="w-full rounded-lg border border-white/10 p-3 text-left text-xs text-slate-400">{locale === 'tr' ? 'AI bağlantısı ve API anahtarı' : 'AI connection and API key'}</button></div>}
+          aiPanel={<div className="space-y-3"><h2 className="text-sm font-semibold text-white">AI stüdyo</h2><AutoCaptionsSection state={autoCaptions} existingCount={transcriptCaptionCount} captionStyle={captionStyle} onCaptionStyleChange={handleCaptionStyleChange} /><AgentPanel state={agent} available={Boolean(agentVideoPath) && duration > 0} onApply={handleAgentApply} onSeek={handleSeek} onExpand={() => setAgentWideOpen(true)} /><p className="text-xs leading-relaxed text-slate-400">{locale === 'tr' ? 'Videonuz için yazılar üretin; Ema Lightning, Fish Audio veya ElevenLabs ile seslendirin.' : 'Generate captions and narrate with Ema Lightning, Fish Audio or ElevenLabs.'}</p><button onClick={() => setAiCaptionsOpen(true)} className="w-full rounded-lg bg-violet-300/15 p-3 text-left text-xs text-violet-200">{locale === 'tr' ? '✦ AI video yazıları' : '✦ AI captions'}</button><button onClick={() => openVoiceover()} className="w-full rounded-lg bg-violet-300/15 p-3 text-left text-xs text-violet-200">{locale === 'tr' ? '♫ Metni seslendir' : '♫ Text to speech'}</button><button onClick={() => setAiSettingsOpen(true)} className="w-full rounded-lg border border-white/10 p-3 text-left text-xs text-slate-400">{locale === 'tr' ? 'AI bağlantısı ve API anahtarı' : 'AI connection and API key'}</button></div>}
           header={<>
             {selectedPart && <ClipPartInspector index={selectedPartIndex} part={selectedPart} speed={speedOfPart(selectedPart, speedRegions)}
               canCut={clipParts.length > 1} onSpeedChange={handleSetPartSpeed} onCut={handleDeleteClipPart} />}

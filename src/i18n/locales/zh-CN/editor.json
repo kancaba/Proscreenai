@@ -151,6 +151,12 @@
 			"too-long": "自动字幕最多支持两小时的视频。",
 			"failed": "无法生成字幕。",
 			"cancelled": "已取消。"
+		},
+		"style": {
+			"title": "字幕样式",
+			"hint": "应用于所有字幕；字号和位置不变。",
+			"brandColor": "品牌色",
+			"highlightTip": "写成 ==词语== 的词会使用强调色。"
 		}
 	},
 	"agent": {
