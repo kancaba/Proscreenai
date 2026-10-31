@@ -1058,6 +1058,21 @@
 	white-space: pre-wrap;
 	margin: 0 0 8px;
 }
+.creative-poster-prompt {
+	margin: 0 0 8px;
+	font-size: 11px;
+	color: #a697b8;
+}
+.creative-poster-prompt summary {
+	cursor: pointer;
+}
+.creative-poster-prompt pre {
+	margin: 6px 0 0;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+	color: #cfc2dc;
+}
 .creative-lightbox .creative-usage {
 	max-width: 500px;
 	margin: 4px 0;

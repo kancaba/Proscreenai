@@ -1,5 +1,5 @@
-import { geminiUsage, type ImageUsage } from "../src/lib/imageUsage";
 import type { ImageResolution } from "../src/lib/imageGenerationSettings";
+import { geminiUsage, type ImageUsage } from "../src/lib/imageUsage";
 export const NANO_BANANA_MODEL = "gemini-3.1-flash-image";
 export type GeminiInput = {
 	prompt: string;
@@ -40,7 +40,10 @@ export function geminiPayload(input: GeminiInput) {
 		],
 		generationConfig: {
 			responseModalities: ["TEXT", "IMAGE"],
-			imageConfig: { aspectRatio: nearestAspect(input.width, input.height), imageSize: input.imageSize ?? "1K" },
+			imageConfig: {
+				aspectRatio: nearestAspect(input.width, input.height),
+				imageSize: input.imageSize ?? "1K",
+			},
 		},
 	};
 }
@@ -95,19 +98,20 @@ export function geminiImage(wire: unknown) {
 		"Gemini bu istekte görsel döndürmedi. İsteği farklı ifade edin veya referans görsel ekleyin.",
 	);
 }
-export async function generateGeminiImage(
+async function postGemini(
+	model: string,
 	key: string,
-	input: GeminiInput,
+	body: unknown,
 	signal: AbortSignal,
-	fetcher: typeof fetch = fetch,
+	fetcher: typeof fetch,
 	onUsage?: (usage: ImageUsage) => void,
 ) {
 	const response = await fetcher(
-		`https://generativelanguage.googleapis.com/v1beta/models/${NANO_BANANA_MODEL}:generateContent`,
+		`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
 		{
 			method: "POST",
 			headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
-			body: JSON.stringify(geminiPayload(input)),
+			body: JSON.stringify(body),
 			signal,
 			redirect: "error",
 		},
@@ -135,5 +139,59 @@ export async function generateGeminiImage(
 	if (!response.ok) throw Error(geminiError(response.status, wire));
 	const usage = geminiUsage(wire);
 	if (usage) onUsage?.(usage);
-	return geminiImage(wire);
+	return wire;
+}
+export async function generateGeminiImage(
+	key: string,
+	input: GeminiInput,
+	signal: AbortSignal,
+	fetcher: typeof fetch = fetch,
+	onUsage?: (usage: ImageUsage) => void,
+) {
+	return geminiImage(
+		await postGemini(NANO_BANANA_MODEL, key, geminiPayload(input), signal, fetcher, onUsage),
+	);
+}
+/** Text model for preparing prompts; the alias follows Google's current Flash model. */
+export const GEMINI_TEXT_MODEL = "gemini-flash-latest";
+export function geminiText(wire: unknown) {
+	const w = wire as {
+		promptFeedback?: { blockReason?: string };
+		candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] } }[];
+	};
+	if (w.promptFeedback?.blockReason)
+		throw Error("Gemini bu isteği içerik politikası nedeniyle engelledi. İsteğinizi düzenleyin.");
+	const text = (w.candidates?.[0]?.content?.parts ?? [])
+		.filter((part) => !part.thought && typeof part.text === "string")
+		.map((part) => part.text)
+		.join("");
+	if (!text.trim()) throw Error("Gemini metin yanıtı döndürmedi.");
+	return text;
+}
+/** One text answer for a prompt and optional reference images (data URLs). */
+export async function generateGeminiText(
+	key: string,
+	input: { prompt: string; references: string[] },
+	signal: AbortSignal,
+	fetcher: typeof fetch = fetch,
+	onUsage?: (usage: ImageUsage) => void,
+) {
+	const body = {
+		contents: [
+			{
+				role: "user",
+				parts: [
+					{ text: input.prompt },
+					...input.references.map((ref) => {
+						const match = ref.match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/);
+						if (!match || ref.length > 28 * 1024 * 1024)
+							throw Error("Referans görseli geçersiz veya çok büyük.");
+						return { inlineData: { mimeType: match[1], data: match[2] } };
+					}),
+				],
+			},
+		],
+		generationConfig: { responseModalities: ["TEXT"] },
+	};
+	return geminiText(await postGemini(GEMINI_TEXT_MODEL, key, body, signal, fetcher, onUsage));
 }

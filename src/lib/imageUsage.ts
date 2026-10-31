@@ -61,4 +61,6 @@ export type ImageRunMetadata = {
 	usage?: ImageUsage;
 	durationMs?: number;
 	provider?: "codex" | "gemini" | "byteplus";
+	/** The poster template filled from the request ("Kusursuz poster yapısı"). */
+	posterPrompt?: string;
 };

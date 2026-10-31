@@ -10,7 +10,11 @@ import {
 } from "../../lib/byteplusSettings";
 import { IMAGE_RESOLUTIONS, type ImageResolution } from "../../lib/imageGenerationSettings";
 import type { ImageRunMetadata } from "../../lib/imageUsage";
-import { POSTER_PROMPT_TEMPLATE, withPosterMethod } from "../../lib/posterPromptMethod";
+import {
+	POSTER_PROMPT_TEMPLATE,
+	withFilledPoster,
+	withPosterMethod,
+} from "../../lib/posterPromptMethod";
 import { GenerationProgress } from "../creative-studio/GenerationProgress";
 import { UsageDetails } from "../creative-studio/UsageDetails";
 import { ByteplusConnection, ByteplusControls } from "./ByteplusControls";
@@ -61,6 +65,7 @@ export function AIStudioPanel({
 		[preview, setPreview] = useState(""),
 		[mode, setMode] = useState<"auto" | "generate" | "edit">("auto"),
 		[posterMethod, setPosterMethod] = useState(settings?.posterMethod ?? false),
+		[posterPrompt, setPosterPrompt] = useState(""),
 		[imageSize, setImageSize] = useState<ImageResolution>(settings?.imageSize ?? "1K"),
 		[refs, setRefs] = useState<string[]>(
 			settings?.refs.length
@@ -84,6 +89,17 @@ export function AIStudioPanel({
 		[connectionMessage, setConnectionMessage] = useState(""),
 		[codexReady, setCodexReady] = useState(false);
 	const promptId = useId();
+	/** Who fills the poster template from the request: Codex for Codex, otherwise Gemini when it has a key. */
+	const posterFiller: "gemini" | "codex" | null =
+		provider === "codex"
+			? codexReady
+				? "codex"
+				: null
+			: keyReady
+				? "gemini"
+				: codexReady
+					? "codex"
+					: null;
 	const connectionTitleId = useId();
 	const requestInput = useRef<HTMLTextAreaElement>(null);
 	useLayoutEffect(() => {
@@ -310,28 +326,60 @@ export function AIStudioPanel({
 			return;
 		}
 		const target = fixedFormat ? { width, height } : inferImageFormat(requestText, width, height),
-			id = crypto.randomUUID();
+			id = crypto.randomUUID(),
+			poster = posterMethod && resolved === "generate",
+			filler = poster ? posterFiller : null,
+			request = (context ? context.slice(0, 6000) + "\nUSER REQUEST:\n" : "") + requestText;
 		activeRequest.current = id;
 		setBusy(true);
 		setStartedAt(Date.now());
 		setPhase("preparing");
 		setLastRun(undefined);
 		setLiveUsage(undefined);
+		setPosterPrompt("");
 		onBusy?.(true);
 		setStatus("İsteğin hazırlanıyor…");
 		try {
+			// Without a text model to fill the template, the poster rules still go with the request.
+			let imageRequest = withPosterMethod(request, poster),
+				posterNote = "",
+				filledPrompt = "";
+			if (filler) {
+				const fillId = crypto.randomUUID();
+				activeRequest.current = fillId;
+				setStatus("İsteğin poster şablonuna göre dolduruluyor…");
+				const filled = await window.electronAPI.imageStudioRun({
+					requestId: fillId,
+					mode: "prompt",
+					purpose: "poster",
+					tool: filler,
+					prompt: request,
+					references: references.map((l) => l.src!),
+					referenceNames: references.map((l) => l.name.slice(0, 200)),
+					width: target.width,
+					height: target.height,
+					auto: true,
+				});
+				if (!mounted.current) return;
+				if (filled.cancelled) throw Error(filled.error || "İş iptal edildi.");
+				if (filled.success && filled.prompt) {
+					filledPrompt = filled.prompt;
+					setPosterPrompt(filled.prompt);
+					imageRequest = withFilledPoster(request, filled.prompt);
+				} else
+					posterNote = ` Şablon doldurulamadı (${filled.error || "boş yanıt"}); görsel poster kurallarıyla üretildi.`;
+				activeRequest.current = id;
+				setStatus("Görsel doldurulan şablonla oluşturuluyor…");
+			}
 			const result = await window.electronAPI.imageStudioRun({
 				requestId: id,
 				mode: resolved,
 				tool: provider,
-				prompt: withPosterMethod(
-					(context ? context.slice(0, 6000) + "\nUSER REQUEST:\n" : "") +
-						requestText +
-						(provider === "byteplus"
-							? ""
-							: `\nComposition aspect ratio: ${target.width}:${target.height}. Native resolution preset: ${imageSize}. Preserve this aspect ratio; do not upscale to simulate native detail.`),
-					posterMethod,
-				),
+				prompt:
+					imageRequest +
+					(provider === "byteplus"
+						? ""
+						: `\nComposition aspect ratio: ${target.width}:${target.height}. Native resolution preset: ${imageSize}. Preserve this aspect ratio; do not upscale to simulate native detail.`),
 				references: references.map((l) => l.src!),
 				referenceNames: references.map((l) => l.name.slice(0, 200)),
 				...(provider === "byteplus" ? { byteplus } : {}),
@@ -362,12 +410,14 @@ export function AIStudioPanel({
 					requestedResolution: result.requestedResolution ?? imageSize,
 					actualWidth: result.actualWidth,
 					actualHeight: result.actualHeight,
+					...(filledPrompt ? { posterPrompt: filledPrompt } : {}),
 				},
 			);
 			setStatus(
-				gallery
+				(gallery
 					? "Hazır. Görsel galeriye eklendi. İstersen Düzenle ile katmanlı editörde açabilirsin."
-					: "Hazır. Görsel tuvalde; üzerine yazı ve logo ekleyebilir veya yeni bir düzeltme yazabilirsin.",
+					: "Hazır. Görsel tuvalde; üzerine yazı ve logo ekleyebilir veya yeni bir düzeltme yazabilirsin.") +
+					posterNote,
 			);
 		} catch (e) {
 			if (mounted.current) setStatus(e instanceof Error ? e.message : String(e));
@@ -491,8 +541,11 @@ export function AIStudioPanel({
 					<span>
 						Kusursuz poster yapısı
 						<small>
-							Konsept, HEX renkler, % konumlar, ışık, ince + kalın başlık ve NEGATIVE kurallarıyla
-							üretir. Ek ücret veya ayrı istek yok.
+							{posterFiller === "gemini"
+								? "İsteğini 13 bölümlük şablona göre otomatik doldurur, sonra o promptla üretir. Doldurma için küçük bir Gemini metin isteği yapılır."
+								: posterFiller === "codex"
+									? "İsteğini 13 bölümlük şablona göre Codex ile otomatik doldurur, sonra o promptla üretir. Hazırlık biraz sürebilir."
+									: "Şablonu dolduracak Gemini anahtarı veya Codex oturumu yok; istek yalnız şablonun kurallarıyla gönderilir."}
 						</small>
 					</span>
 				</label>
@@ -572,6 +625,22 @@ export function AIStudioPanel({
 			<p role="status" className="image-ai-status" aria-live="polite">
 				{!busy ? status : ""}
 			</p>
+			{!busy && posterPrompt && (
+				<details className="image-poster-result">
+					<summary>Şablona göre doldurulan prompt</summary>
+					<pre>{posterPrompt}</pre>
+					<button
+						type="button"
+						title="Doldurulan promptu düzenleyip yeniden üretmek için"
+						onClick={() => {
+							setRequestText(posterPrompt);
+							requestInput.current?.focus();
+						}}
+					>
+						İsteğe aktar
+					</button>
+				</details>
+			)}
 			<small className="image-hint">
 				{provider === "byteplus"
 					? "İstek ve referanslar BytePlus ModelArk API’ye gönderilir. Gönderilen ücretli isteğin durması garanti edilemez; ekran kapansa da dönen sonuç bu cihazda saklanır."

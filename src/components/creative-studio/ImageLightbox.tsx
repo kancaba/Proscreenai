@@ -87,6 +87,12 @@ export function ImageLightbox({
 			</div>
 			<footer>
 				<p>{creation.prompt || creation.name}</p>
+				{creation.posterPrompt && (
+					<details className="creative-poster-prompt">
+						<summary>Şablona göre doldurulan prompt</summary>
+						<pre>{creation.posterPrompt}</pre>
+					</details>
+				)}
 				<UsageDetails usage={creation.usage} durationMs={creation.durationMs} />
 			</footer>
 		</dialog>
