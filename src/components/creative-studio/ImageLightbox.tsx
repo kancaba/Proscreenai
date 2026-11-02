@@ -6,12 +6,14 @@ export function ImageLightbox({
 	onClose,
 	onNavigate,
 	onEdit,
+	onSchedule,
 	busy,
 }: {
 	creation: Creation;
 	onClose: () => void;
 	onNavigate: (direction: number) => void;
 	onEdit: () => void;
+	onSchedule: () => void;
 	busy: boolean;
 }) {
 	const dialog = useRef<HTMLDialogElement>(null),
@@ -70,6 +72,9 @@ export function ImageLightbox({
 					</a>
 					<button disabled={busy} onClick={onEdit}>
 						Düzenle ↗
+					</button>
+					<button disabled={busy} onClick={onSchedule}>
+						Takvime ekle
 					</button>
 					<button autoFocus aria-label="Önizlemeyi kapat" onClick={onClose}>
 						×

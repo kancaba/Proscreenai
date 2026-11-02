@@ -8,6 +8,7 @@ import { registerIpcHandlers, getSelectedSourceId, killWgcCaptureProcess, startA
 import { isAllowedExternalUrl } from './ipcValidation'
 import { registerByteplusKeys } from './byteplusKeys'
 import { registerGeminiKeys } from './geminiKeys'
+import { clearPendingShareOpen, registerShareCalendarHandlers, startShareReminders } from './shareCalendar'
 import { registerImageStudioHandlers } from './imageStudio'
 import { registerModelionHandlers } from './modelion'
 import { registerFishAudioHandlers } from './fishAudio'
@@ -67,6 +68,7 @@ registerFishAudioHandlers()
 registerElevenLabsHandlers()
 registerImageStudioHandlers()
 registerGeminiKeys()
+registerShareCalendarHandlers()
 registerByteplusKeys()
 
 if (!hasSingleInstanceLock) {
@@ -146,6 +148,22 @@ function focusOrCreateMainWindow() {
     mainWindow.moveTop()
     mainWindow.focus()
   }
+}
+
+// Reminder notifications open the Plan tab in the home window. A video editor or recorder in use
+// is only brought forward, so its work is never replaced.
+function openSharePlan() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow()
+    return
+  }
+  if (!mainWindow.webContents.getURL().includes('windowType=welcome')) {
+    clearPendingShareOpen()
+    focusOrCreateMainWindow()
+    return
+  }
+  focusOrCreateMainWindow()
+  mainWindow.webContents.send('share-calendar-open')
 }
 
 function isEditorWindow(window: BrowserWindow) {
@@ -544,6 +562,7 @@ app.whenReady().then(async () => {
   })
 
   createWindow()
+  startShareReminders(openSharePlan)
 })
 
 

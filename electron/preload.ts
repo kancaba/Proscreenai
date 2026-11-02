@@ -9,6 +9,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   geminiKeyStatus: () => ipcRenderer.invoke('gemini-key-status'),
   geminiSaveKey: (key: string) => ipcRenderer.invoke('gemini-save-key', key),
   geminiClearKey: () => ipcRenderer.invoke('gemini-clear-key'),
+  shareCalendarList: () => ipcRenderer.invoke('share-calendar-list'),
+  shareCalendarSave: (post: unknown) => ipcRenderer.invoke('share-calendar-save', post),
+  shareCalendarDelete: (id: string) => ipcRenderer.invoke('share-calendar-delete', id),
+  shareCalendarCopyImage: (src: string) => ipcRenderer.invoke('share-calendar-copy-image', src),
+  shareCalendarCopyText: (text: string) => ipcRenderer.invoke('share-calendar-copy-text', text),
+  shareCalendarTakeOpen: () => ipcRenderer.invoke('share-calendar-take-open'),
+  onShareCalendarOpen: (callback: () => void) => {
+    const listener = () => callback()
+    ipcRenderer.on('share-calendar-open', listener)
+    return () => ipcRenderer.removeListener('share-calendar-open', listener)
+  },
   imageStudioBrandWebsite: (url: string) => ipcRenderer.invoke("image-studio-brand-website", url),
   imageStudioReferencePage: (url: string) => ipcRenderer.invoke('image-studio-reference-page', url),
   imageStudioCapabilities: () => ipcRenderer.invoke('image-studio-capabilities'),

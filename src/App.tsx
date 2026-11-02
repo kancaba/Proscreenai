@@ -16,17 +16,32 @@ export default function App() {
   const [imageStudio, setImageStudio] = useState(false);
   const [initialCreationId, setInitialCreationId] = useState<string>();
   const [initialGallery, setInitialGallery] = useState(false);
+  const [initialPlan, setInitialPlan] = useState<{ postId?: string }>();
   useEffect(() => {
     const open = (event: Event) => {
       const detail = (event as CustomEvent<{ creationId?: string; gallery?: boolean }>).detail;
       const id = detail?.creationId;
       setInitialCreationId(typeof id === 'string' ? id : undefined);
       setInitialGallery(detail?.gallery === true);
+      setInitialPlan(undefined);
       setImageStudio(true);
     };
     window.addEventListener("open-image-studio", open);
     return () => window.removeEventListener("open-image-studio", open);
   }, []);
+  // Share reminder notifications open the Plan tab of the home window, also right after launch.
+  useEffect(() => {
+    if (windowType !== 'welcome' || !window.electronAPI?.shareCalendarTakeOpen) return;
+    const take = () => void window.electronAPI.shareCalendarTakeOpen().then((open) => {
+      if (!open) return;
+      setInitialCreationId(undefined);
+      setInitialGallery(false);
+      setInitialPlan({ postId: open.postId });
+      setImageStudio(true);
+    });
+    take();
+    return window.electronAPI.onShareCalendarOpen(take);
+  }, [windowType]);
   const { locale, t } = useI18n();
 
   useEffect(() => {
@@ -51,7 +66,7 @@ export default function App() {
       : t('app.name', 'Pro Screen AI');
   }, [windowType, locale, t]);
 
-  if (imageStudio) return <Suspense fallback={<div>Görsel Stüdyo açılıyor…</div>}><ImageStudio initialCreationId={initialCreationId} initialGallery={initialGallery} onHome={() => setImageStudio(false)} /></Suspense>;
+  if (imageStudio) return <Suspense fallback={<div>Görsel Stüdyo açılıyor…</div>}><ImageStudio initialCreationId={initialCreationId} initialGallery={initialGallery} initialPlan={initialPlan} onHome={() => setImageStudio(false)} /></Suspense>;
 
   switch (windowType) {
     case 'welcome':

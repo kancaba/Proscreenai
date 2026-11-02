@@ -32,6 +32,13 @@ interface Window {
     geminiKeyStatus: () => Promise<{configured:boolean;persistent:boolean}>;
     geminiSaveKey: (key:string) => Promise<{configured:boolean;persistent:boolean}>;
     geminiClearKey: () => Promise<{configured:boolean;persistent:boolean}>;
+    shareCalendarList: () => Promise<import("../src/lib/shareCalendar").SharePost[]>;
+    shareCalendarSave: (post: import("../src/lib/shareCalendar").SharePost) => Promise<import("../src/lib/shareCalendar").SharePost>;
+    shareCalendarDelete: (id: string) => Promise<boolean>;
+    shareCalendarCopyImage: (src: string) => Promise<boolean>;
+    shareCalendarCopyText: (text: string) => Promise<boolean>;
+    shareCalendarTakeOpen: () => Promise<{ postId?: string } | null>;
+    onShareCalendarOpen: (callback: () => void) => () => void;
     imageStudioBrandWebsite: (url:string) => Promise<{success:boolean;data?:import("../src/lib/brandWebsiteTypes").WebsiteBrand;error?:string}>;
     imageStudioReferencePage: (url:string) => Promise<{success:boolean;url?:string;text?:string;error?:string}>;
     imageStudioCapabilities: () => Promise<{tools:{id:string;name:string;status:string}[];imageGeneration:boolean;note:string}>;

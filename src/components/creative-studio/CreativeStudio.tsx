@@ -15,6 +15,9 @@ import { brandContext, brandReferences, type Brand, type Creation } from "./bran
 import { listBrands, listCreations, saveBrand, saveCreation, setBrandArchived } from "./database";
 import { BrandDialog } from "./BrandDialog";
 import { imageSkillContext } from "../../lib/imageGenerationSettings";
+import { formatShareTime, type SharePost } from "../../lib/shareCalendar";
+import { ScheduleDialog } from "./ScheduleDialog";
+import { SharePlan } from "./SharePlan";
 import "./creative-studio.css";
 const Editor = lazy(() => import("../image-studio/ImageStudio"));
 const formats = [
@@ -24,8 +27,8 @@ const formats = [
 	["story", "Story / Reels · 9:16", 1080, 1920],
 	["wide", "Yatay · 16:9", 1920, 1080],
 ] as const;
-export default function CreativeStudio({ onHome, initialCreationId, initialGallery = false }: { onHome: () => void; initialCreationId?: string; initialGallery?: boolean }) {
-	const [page, setPage] = useState<"create" | "brands" | "gallery">(initialCreationId || initialGallery ? "gallery" : "create"),
+export default function CreativeStudio({ onHome, initialCreationId, initialGallery = false, initialPlan }: { onHome: () => void; initialCreationId?: string; initialGallery?: boolean; initialPlan?: { postId?: string } }) {
+	const [page, setPage] = useState<"create" | "brands" | "gallery" | "plan">(initialPlan ? "plan" : initialCreationId || initialGallery ? "gallery" : "create"),
 		[brands, setBrands] = useState<Brand[]>([]),
 		[deletedBrands, setDeletedBrands] = useState<Brand[]>([]),
 		[creations, setCreations] = useState<Creation[]>([]),
@@ -40,7 +43,10 @@ export default function CreativeStudio({ onHome, initialCreationId, initialGalle
 		[ready, setReady] = useState(false),
 		[busy, setBusy] = useState(false),
 		[search, setSearch] = useState(""),
-		[previewId, setPreviewId] = useState<string | undefined>(initialCreationId);
+		[previewId, setPreviewId] = useState<string | undefined>(initialCreationId),
+		[posts, setPosts] = useState<SharePost[]>([]),
+		[schedule, setSchedule] = useState<{ creation?: Creation; post?: SharePost }>(),
+		[planFocus, setPlanFocus] = useState(initialPlan?.postId);
 	const brand = brands.find((b) => b.id === brandId),
 		product = brand?.products.find((p) => p.id === productId),
 		allRefs = brandReferences(brand, product),
@@ -73,6 +79,35 @@ export default function CreativeStudio({ onHome, initialCreationId, initialGalle
 			alive = false;
 		};
 	}, []);
+	useEffect(() => {
+		let alive = true;
+		window.electronAPI
+			.shareCalendarList()
+			.then((list) => alive && setPosts(list))
+			.catch((e) => alive && setMessage(`Paylaşım takvimi açılamadı: ${e}`));
+		return () => {
+			alive = false;
+		};
+	}, []);
+	useEffect(() => {
+		if (!initialPlan) return;
+		setPage("plan");
+		setPlanFocus(initialPlan.postId);
+		// Reminders update entries in the main process; show their current state.
+		window.electronAPI
+			.shareCalendarList()
+			.then(setPosts)
+			.catch(() => undefined);
+	}, [initialPlan]);
+	async function savePost(post: SharePost) {
+		const saved = await window.electronAPI.shareCalendarSave(post);
+		setPosts((old) =>
+			[...old.filter((p) => p.id !== saved.id), saved].sort((a, b) => a.scheduledAt - b.scheduledAt),
+		);
+		return saved;
+	}
+	// One image may be planned several times (e.g. LinkedIn today, Instagram next week).
+	const scheduleCreation = (c: Creation) => setSchedule({ creation: c });
 	async function importFile(file: File) {
 		const image = await readStudioImage(file),
 			layer = {
@@ -122,6 +157,9 @@ export default function CreativeStudio({ onHome, initialCreationId, initialGalle
 		setExtra([]);
 		setSettings((s) => (s ? { ...s, refs: [] } : s));
 	}
+	const planPosts = posts.filter(
+		(p) => !brandId || creations.find((c) => c.id === p.creationId)?.brandId === brandId,
+	);
 	const visible = creations.filter(
 		(c) =>
 			(!brandId || c.brandId === brandId) &&
@@ -148,6 +186,7 @@ export default function CreativeStudio({ onHome, initialCreationId, initialGalle
 							["create", "✦ Oluştur"],
 							["brands", "◈ Markalar"],
 							["gallery", "▦ Galeri"],
+							["plan", "◷ Plan"],
 						] as const
 					).map(([id, title]) => (
 						<button
@@ -243,7 +282,32 @@ export default function CreativeStudio({ onHome, initialCreationId, initialGalle
 					</div>
 				</aside>
 				<section className="creative-workspace">
-					{page === "brands" ? (
+					{page === "plan" ? (
+						<>
+							<div className="creative-title">
+								<div>
+									<small>{brand ? `${brand.name} · PAYLAŞIM PLANI` : "PAYLAŞIM PLANI"}</small>
+									<h1>Doğru gün, doğru kanal.</h1>
+									<p>Görsellerini takvime yerleştir; zamanı yaklaşınca masaüstünden hatırlatalım.</p>
+								</div>
+								<button className="creative-primary" onClick={() => setPage("gallery")}>
+									＋ Galeriden ekle
+								</button>
+							</div>
+							<SharePlan
+								posts={planPosts}
+								creations={creations}
+								focusId={planFocus}
+								onEdit={(post) =>
+									setSchedule({ post, creation: creations.find((c) => c.id === post.creationId) })
+								}
+								onSave={async (post) => {
+									await savePost(post);
+								}}
+								onMessage={setMessage}
+							/>
+						</>
+					) : page === "brands" ? (
 						<>
 							<div className="creative-title">
 								<div>
@@ -442,6 +506,20 @@ export default function CreativeStudio({ onHome, initialCreationId, initialGalle
 												</small>
 												<p>{c.prompt || c.name}</p>
 												<UsageDetails usage={c.usage} durationMs={c.durationMs} />
+												{posts
+													.filter((p) => p.creationId === c.id && p.status === "planned")
+													.map((p) => (
+														<button
+															key={p.id}
+															className="share-badge"
+															onClick={() => {
+																setPlanFocus(p.id);
+																setPage("plan");
+															}}
+														>
+															◷ {formatShareTime(p.scheduledAt)}
+														</button>
+													))}
 												<footer>
 													<button disabled={busy} onClick={() => void edit(c)}>
 														Düzenle ↗
@@ -459,6 +537,9 @@ export default function CreativeStudio({ onHome, initialCreationId, initialGalle
 														}}
 													>
 														Referans al
+													</button>
+													<button disabled={busy} onClick={() => scheduleCreation(c)}>
+														Takvime ekle
 													</button>
 												</footer>
 											</div>
@@ -485,10 +566,40 @@ export default function CreativeStudio({ onHome, initialCreationId, initialGalle
 						setPreviewId(undefined);
 						if (c) void edit(c);
 					}}
+					onSchedule={() => {
+						const c = visible.find((c) => c.id === previewId);
+						setPreviewId(undefined);
+						if (c) scheduleCreation(c);
+					}}
 					onNavigate={(direction) => {
 						const index = visible.findIndex((c) => c.id === previewId);
 						setPreviewId(visible[(index + direction + visible.length) % visible.length]?.id);
 					}}
+				/>
+			)}
+			{schedule && (
+				<ScheduleDialog
+					key={schedule.post?.id ?? schedule.creation?.id}
+					creation={schedule.creation}
+					initial={schedule.post}
+					onClose={() => setSchedule(undefined)}
+					onSave={async (post) => {
+						const saved = await savePost(post);
+						setSchedule(undefined);
+						setPlanFocus(saved.id);
+						setMessage(`Takvime eklendi: ${formatShareTime(saved.scheduledAt)}.`);
+					}}
+					onDelete={
+						schedule.post
+							? async () => {
+									const id = schedule.post!.id;
+									await window.electronAPI.shareCalendarDelete(id);
+									setPosts((old) => old.filter((p) => p.id !== id));
+									setSchedule(undefined);
+									setMessage("Paylaşım takvimden silindi.");
+								}
+							: undefined
+					}
 				/>
 			)}
 			{brandDialog !== undefined && (
