@@ -115,7 +115,7 @@ const seconds = (text) => { const m = text.match(/Duration: (\d+):(\d+):([\d.]+)
   let project = await saved(win);
   const joined = project.videoPath;
   const joinedProbe = probe(joined);
-  check('The project now edits the joined video', /-montaj-\d{8}-\d{6}\.mp4$/.test(joined) && path.dirname(joined) === path.join(profile, 'recordings'), joined);
+  check('The project now edits the joined video', /-montaj-\d{8}-\d{6}(-\d+)?\.mp4$/.test(joined) && path.dirname(joined) === path.join(profile, 'recordings'), joined);
   check('The joined video has the first video\'s size, every second and sound', /1280x720/.test(joinedProbe) && Math.abs(seconds(joinedProbe) - 15) < 0.3 && /Audio: aac/.test(joinedProbe), `${seconds(joinedProbe)} s`);
   check('Earlier edits keep their place', JSON.stringify(project.editor.trimRegions.map((r) => [r.startMs, r.endMs])) === '[[1000,2000]]'
     && JSON.stringify(project.editor.speedRegions.map((r) => [r.startMs, r.endMs, r.speed])) === '[[3000,4000,2]]');

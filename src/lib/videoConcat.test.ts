@@ -65,6 +65,7 @@ describe("joining videos", () => {
     expect(ffmpegProgressMs("nothing yet")).toBeNull();
     expect(joinedBaseName("recording-1.mp4")).toBe("recording-1");
     expect(joinedBaseName("recording-1-montaj-20261027-153012.mp4")).toBe("recording-1");
+    expect(joinedBaseName("recording-1-montaj-20261027-153012-2.mp4")).toBe("recording-1");
   });
 });
 

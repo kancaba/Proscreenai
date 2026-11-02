@@ -76,6 +76,23 @@ const stamp = (date: Date) => {
   return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`
 }
 
+/**
+ * A new file for the joined or rebuilt video. Two joins within one second (adding a video and then
+ * moving it) would get the same name, and the second would overwrite the file it reads from.
+ */
+async function newVideoPath(dir: string, currentPath: string, now: Date) {
+  const base = path.join(dir, `${joinedBaseName(path.basename(currentPath))}-montaj-${stamp(now)}`)
+  for (let attempt = 1; ; attempt += 1) {
+    const candidate = attempt === 1 ? `${base}.mp4` : `${base}-${attempt}.mp4`
+    if (path.resolve(candidate) === path.resolve(currentPath)) continue
+    try {
+      await fs.access(candidate)
+    } catch {
+      return candidate
+    }
+  }
+}
+
 export function registerVideoAppendHandlers(deps: Deps) {
   let busy = false
 
@@ -108,7 +125,7 @@ export function registerVideoAppendHandlers(deps: Deps) {
       const totalMs = files.reduce((sum, file) => sum + file.probe.durationMs, 0)
       const recordingsDir = await deps.getRecordingsDir()
       const now = new Date()
-      outputPath = path.join(recordingsDir, `${joinedBaseName(path.basename(currentPath))}-montaj-${stamp(now)}.mp4`)
+      outputPath = await newVideoPath(recordingsDir, currentPath, now)
       const target = outputPath
       const progress = (fraction: number) => {
         if (!event.sender.isDestroyed()) event.sender.send('video-append-progress', { fraction })

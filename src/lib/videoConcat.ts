@@ -151,8 +151,8 @@ export function joinTelemetry(parts: Array<{ data: TelemetryFile | unknown[] | n
   return { version: 2, samples, keys };
 }
 
-/** "screen-recording-montaj-20261027-153012.mp4" → "screen-recording", so names do not pile up. */
+/** "screen-recording-montaj-20261027-153012(-2).mp4" → "screen-recording", so names do not pile up. */
 export function joinedBaseName(fileName: string): string {
-  const base = fileName.replace(/\.[^.]+$/, "").replace(/-montaj-\d{8}-\d{6}$/, "");
+  const base = fileName.replace(/\.[^.]+$/, "").replace(/-montaj-\d{8}-\d{6}(?:-\d+)?$/, "");
   return base || "video";
 }
