@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { useItem } from 'dnd-timeline'
-import { Film, Hourglass, Keyboard, Scissors } from 'lucide-react'
+import { Film, GripVertical, Hourglass, Keyboard, Scissors } from 'lucide-react'
 import { useScopedT } from '@/contexts/I18nContext'
 import { toFileUrl } from '../projectPersistence'
 import type { TrimRegion } from '../types'
@@ -62,7 +62,43 @@ export function SourceVideoTrack({ path, durationMs, trims, clip, selectedCutId 
   const videos = clip?.videos ?? []
   const percent = (ms: number) => `${(ms / Math.max(1, durationMs)) * 100}%`
 
-  return <div ref={setNodeRef} style={itemStyle} data-testid="source-video-track" aria-label={`Ana video: ${name}`}><div style={{ ...itemContentStyle, height: 52 }} className="relative overflow-hidden rounded-lg border-2 border-cyan-300/60 bg-cyan-900/30">
+  // Dragging a part (past a few pixels; a plain click still selects it) to another piece edge.
+  const trackRef = useRef<HTMLDivElement>(null)
+  const justDraggedRef = useRef(false)
+  const [drag, setDrag] = useState<{ outStart: number; outEnd: number; atMs: number; target: number } | null>(null)
+  const move = clip?.move
+  const startDrag = (event: ReactPointerEvent, segment: { startMs: number; outStart: number; outEnd: number }) => {
+    const rect = trackRef.current?.getBoundingClientRect()
+    if (!move || move.busy || event.button !== 0 || !rect || rect.width <= 0) return
+    event.stopPropagation()
+    const startX = event.clientX
+    let current: typeof drag = null
+    const follow = (moveEvent: PointerEvent) => {
+      if (!current && Math.abs(moveEvent.clientX - startX) < 6) return
+      const atMs = Math.max(0, Math.min(durationMs, ((moveEvent.clientX - rect.left) / rect.width) * durationMs))
+      const target = move.edges.reduce((best, edge) => (Math.abs(edge - atMs) < Math.abs(best - atMs) ? edge : best), move.edges[0])
+      current = { outStart: segment.outStart, outEnd: segment.outEnd, atMs, target }
+      setDrag(current)
+    }
+    const stop = (drop: boolean) => {
+      window.removeEventListener('pointermove', follow)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onCancel)
+      setDrag(null)
+      if (!current) return
+      // The click that ends a drag does not also select the part.
+      justDraggedRef.current = true
+      setTimeout(() => { justDraggedRef.current = false }, 0)
+      if (drop) move.onMove(segment.startMs, current.target)
+    }
+    const onUp = () => stop(true)
+    const onCancel = () => stop(false)
+    window.addEventListener('pointermove', follow)
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onCancel)
+  }
+
+  return <div ref={setNodeRef} style={itemStyle} data-testid="source-video-track" aria-label={`Ana video: ${name}`}><div ref={trackRef} style={{ ...itemContentStyle, height: 52 }} className="relative overflow-hidden rounded-lg border-2 border-cyan-300/60 bg-cyan-900/30">
     <div className="pointer-events-none absolute inset-0 flex opacity-45">{frames.map((frame,index) => <img key={index} src={frame} alt="" draggable={false} className="h-full min-w-0 flex-1 object-cover" />)}</div>
     {videos.length > 1
       ? <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[21px] bg-black/55 text-[11px] text-cyan-100">
@@ -87,8 +123,9 @@ export function SourceVideoTrack({ path, durationMs, trims, clip, selectedCutId 
         data-start={segment.startMs}
         aria-pressed={selected}
         title={t('clip.segment', undefined, { start: (segment.startMs / 1000).toFixed(1), end: (segment.endMs / 1000).toFixed(1) })}
-        onClick={(event) => { event.stopPropagation(); clip.onSelectSegment(selected ? null : segment.startMs) }}
-        className={`absolute inset-y-0 border-x border-cyan-950/80 transition-colors ${selected ? 'z-[5] bg-white/25 ring-2 ring-inset ring-white' : 'hover:bg-white/10'}`}
+        onPointerDown={(event) => startDrag(event, segment)}
+        onClick={(event) => { event.stopPropagation(); if (!justDraggedRef.current) clip.onSelectSegment(selected ? null : segment.startMs) }}
+        className={`absolute inset-y-0 border-x border-cyan-950/80 transition-colors ${move && !move.busy ? 'cursor-grab active:cursor-grabbing' : ''} ${selected ? 'z-[5] bg-white/25 ring-2 ring-inset ring-white' : 'hover:bg-white/10'}`}
         style={{ left: percent(segment.outStart), width: percent(segment.outEnd - segment.outStart) }}
       />
     })}
@@ -137,6 +174,12 @@ export function SourceVideoTrack({ path, durationMs, trims, clip, selectedCutId 
         <Scissors size={10} className="relative rounded-sm bg-black/70" />
       </button>
     })}
+    {/* The part being dragged, where it would go, and a handle that follows the pointer. */}
+    {drag && <>
+      <div aria-hidden className="pointer-events-none absolute inset-y-0 z-[25] border-2 border-dashed border-cyan-200 bg-cyan-300/20" style={{ left: percent(drag.outStart), width: percent(drag.outEnd - drag.outStart) }} />
+      <div data-testid="clip-drop-target" data-target={drag.target} aria-hidden className="pointer-events-none absolute inset-y-0 z-[30] w-1 -translate-x-1/2 rounded-full bg-amber-300 shadow-[0_0_10px_rgba(252,211,77,0.9)]" style={{ left: percent(drag.target) }} />
+      <div aria-hidden className="pointer-events-none absolute top-1/2 z-[31] flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-md bg-cyan-200 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-950 shadow-lg" style={{ left: `clamp(48px, ${percent(drag.atMs)}, calc(100% - 48px))` }}><GripVertical size={11} />{t('move.dragging')}</div>
+    </>}
   </div></div>
 }
 

@@ -1,12 +1,12 @@
-import { Gauge, Scissors } from 'lucide-react'
+import { ArrowLeftRight, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Gauge, Scissors } from 'lucide-react'
 import { useI18n } from '@/contexts/I18nContext'
 import type { PlaybackSpeed } from './types'
 
 const SPEEDS: Array<PlaybackSpeed | 1> = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 3, 4]
 const seconds = (ms: number, locale: string) => `${(ms / 1000).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`
 
-/** The selected part of the video (split with C): its speed and cutting it out. */
-export function ClipPartInspector({ index, part, speed, canCut, onSpeedChange, onCut }: {
+/** The selected part of the video (split with C): its speed, moving it and cutting it out. */
+export function ClipPartInspector({ index, part, speed, canCut, onSpeedChange, onCut, move }: {
   index: number
   /** Source range and where it sits on the edited timeline. */
   part: { startMs: number; endMs: number; outStart: number; outEnd: number }
@@ -14,6 +14,8 @@ export function ClipPartInspector({ index, part, speed, canCut, onSpeedChange, o
   canCut: boolean
   onSpeedChange: (speed: PlaybackSpeed | 1) => void
   onCut: () => void
+  /** Moving the part among the video's pieces (`index` of `count`); absent when there is one piece. */
+  move?: { index: number; count: number; busy: boolean; onMove: (toIndex: number) => void }
 }) {
   const { locale } = useI18n()
   const tr = locale === 'tr'
@@ -46,6 +48,29 @@ export function ClipPartInspector({ index, part, speed, canCut, onSpeedChange, o
           ? (tr ? 'Bu parçanın içinde farklı hızlar var. Bir hız seçince bütün parçaya uygulanır.' : 'This part has different speeds inside. Picking one applies it to the whole part.')
           : (tr ? `Süre: ${seconds(lengthMs, locale)} ${unit}${speed !== 1 ? ` → ${seconds(lengthMs / speed, locale)} ${unit}` : ''}` : `Length: ${seconds(lengthMs, locale)} ${unit}${speed !== 1 ? ` → ${seconds(lengthMs / speed, locale)} ${unit}` : ''}`)}
       </p>
+      {move && move.index >= 0 && <>
+        <div className="mt-3 flex items-center gap-1.5 text-[11px] text-slate-200"><ArrowLeftRight size={13} className="text-cyan-300" />{tr ? 'Yerini değiştir' : 'Move'}</div>
+        <div className="mt-2 grid grid-cols-4 gap-1.5" data-testid="clip-part-move">
+          {([
+            [0, ChevronsLeft, tr ? 'Başa taşı' : 'Move to the start', 'start'],
+            [move.index - 1, ChevronLeft, tr ? 'Bir öne al' : 'Move earlier', 'earlier'],
+            [move.index + 1, ChevronRight, tr ? 'Bir sonraya al' : 'Move later', 'later'],
+            [move.count - 1, ChevronsRight, tr ? 'Sona taşı' : 'Move to the end', 'end'],
+          ] as const).map(([to, Icon, label, id]) => (
+            <button
+              key={id}
+              type="button"
+              title={label}
+              aria-label={label}
+              data-testid={`clip-part-move-${id}`}
+              disabled={move.busy || to === move.index || to < 0 || to >= move.count}
+              onClick={() => move.onMove(to)}
+              className="flex items-center justify-center rounded-lg border border-white/5 bg-white/5 py-1.5 text-slate-300 hover:border-cyan-300/30 hover:bg-cyan-300/10 disabled:opacity-30"
+            ><Icon size={14} /></button>
+          ))}
+        </div>
+        <p className="mt-2 text-[10px] leading-snug text-slate-500">{tr ? 'Parçayı zaman çizelgesinde tutup sürükleyerek de taşıyabilirsiniz.' : 'You can also drag the part along the timeline.'}</p>
+      </>}
       <button type="button" onClick={onCut} disabled={!canCut} data-testid="clip-part-cut" className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-red-400/20 bg-red-500/10 py-1.5 text-[11px] text-red-300 hover:bg-red-500/20 disabled:opacity-40">
         <Scissors size={12} />{tr ? 'Parçayı videodan çıkar (Delete)' : 'Cut this part out (Delete)'}
       </button>

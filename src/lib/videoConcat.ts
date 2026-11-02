@@ -75,9 +75,11 @@ export function copyJoinArgs(listPath: string, outputPath: string, codec: string
 
 /**
  * ffmpeg arguments that re-encode the files into one: every video is fitted (letterboxed) into
- * the first one's size and frame rate, and a video without sound gets silence.
+ * the first one's size and frame rate, and a video without sound gets silence. A `range` takes
+ * only that part of its file (to the file's end when `endMs` is left out), so pieces of one video
+ * can be put in a new order.
  */
-export function encodeJoinArgs(files: Array<{ path: string; probe: ProbedVideo }>, outputPath: string, encoder: "h264_videotoolbox" | "libx264"): string[] {
+export function encodeJoinArgs(files: Array<{ path: string; probe: ProbedVideo; range?: { startMs: number; endMs?: number } }>, outputPath: string, encoder: "h264_videotoolbox" | "libx264"): string[] {
   const first = files[0].probe.video;
   const width = even(first?.width || 1920);
   const height = even(first?.height || 1080);
@@ -86,12 +88,16 @@ export function encodeJoinArgs(files: Array<{ path: string; probe: ProbedVideo }
   const withAudio = files.some(({ probe }) => probe.audio);
   const filters: string[] = [];
   const inputs: string[] = [];
-  files.forEach(({ probe }, index) => {
-    filters.push(`[${index}:v:0]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,fps=${fps},format=yuv420p[v${index}]`);
+  const lengthMs = ({ probe, range }: (typeof files)[number]) => range ? (range.endMs ?? probe.durationMs) - range.startMs : probe.durationMs;
+  files.forEach((file, index) => {
+    const { probe } = file;
+    // A piece taken from inside a file starts its own clock at 0.
+    const restart = file.range ? "setpts=PTS-STARTPTS," : "";
+    filters.push(`[${index}:v:0]${restart}scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,fps=${fps},format=yuv420p[v${index}]`);
     if (withAudio) {
       filters.push(probe.audio
-        ? `[${index}:a:0]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo[a${index}]`
-        : `anullsrc=r=48000:cl=stereo,atrim=duration=${(probe.durationMs / 1000).toFixed(3)}[a${index}]`);
+        ? `[${index}:a:0]${file.range ? "asetpts=PTS-STARTPTS," : ""}aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo[a${index}]`
+        : `anullsrc=r=48000:cl=stereo,atrim=duration=${(lengthMs(file) / 1000).toFixed(3)}[a${index}]`);
     }
     inputs.push(withAudio ? `[v${index}][a${index}]` : `[v${index}]`);
   });
@@ -103,7 +109,11 @@ export function encodeJoinArgs(files: Array<{ path: string; probe: ProbedVideo }
     : ["-c:v", "libx264", "-preset", "veryfast", "-crf", "18"];
   return [
     "-nostdin", "-y",
-    ...files.flatMap(({ path }) => ["-i", path]),
+    // Seeking before the input is frame-accurate when re-encoding and decodes only what is used.
+    ...files.flatMap(({ path, range }) => [
+      ...(range ? ["-ss", (range.startMs / 1000).toFixed(3), ...(range.endMs === undefined ? [] : ["-t", ((range.endMs - range.startMs) / 1000).toFixed(3)])] : []),
+      "-i", path,
+    ]),
     "-filter_complex", filters.join(";"),
     "-map", "[v]",
     ...(withAudio ? ["-map", "[a]", "-c:a", "aac", "-b:a", "192k"] : []),

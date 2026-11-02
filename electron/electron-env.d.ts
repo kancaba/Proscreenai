@@ -55,6 +55,8 @@ interface Window {
     getAudioWaveform: (audioPath: string) => Promise<{ durationMs: number; peaksPerSecond: number; peaks: number[] }>
     /** Joins a video (picked by the user when no path is given) to the end of the current one. */
     appendVideo: (currentVideoPath: string, addedVideoPath?: string) => Promise<import('./videoAppend').AppendVideoResult>
+    /** Rebuilds the video with its pieces (source ms) in this order. */
+    reorderVideo: (currentVideoPath: string, pieces: Array<{ startMs: number; endMs: number }>) => Promise<import('./videoAppend').ReorderVideoResult>
     onVideoAppendProgress: (callback: (progress: { fraction: number }) => void) => () => void
     agentDetectTools: (force?: boolean) => Promise<import('../src/lib/agent/agentApi').AgentToolInfo[]>
     agentStart: (input: import('../src/lib/agent/agentApi').AgentStartInput) => Promise<{ success: true; runId: string } | { success: false; code: string; message: string }>

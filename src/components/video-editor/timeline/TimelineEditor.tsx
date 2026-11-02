@@ -11,7 +11,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Scissors, ZoomIn, MessageSquare, ChevronDown, Check, Gauge, WandSparkles, Music, Film, FolderOpen, Video, LoaderCircle, Hourglass } from "lucide-react";
+import { Plus, Scissors, ZoomIn, MessageSquare, ChevronDown, Check, Gauge, WandSparkles, Music, Film, FolderOpen, Video, LoaderCircle, Hourglass, ChevronsLeft, TextCursorInput } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useShortcuts } from "@/contexts/ShortcutsContext";
@@ -27,7 +27,7 @@ import Row from "./Row";
 import Item from "./Item";
 import KeyframeMarkers from "./KeyframeMarkers";
 import type { Range, Span } from "dnd-timeline";
-import type { ZoomRegion, TrimRegion, AnnotationRegion, SpeedRegion, AudioRegion, CursorTelemetryPoint, ZoomFocus } from "../types";
+import type { ZoomRegion, TrimRegion, AnnotationRegion, SpeedRegion, AudioRegion, CursorTelemetryPoint, ZoomFocus, VideoInsertPlace } from "../types";
 import { toFileUrl } from "../projectPersistence";
 import { audioRowId, MAX_AUDIO_TRACKS, trackOfAudioRow } from "../audioRegionSpan";
 import { audioClipName } from "../audioClipName";
@@ -76,8 +76,8 @@ interface TimelineEditorProps {
   onSelectSpeed?: (id: string | null) => void;
   audioRegions?: AudioRegion[];
   onAudioAdded?: (span: Span, audioPath: string, sourceDurationMs?: number) => void;
-  /** Adds a video to the end of the edit, from a file or from a new recording. */
-  onAddVideo?: (from: "file" | "record") => void;
+  /** Adds a video to the edit (at the start, the playhead or the end), from a file or from a new recording. */
+  onAddVideo?: (from: "file" | "record", place?: VideoInsertPlace) => void;
   /** Adds time after the video's end (or shows the controls of the one there is). */
   onExtendEnding?: () => void;
   /** Progress (0–1) while a video is being added. */
@@ -118,6 +118,8 @@ export interface ClipTrackProps {
   onSelectTyping?: (sourceStartMs: number) => void;
   /** The videos joined into the edit, where each starts on the edited timeline (only when there are several). */
   videos?: Array<{ name: string; outStart: number }>;
+  /** Dragging a part elsewhere: the piece edges (edited ms) it can be dropped at. */
+  move?: { edges: number[]; busy: boolean; onMove: (partStartMs: number, toOutMs: number) => void };
   /** Time added after the video's end; clicking it opens its controls. */
   ending?: { durationMs: number; mode: "freeze" | "background"; onSelect: () => void };
 }
@@ -1561,7 +1563,9 @@ export default function TimelineEditor({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="bg-[#1a1a1a] border-white/10">
-              <DropdownMenuItem data-testid="add-video-file" onClick={() => onAddVideo("file")} className="text-slate-300 cursor-pointer gap-2"><FolderOpen className="w-4 h-4" />{tTimeline('addVideo.fromFile')}</DropdownMenuItem>
+              <DropdownMenuItem data-testid="add-video-file-start" onClick={() => onAddVideo("file", "start")} className="text-slate-300 cursor-pointer gap-2"><ChevronsLeft className="w-4 h-4" />{tTimeline('addVideo.fromFileStart')}</DropdownMenuItem>
+              <DropdownMenuItem data-testid="add-video-file-playhead" onClick={() => onAddVideo("file", "playhead")} className="text-slate-300 cursor-pointer gap-2"><TextCursorInput className="w-4 h-4" />{tTimeline('addVideo.fromFilePlayhead')}</DropdownMenuItem>
+              <DropdownMenuItem data-testid="add-video-file" onClick={() => onAddVideo("file", "end")} className="text-slate-300 cursor-pointer gap-2"><FolderOpen className="w-4 h-4" />{tTimeline('addVideo.fromFile')}</DropdownMenuItem>
               <DropdownMenuItem data-testid="add-video-record" onClick={() => onAddVideo("record")} className="text-slate-300 cursor-pointer gap-2"><Video className="w-4 h-4" />{tTimeline('addVideo.record')}</DropdownMenuItem>
               {onExtendEnding && <DropdownMenuItem data-testid="extend-ending" onClick={onExtendEnding} className="text-slate-300 cursor-pointer gap-2"><Hourglass className="w-4 h-4" />{tTimeline('ending.extend')}</DropdownMenuItem>}
             </DropdownMenuContent>

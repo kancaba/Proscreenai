@@ -191,6 +191,9 @@ export interface VideoClip {
   startMs: number;
 }
 
+/** Where a video added to the edit goes. */
+export type VideoInsertPlace = "start" | "playhead" | "end";
+
 export interface SpeedRegion {
   id: string;
   startMs: number;

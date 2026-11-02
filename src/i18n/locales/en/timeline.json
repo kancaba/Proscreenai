@@ -63,17 +63,27 @@
   },
   "addVideo": {
     "button": "Add video",
-    "fromFile": "Add a video file…",
+    "fromFileStart": "Add a video at the start…",
+    "fromFilePlayhead": "Add a video at the playhead…",
+    "fromFile": "Add a video at the end…",
     "record": "Record a new video and add it",
     "adding": "Adding the video… {{percent}}%",
     "added": "{{name}} was added to the end.",
+    "addedStart": "{{name}} was added at the start.",
+    "addedPlayhead": "{{name}} was added at the playhead.",
     "failed": "The video could not be added: {{error}}",
-    "title": "Add a video to the end of the edit"
+    "title": "Add a video to the edit"
   },
   "ending": {
     "extend": "Extend the ending",
     "title": "Ending: click to change",
     "freeze": "Last frame",
     "background": "Background"
+  },
+  "move": {
+    "dragging": "Move here",
+    "moving": "Moving the part, rebuilding the video in the new order…",
+    "moved": "Part moved.",
+    "failed": "Could not move the part: {{error}}"
   }
 }

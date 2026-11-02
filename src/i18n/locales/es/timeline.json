@@ -63,17 +63,27 @@
   },
   "addVideo": {
     "button": "Añadir vídeo",
-    "fromFile": "Añadir un archivo de vídeo…",
+    "fromFileStart": "Añadir un vídeo al principio…",
+    "fromFilePlayhead": "Añadir un vídeo en el cabezal…",
+    "fromFile": "Añadir un vídeo al final…",
     "record": "Grabar un vídeo nuevo y añadirlo",
     "adding": "Añadiendo el vídeo… {{percent}} %",
     "added": "{{name}} se añadió al final.",
+    "addedStart": "{{name}} se añadió al principio.",
+    "addedPlayhead": "{{name}} se añadió en el cabezal.",
     "failed": "No se pudo añadir el vídeo: {{error}}",
-    "title": "Añadir un vídeo al final de la edición"
+    "title": "Añadir un vídeo a la edición"
   },
   "ending": {
     "extend": "Alargar el final",
     "title": "Final: haz clic para cambiarlo",
     "freeze": "Último fotograma",
     "background": "Fondo"
+  },
+  "move": {
+    "dragging": "Mover aquí",
+    "moving": "Moviendo la parte, reconstruyendo el vídeo en el nuevo orden…",
+    "moved": "Parte movida.",
+    "failed": "No se pudo mover la parte: {{error}}"
   }
 }

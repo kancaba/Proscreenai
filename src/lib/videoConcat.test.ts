@@ -85,3 +85,18 @@ describe("cursor and key data of a joined video", () => {
     expect(joinTelemetry([{ data: [{ timeMs: 10 }], offsetMs: 1000, durationMs: 50 }]).samples).toEqual([{ timeMs: 1010 }]);
   });
 });
+
+describe("putting pieces of one video in a new order", () => {
+  it("takes each piece from its place in the file", () => {
+    const video: ProbedVideo = { durationMs: 14000, video: { codec: "h264", width: 1920, height: 1080, fps: 60 }, audio: { codec: "aac", sampleRate: 48000, channels: "stereo" } };
+    const args = encodeJoinArgs([
+      { path: "/v.mp4", probe: video, range: { startMs: 10000 } },
+      { path: "/v.mp4", probe: video, range: { startMs: 0, endMs: 10000 } },
+    ], "/out.mp4", "libx264");
+    expect(args.slice(2, 6)).toEqual(["-ss", "10.000", "-i", "/v.mp4"]);
+    expect(args.slice(6, 12)).toEqual(["-ss", "0.000", "-t", "10.000", "-i", "/v.mp4"]);
+    const graph = args[args.indexOf("-filter_complex") + 1];
+    expect(graph).toContain("[0:v:0]setpts=PTS-STARTPTS,scale=1920:1080");
+    expect(graph).toContain("[1:a:0]asetpts=PTS-STARTPTS,aresample=48000");
+  });
+});

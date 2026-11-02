@@ -63,17 +63,27 @@
   },
   "addVideo": {
     "button": "添加视频",
-    "fromFile": "添加视频文件…",
+    "fromFileStart": "在开头添加视频…",
+    "fromFilePlayhead": "在播放头处添加视频…",
+    "fromFile": "在结尾添加视频…",
     "record": "录制新视频并添加",
     "adding": "正在添加视频… {{percent}}%",
     "added": "已将 {{name}} 添加到末尾。",
+    "addedStart": "{{name}} 已添加到开头。",
+    "addedPlayhead": "{{name}} 已添加到播放头处。",
     "failed": "无法添加视频：{{error}}",
-    "title": "在剪辑末尾添加视频"
+    "title": "向剪辑添加视频"
   },
   "ending": {
     "extend": "延长片尾",
     "title": "片尾：点击修改",
     "freeze": "最后一帧",
     "background": "背景"
+  },
+  "move": {
+    "dragging": "移到这里",
+    "moving": "正在移动片段，按新顺序重建视频…",
+    "moved": "片段已移动。",
+    "failed": "无法移动片段：{{error}}"
   }
 }

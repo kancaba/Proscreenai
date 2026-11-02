@@ -62,6 +62,7 @@ import {
   type FigureData,
   type SpeedRegion,
   type VideoClip,
+  type VideoInsertPlace,
   type AudioRegion,
   type PlaybackSpeed,
 } from "./types";
@@ -81,6 +82,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useAgentRun } from "./useAgentRun";
 import { applyProposals, mergeTrims } from "./agentApply";
 import { clipSegments, createCutMap, cutMarkers, normalizeSplits, spanToOutput, spanToSource, toOutputMs, toSourceMs } from "./timeline/editedTime";
+import { createReorder, insertAddedAt, isInOrder, movePiece, moveRegions, piecesBetween, type Reorder, reorderSplits, reorderVideoClips, type SourcePiece, splitRegions } from "@/lib/videoReorder";
 import type { AgentProjectSnapshot } from "@/lib/agent/agentSnapshot";
 import { TEXT_STYLE_PRESETS } from "./annotationEffects";
 import type { CaptionCue } from "@/lib/captions/captionCues";
@@ -1469,14 +1471,75 @@ export default function VideoEditor() {
   }, []);
 
   /**
-   * Joins a video (picked by the user when no path is given) to the end of the edit. Every edit
-   * keeps its place, since the current video stays at the start of the joined one; the added
-   * video becomes its own part on the timeline.
+   * Opens a video made from the edit's own (the joined or rebuilt one) in place of the current one.
+   * Its length is known already: until the file loads, the timeline would otherwise squeeze edits
+   * that moved past the old video's end back into it.
    */
-  const appendVideo = useCallback(async (addedPath?: string) => {
+  const openRebuiltVideo = useCallback((rebuiltPath: string, playheadMs: number, totalMs: number) => {
+    const rebuiltUrl = toFileUrl(rebuiltPath);
+    setDuration(totalMs / 1000);
+    // The new video keeps the zooms already made instead of getting new automatic ones.
+    autoSuggestedVideoPathRef.current = rebuiltUrl;
+    autoZoomOfferPathRef.current = null;
+    pendingPlayheadRef.current = playheadMs / 1000;
+    setIsPlaying(false);
+    setVideoSourcePath(rebuiltPath);
+    setVideoPath(rebuiltUrl);
+  }, []);
+
+  /**
+   * After the video was rebuilt with its pieces in a new order, every edit moves with its piece,
+   * in the undo history too, so earlier steps can still be undone. The move itself comes with the
+   * new video and is not an undo step (moving the part back undoes it).
+   */
+  const followReorder = useCallback((reorder: Reorder) => {
+    const trimId = () => `trim-${nextTrimIdRef.current++}`;
+    const speedId = () => `speed-${nextSpeedIdRef.current++}`;
+    const remap = (snapshot: EditorHistorySnapshot): EditorHistorySnapshot => ({
+      ...snapshot,
+      zoomRegions: moveRegions(snapshot.zoomRegions, reorder),
+      trimRegions: splitRegions(snapshot.trimRegions, reorder, trimId),
+      speedRegions: splitRegions(snapshot.speedRegions, reorder, speedId),
+      annotationRegions: moveRegions(snapshot.annotationRegions, reorder),
+      audioRegions: moveRegions(snapshot.audioRegions, reorder),
+      clipSplits: reorderSplits(snapshot.clipSplits ?? [], reorder),
+    });
+    historyPastRef.current = historyPastRef.current.map(remap);
+    historyFutureRef.current = historyFutureRef.current.map(remap);
+    expectAutomaticChange('zoomRegions', 'trimRegions', 'speedRegions', 'annotationRegions', 'audioRegions', 'clipSplits');
+    setZoomRegions((previous) => moveRegions(previous, reorder));
+    setTrimRegions((previous) => splitRegions(previous, reorder, trimId));
+    setSpeedRegions((previous) => splitRegions(previous, reorder, speedId));
+    setAnnotationRegions((previous) => moveRegions(previous, reorder));
+    setAudioRegions((previous) => moveRegions(previous, reorder));
+    setClipSplits((previous) => reorderSplits(previous, reorder));
+    setVideoClips((previous) => reorderVideoClips(previous, reorder));
+  }, [expectAutomaticChange]);
+
+  /** Rebuilds `sourcePath` with its pieces in this order (progress on the "Video ekle" button). */
+  const rebuildInOrder = useCallback(async (sourcePath: string, pieces: SourcePiece[]) => {
+    setAddingVideo(0);
+    const stopProgress = window.electronAPI.onVideoAppendProgress(({ fraction }) => setAddingVideo(fraction));
+    try {
+      return await window.electronAPI.reorderVideo(sourcePath, pieces);
+    } catch (error) {
+      return { success: false as const, error: String(error) };
+    } finally {
+      stopProgress();
+      setAddingVideo(null);
+    }
+  }, []);
+
+  /**
+   * Joins a video (picked by the user when no path is given) to the edit: at the end, the start or
+   * the playhead. It is joined to the end first, where every edit keeps its place, and then moved
+   * with the rest of the edit following it; the added video becomes its own part on the timeline.
+   */
+  const appendVideo = useCallback(async (addedPath?: string, place: VideoInsertPlace = 'end') => {
     const sourcePath = videoSourcePath ?? (videoPath ? fromFileUrl(videoPath) : null);
     if (!sourcePath || addingVideo !== null) return;
     pausePlayback();
+    const insertAtMs = place === 'start' ? 0 : place === 'playhead' ? Math.round(currentTime * 1000) : Number.POSITIVE_INFINITY;
     setAddingVideo(0);
     const stopProgress = window.electronAPI.onVideoAppendProgress(({ fraction }) => setAddingVideo(fraction));
     try {
@@ -1484,6 +1547,19 @@ export default function VideoEditor() {
       if (!result.success) {
         if (!result.canceled) toast.error(t('timeline.addVideo.failed', undefined, { error: result.error ?? '' }));
         return;
+      }
+      stopProgress();
+      let videoPathToOpen = result.path;
+      let reorder: Reorder | null = null;
+      if (insertAtMs < result.offsetMs) {
+        const pieces = insertAddedAt(Math.max(result.totalMs, result.offsetMs + result.addedDurationMs), result.offsetMs, insertAtMs);
+        const moved = await rebuildInOrder(result.path, pieces);
+        if (moved.success) {
+          videoPathToOpen = moved.path;
+          reorder = createReorder(pieces);
+        } else {
+          toast.error(t('timeline.move.failed', undefined, { error: moved.error ?? '' }));
+        }
       }
       const fileName = (filePath: string) => filePath.split(/[\\/]/).pop() || 'Video';
       setVideoClips((previous) => [
@@ -1493,22 +1569,48 @@ export default function VideoEditor() {
       // The added video is its own part; this comes with the new video, not as an edit to undo.
       expectAutomaticChange('clipSplits');
       setClipSplits((previous) => normalizeSplits([...previous, result.offsetMs], 0));
-      const joinedUrl = toFileUrl(result.path);
-      // The joined video keeps the zooms already made instead of getting new automatic ones.
-      autoSuggestedVideoPathRef.current = joinedUrl;
-      autoZoomOfferPathRef.current = null;
-      pendingPlayheadRef.current = result.offsetMs / 1000;
-      setIsPlaying(false);
-      setVideoSourcePath(result.path);
-      setVideoPath(joinedUrl);
-      toast.success(t('timeline.addVideo.added', undefined, { name: result.addedName }));
+      if (reorder) followReorder(reorder);
+      openRebuiltVideo(videoPathToOpen, reorder ? reorder.time(result.offsetMs) : result.offsetMs, reorder ? reorder.totalMs : result.totalMs);
+      toast.success(t(reorder ? (insertAtMs === 0 ? 'timeline.addVideo.addedStart' : 'timeline.addVideo.addedPlayhead') : 'timeline.addVideo.added', undefined, { name: result.addedName }));
     } catch (error) {
       toast.error(t('timeline.addVideo.failed', undefined, { error: String(error) }));
     } finally {
       stopProgress();
       setAddingVideo(null);
     }
-  }, [videoSourcePath, videoPath, addingVideo, expectAutomaticChange, t]);
+  }, [videoSourcePath, videoPath, addingVideo, currentTime, expectAutomaticChange, followReorder, openRebuiltVideo, rebuildInOrder, t]);
+
+  /**
+   * Moves the part of the video that starts at `partStartMs` (source ms) so that it comes before
+   * the piece at `toIndex` (or last). The video is rebuilt in the new order.
+   */
+  const moveClipPart = useCallback(async (partStartMs: number, toIndex: number) => {
+    const sourcePath = videoSourcePath ?? (videoPath ? fromFileUrl(videoPath) : null);
+    if (!sourcePath || addingVideo !== null) return;
+    const pieces = piecesBetween(clipSplits, totalSourceMs);
+    const from = pieces.findIndex((piece) => partStartMs >= piece.startMs && partStartMs < piece.endMs);
+    if (from < 0) return;
+    const order = movePiece(pieces, from, toIndex);
+    if (isInOrder(order)) return;
+    pausePlayback();
+    const waiting = toast.loading(t('timeline.move.moving'));
+    const result = await rebuildInOrder(sourcePath, order);
+    if (!result.success) {
+      toast.error(t('timeline.move.failed', undefined, { error: result.error ?? '' }), { id: waiting });
+      return;
+    }
+    const reorder = createReorder(order);
+    followReorder(reorder);
+    const movedStart = Math.round(reorder.time(partStartMs));
+    openRebuiltVideo(result.path, movedStart, reorder.totalMs);
+    setSelectedClipStart(movedStart);
+    toast.success(t('timeline.move.moved'), { id: waiting });
+  }, [videoSourcePath, videoPath, addingVideo, clipSplits, totalSourceMs, followReorder, openRebuiltVideo, rebuildInOrder, t]);
+  /** The part dropped at a piece edge of the edited timeline (`toOutMs`): it goes before what starts there. */
+  const dropClipPart = useCallback((partStartMs: number, toOutMs: number) => {
+    const rest = piecesBetween(clipSplits, totalSourceMs).filter((piece) => !(partStartMs >= piece.startMs && partStartMs < piece.endMs));
+    void moveClipPart(partStartMs, rest.filter((piece) => toOutputMs(cutMap, piece.startMs) < toOutMs).length);
+  }, [clipSplits, totalSourceMs, cutMap, moveClipPart]);
 
   /** "Yeni kayıt çek ve sona ekle": the recorder opens and the new recording comes back to this project's end. */
   const recordAndAppend = useCallback(async () => {
@@ -1518,9 +1620,9 @@ export default function VideoEditor() {
     const started = await window.electronAPI.recordAndAppend(project, hasUnsavedChanges);
     if (!started) toast.error(t('timeline.addVideo.failed', undefined, { error: '' }));
   }, [currentProjectSnapshot, currentTime, hasUnsavedChanges, t]);
-  const handleAddVideo = useCallback((from: 'file' | 'record') => {
+  const handleAddVideo = useCallback((from: 'file' | 'record', place: VideoInsertPlace = 'end') => {
     if (from === 'record') void recordAndAppend();
-    else void appendVideo();
+    else void appendVideo(undefined, place);
   }, [appendVideo, recordAndAppend]);
   /** Opens the ending extension's controls in the inspector. */
   const showEndingSettings = useCallback(() => {
@@ -2556,6 +2658,9 @@ export default function VideoEditor() {
     handleSeek(Math.min(part.endMs, Math.max(0, totalSourceMs - 1)) / 1000);
   }, [clipParts, selectedClipStart, totalSourceMs, startNewHistoryStep, t]);
 
+  /** Where the movable pieces start and end on the edited timeline (where a dragged part can go). */
+  const clipPieces = useMemo(() => piecesBetween(clipSplits, totalSourceMs), [clipSplits, totalSourceMs]);
+  const clipPieceEdges = useMemo(() => [...new Set([...clipPieces.map((piece) => Math.round(toOutputMs(cutMap, piece.startMs))), Math.round(cutMap.outputMs)])], [clipPieces, cutMap]);
   const selectedPartIndex = clipParts.findIndex((part) => part.startMs === selectedClipStart);
   const selectedPart = selectedPartIndex >= 0 ? clipParts[selectedPartIndex] : null;
   /** Gives the selected part one speed (1 removes any speed change there). */
@@ -2830,6 +2935,7 @@ export default function VideoEditor() {
                 },
                 onSplit: handleSplitClip,
                 onDeleteSegment: handleDeleteClipPart,
+                move: clipPieceEdges.length > 2 ? { edges: clipPieceEdges, busy: addingVideo !== null, onMove: dropClipPart } : undefined,
                 ending: endingMs > 0 ? { durationMs: endingMs, mode: ending.mode, onSelect: showEndingSettings } : undefined,
               }}
               onExtendEnding={extendEnding}
@@ -2861,7 +2967,13 @@ export default function VideoEditor() {
               speed={speedOfPart(selectedTyping, speedRegions)} onSpeedChange={(speed) => speedUpTyping([selectedTyping], speed)}
               onCut={() => cutTyping([selectedTyping])} onSpeedAll={(speed) => speedUpTyping(timelineTyping, speed)} onCutAll={() => cutTyping(timelineTyping)} />}
             {selectedPart && <ClipPartInspector index={selectedPartIndex} part={selectedPart} speed={speedOfPart(selectedPart, speedRegions)}
-              canCut={clipParts.length > 1} onSpeedChange={handleSetPartSpeed} onCut={handleDeleteClipPart} />}
+              canCut={clipParts.length > 1} onSpeedChange={handleSetPartSpeed} onCut={handleDeleteClipPart}
+              move={clipPieces.length > 1 ? {
+                index: clipPieces.findIndex((piece) => selectedPart.startMs >= piece.startMs && selectedPart.startMs < piece.endMs),
+                count: clipPieces.length,
+                busy: addingVideo !== null,
+                onMove: (toIndex) => void moveClipPart(selectedPart.startMs, toIndex),
+              } : undefined} />}
             {activeRegion && <RegionInspector region={activeRegion}
               label={activeRegionKind === 'zoom' ? 'Zoom' : activeRegionKind === 'trim' ? t('timeline.trim.label', undefined, { index: '' }) : activeRegionKind === 'audio' && selectedAudio ? audioClipName(selectedAudio.audioPath, locale === 'tr') : t('timeline.speed.label')}
               onChange={updateActiveRegion} onDelete={deleteActiveRegion}

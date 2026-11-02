@@ -36,6 +36,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   cancelTranscription: (requestId: string) => ipcRenderer.invoke('cancel-transcription', requestId),
   getAudioWaveform: (audioPath: string) => ipcRenderer.invoke('audio-waveform', audioPath),
   appendVideo: (currentVideoPath: string, addedVideoPath?: string) => ipcRenderer.invoke('append-video', currentVideoPath, addedVideoPath),
+  reorderVideo: (currentVideoPath: string, pieces: Array<{ startMs: number; endMs: number }>) => ipcRenderer.invoke('reorder-video', currentVideoPath, pieces),
   onVideoAppendProgress: (callback: (progress: { fraction: number }) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, progress: { fraction: number }) => callback(progress)
     ipcRenderer.on('video-append-progress', listener)

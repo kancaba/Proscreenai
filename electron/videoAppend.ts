@@ -13,6 +13,7 @@ import {
   parseFfmpegProbe,
   type ProbedVideo,
 } from '../src/lib/videoConcat'
+import { createReorder, reorderTelemetry, validPieces } from '../src/lib/videoReorder'
 import { resolveReadableMediaPath } from './ipcValidation'
 
 // Adding a video to the end of the edit: the current video and the added one are joined into a
@@ -22,6 +23,10 @@ import { resolveReadableMediaPath } from './ipcValidation'
 export type AppendVideoResult =
   | { success: true; path: string; offsetMs: number; addedDurationMs: number; totalMs: number; addedName: string; reencoded: boolean }
   | { success: false; canceled?: boolean; error?: string }
+
+export type ReorderVideoResult =
+  | { success: true; path: string; totalMs: number }
+  | { success: false; error?: string }
 
 type Deps = {
   getFfmpegPath: () => string
@@ -175,6 +180,58 @@ export function registerVideoAppendHandlers(deps: Deps) {
       busy = false
       if (listPath) await fs.rm(listPath, { force: true }).catch(() => undefined)
       // A join that failed half-way leaves no file behind.
+      if (outputPath) await fs.rm(outputPath, { force: true }).catch(() => undefined)
+    }
+  })
+
+  // Moving parts of the edit: the video is rebuilt with its pieces (source ms) in the given order
+  // into a new file, which the editor then opens in place of the current one.
+  ipcMain.handle('reorder-video', async (event, currentVideo: unknown, rawPieces: unknown): Promise<ReorderVideoResult> => {
+    if (busy) return { success: false, error: 'A video is already being added' }
+    const pieces = validPieces(rawPieces)
+    if (!pieces) return { success: false, error: 'Invalid video parts' }
+    busy = true
+    let outputPath: string | null = null
+    try {
+      const currentPath = await resolveReadableMediaPath(currentVideo)
+      const ffmpegPath = deps.getFfmpegPath()
+      const probed = await probe(ffmpegPath, currentPath)
+      const editMs = Math.max(...pieces.map((piece) => piece.endMs))
+      // The piece that ends the video takes it to the file's real end (the editor rounds its length).
+      const files = pieces.map((piece) => ({
+        path: currentPath,
+        probe: probed,
+        range: piece.endMs === editMs ? { startMs: piece.startMs } : { startMs: piece.startMs, endMs: piece.endMs },
+      }))
+      outputPath = await newVideoPath(await deps.getRecordingsDir(), currentPath, new Date())
+      const target = outputPath
+      const progress = (fraction: number) => {
+        if (!event.sender.isDestroyed()) event.sender.send('video-append-progress', { fraction })
+      }
+      if (process.platform === 'darwin') {
+        try {
+          await runFfmpeg(ffmpegPath, encodeJoinArgs(files, target, 'h264_videotoolbox'), probed.durationMs, progress)
+        } catch (error) {
+          console.warn('[video-reorder] Hardware encoding failed, using the software encoder:', error)
+          await runFfmpeg(ffmpegPath, encodeJoinArgs(files, target, 'libx264'), probed.durationMs, progress)
+        }
+      } else {
+        await runFfmpeg(ffmpegPath, encodeJoinArgs(files, target, 'libx264'), probed.durationMs, progress)
+      }
+
+      const rebuilt = await probe(ffmpegPath, target)
+      const telemetry = reorderTelemetry(await readTelemetry(currentPath), createReorder(pieces))
+      if (telemetry && (telemetry.samples.length > 0 || telemetry.keys.length > 0)) {
+        await fs.writeFile(`${target}.cursor.json`, JSON.stringify(telemetry))
+      }
+      deps.onJoined(target)
+      outputPath = null
+      return { success: true, path: target, totalMs: rebuilt.durationMs }
+    } catch (error) {
+      console.error('[video-reorder] Failed to move the video parts:', error)
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    } finally {
+      busy = false
       if (outputPath) await fs.rm(outputPath, { force: true }).catch(() => undefined)
     }
   })

@@ -63,17 +63,27 @@
   },
   "addVideo": {
     "button": "Video ekle",
-    "fromFile": "Dosyadan video ekle…",
+    "fromFileStart": "Başa video ekle…",
+    "fromFilePlayhead": "Oynatma çubuğunun olduğu yere video ekle…",
+    "fromFile": "Sona video ekle…",
     "record": "Yeni kayıt çek ve sona ekle",
     "adding": "Video ekleniyor… %{{percent}}",
     "added": "{{name}} sona eklendi.",
+    "addedStart": "{{name}} başa eklendi.",
+    "addedPlayhead": "{{name}} oynatma çubuğunun olduğu yere eklendi.",
     "failed": "Video eklenemedi: {{error}}",
-    "title": "Kurgunun sonuna video ekle"
+    "title": "Kurguya video ekle"
   },
   "ending": {
     "extend": "Sonu uzat (son kare / arka plan)",
     "title": "Videonun sonu: değiştirmek için tıkla",
     "freeze": "Son kare",
     "background": "Arka plan"
+  },
+  "move": {
+    "dragging": "Buraya taşı",
+    "moving": "Parça taşınıyor, video yeni sırayla hazırlanıyor…",
+    "moved": "Parça taşındı.",
+    "failed": "Parça taşınamadı: {{error}}"
   }
 }
