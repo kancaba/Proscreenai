@@ -63,6 +63,44 @@ export function canJoinWithoutEncoding(files: Array<{ path: string; probe: Probe
 
 const even = (value: number) => Math.max(2, Math.round(value / 2) * 2);
 
+/** Times (ms) of the key frames, from `ffmpeg -skip_frame nokey -i file -vf showinfo` (stderr). */
+export function parseKeyframeTimes(output: string): number[] {
+  return [...output.matchAll(/pts_time:\s*(-?\d+(?:\.\d+)?)/g)].map((match) => Number(match[1]) * 1000).filter((ms) => ms >= 0);
+}
+
+/** A key frame within this of a part edge counts as on it (about a frame at 60 fps). */
+const KEYFRAME_SLACK_MS = 20;
+
+/**
+ * Where to cut each piece (seconds, at the file's own key frames) so the pieces of one video can be
+ * put in a new order without re-encoding; null when an edge inside the video is not on a key frame.
+ * `inpoint` is left out at the file's start and `outpoint` for the piece that runs to its end.
+ */
+export function keyframeCuts(pieces: Array<{ startMs: number; endMs: number }>, keyframesMs: number[], endMs: number): Array<{ inpoint?: number; outpoint?: number }> | null {
+  const at = (ms: number) => keyframesMs.find((keyframe) => Math.abs(keyframe - ms) <= KEYFRAME_SLACK_MS);
+  const cuts: Array<{ inpoint?: number; outpoint?: number }> = [];
+  for (const piece of pieces) {
+    const start = piece.startMs === 0 ? 0 : at(piece.startMs);
+    const end = piece.endMs >= endMs ? endMs : at(piece.endMs);
+    if (start === undefined || end === undefined) return null;
+    // Just past the key frame where a piece starts and just before the one where it ends: a point
+    // a hair before a key frame would start from the key frame before it (up to seconds earlier).
+    cuts.push({ ...(start > 0 ? { inpoint: (start + 1) / 1000 } : {}), ...(piece.endMs >= endMs ? {} : { outpoint: (end - 1) / 1000 }) });
+  }
+  return cuts;
+}
+
+/** ffmpeg's concat list for pieces of one file (see `keyframeCuts`). */
+export function concatPiecesList(path: string, cuts: Array<{ inpoint?: number; outpoint?: number }>): string {
+  const file = `file '${path.replace(/'/g, "'\\''")}'`;
+  return cuts.map((cut) => [file, ...(cut.inpoint === undefined ? [] : [`inpoint ${cut.inpoint.toFixed(4)}`]), ...(cut.outpoint === undefined ? [] : [`outpoint ${cut.outpoint.toFixed(4)}`])].join("\n")).join("\n") + "\n";
+}
+
+/** Whether pieces of this file can be copied (no re-encoding) into a new file. */
+export function canCopyPieces(path: string, probe: ProbedVideo): boolean {
+  return Boolean(probe.video && COPYABLE_VIDEO.has(probe.video.codec) && COPYABLE_CONTAINERS.test(path) && (probe.audio === null || probe.audio.codec === "aac"));
+}
+
 /** Text for ffmpeg's concat list (paths quoted the way it reads them). */
 export function concatListFile(paths: string[]): string {
   return paths.map((path) => `file '${path.replace(/'/g, "'\\''")}'`).join("\n") + "\n";
@@ -102,6 +140,12 @@ export function encodeJoinArgs(files: Array<{ path: string; probe: ProbedVideo; 
     inputs.push(withAudio ? `[v${index}][a${index}]` : `[v${index}]`);
   });
   filters.push(`${inputs.join("")}concat=n=${files.length}:v=1:a=${withAudio ? 1 : 0}${withAudio ? "[v][a]" : "[v]"}`);
+  // A key frame where each input starts, so the parts can later be moved without re-encoding.
+  const edges: number[] = [];
+  files.slice(0, -1).reduce((at, file) => {
+    edges.push(at + lengthMs(file));
+    return at + lengthMs(file);
+  }, 0);
   // About 0.1 bit per pixel per frame keeps screen text sharp.
   const bitrate = Math.round((width * height * fps * 0.1) / 1000);
   const video = encoder === "h264_videotoolbox"
@@ -118,6 +162,7 @@ export function encodeJoinArgs(files: Array<{ path: string; probe: ProbedVideo; 
     "-map", "[v]",
     ...(withAudio ? ["-map", "[a]", "-c:a", "aac", "-b:a", "192k"] : []),
     ...video,
+    ...(edges.length > 0 ? ["-force_key_frames", edges.map((ms) => (ms / 1000).toFixed(3)).join(",")] : []),
     "-movflags", "+faststart",
     outputPath,
   ];

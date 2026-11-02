@@ -3,14 +3,18 @@ import { spawn } from 'node:child_process'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import {
+  canCopyPieces,
   canJoinWithoutEncoding,
+  concatPiecesList,
   concatListFile,
   copyJoinArgs,
   encodeJoinArgs,
   ffmpegProgressMs,
   joinedBaseName,
   joinTelemetry,
+  keyframeCuts,
   parseFfmpegProbe,
+  parseKeyframeTimes,
   type ProbedVideo,
 } from '../src/lib/videoConcat'
 import { createReorder, reorderTelemetry, validPieces } from '../src/lib/videoReorder'
@@ -65,6 +69,17 @@ function runFfmpeg(ffmpegPath: string, args: string[], totalMs: number, onProgre
       if (code === 0) resolve()
       else reject(new Error(tail.trim().split('\n').slice(-3).join('\n') || `ffmpeg exited with code ${code}`))
     })
+  })
+}
+
+/** Key frame times (ms); only key frames are decoded, so this takes a moment even for long videos. */
+function keyframeTimes(ffmpegPath: string, filePath: string): Promise<number[]> {
+  return new Promise((resolve) => {
+    const child = spawn(ffmpegPath, ['-hide_banner', '-nostdin', '-skip_frame', 'nokey', '-i', filePath, '-map', '0:v:0', '-vf', 'showinfo', '-f', 'null', '-'])
+    let output = ''
+    child.stderr.on('data', (chunk) => { output += String(chunk) })
+    child.on('error', () => resolve([]))
+    child.on('close', () => resolve(parseKeyframeTimes(output)))
   })
 }
 
@@ -203,12 +218,24 @@ export function registerVideoAppendHandlers(deps: Deps) {
         probe: probed,
         range: piece.endMs === editMs ? { startMs: piece.startMs } : { startMs: piece.startMs, endMs: piece.endMs },
       }))
-      outputPath = await newVideoPath(await deps.getRecordingsDir(), currentPath, new Date())
+      const recordingsDir = await deps.getRecordingsDir()
+      outputPath = await newVideoPath(recordingsDir, currentPath, new Date())
       const target = outputPath
       const progress = (fraction: number) => {
         if (!event.sender.isDestroyed()) event.sender.send('video-append-progress', { fraction })
       }
-      if (process.platform === 'darwin') {
+      // Parts that start on key frames (a joined video's own edges, or edges this app encoded)
+      // are copied in the new order in seconds; anything else is re-encoded.
+      const cuts = canCopyPieces(currentPath, probed) ? keyframeCuts(pieces, await keyframeTimes(ffmpegPath, currentPath), editMs) : null
+      if (cuts) {
+        const listPath = path.join(recordingsDir, `.montaj-${stamp(new Date())}-${process.pid}.txt`)
+        try {
+          await fs.writeFile(listPath, concatPiecesList(currentPath, cuts))
+          await runFfmpeg(ffmpegPath, copyJoinArgs(listPath, target, probed.video?.codec ?? 'h264'), probed.durationMs, progress)
+        } finally {
+          await fs.rm(listPath, { force: true }).catch(() => undefined)
+        }
+      } else if (process.platform === 'darwin') {
         try {
           await runFfmpeg(ffmpegPath, encodeJoinArgs(files, target, 'h264_videotoolbox'), probed.durationMs, progress)
         } catch (error) {

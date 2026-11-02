@@ -89,7 +89,9 @@ const spans = (regions) => JSON.stringify(regions.map((r) => [r.startMs, r.endMs
   }
   /** Waits until the editor plays a new video file. */
   async function newVideo(before) {
+    const started = Date.now();
     await waitFor(async () => (await videoFile()) !== before, 120000);
+    console.log(`  (new video in ${Date.now() - started} ms)`);
     await ready();
     await delay(800);
   }
@@ -148,8 +150,10 @@ const spans = (regions) => JSON.stringify(regions.map((r) => [r.startMs, r.endMs
   await newVideo(before);
   check('"Başa taşı" puts the part first', (await labels()) === 'part-c.mp4 | part-a.mp4', await labels());
 
-  // 4. D added at the playhead, half a second into the recording (before its cut).
-  await renderer(win, `document.querySelector('video').currentTime = ${(cLen + 500) / 1000}`);
+  // 4. D added at the playhead, half a second into the recording (before its cut). Moves that copy
+  // cut at key frames, so the recording may now start a few ms off where it started before.
+  const aStart = (await saved((data) => data.editor.videoClips?.[0]?.name === 'part-c.mp4')).editor.videoClips[1].startMs;
+  await renderer(win, `document.querySelector('video').currentTime = ${(aStart + 500) / 1000}`);
   await delay(800);
   await addVideo(d, 'add-video-file-playhead');
   check('A video added at the playhead goes inside the recording', (await labels()) === 'part-c.mp4 | part-a.mp4 | part-d.mp4 | part-a.mp4', await labels());
@@ -157,9 +161,9 @@ const spans = (regions) => JSON.stringify(regions.map((r) => [r.startMs, r.endMs
   const full = probe(project.videoPath);
   const dLen = project.editor.videoClips[3].startMs - project.editor.videoClips[2].startMs;
   check('Every second is there (3 + 6 + 2 s)', Math.abs(seconds(full) - 11) < 0.4, `${seconds(full)} s`);
-  check('D sits at the playhead, the cut and the speed after it move on by D\'s length', near(dLen, 2000, 100) && project.editor.videoClips[2].startMs === cLen + 500
-    && spans(project.editor.trimRegions) === `[${at(1000 + cLen + dLen, 2000 + cLen + dLen)}]` && spans(project.editor.speedRegions) === `[${at(3000 + cLen + dLen, 4000 + cLen + dLen, 2)}]`, `${JSON.stringify(project.editor.videoClips)} ${spans(project.editor.trimRegions)} ${spans(project.editor.speedRegions)}`);
-  check('The recording is split around the added video', JSON.stringify(project.editor.clipSplits) === at(cLen, cLen + 500, cLen + 500 + dLen), JSON.stringify(project.editor.clipSplits));
+  check('D sits at the playhead, the cut and the speed after it move on by D\'s length', near(dLen, 2000, 100) && project.editor.videoClips[2].startMs === aStart + 500
+    && spans(project.editor.trimRegions) === `[${at(1000 + aStart + dLen, 2000 + aStart + dLen)}]` && spans(project.editor.speedRegions) === `[${at(3000 + aStart + dLen, 4000 + aStart + dLen, 2)}]`, `${JSON.stringify(project.editor.videoClips)} ${spans(project.editor.trimRegions)} ${spans(project.editor.speedRegions)}`);
+  check('The recording is split around the added video', JSON.stringify(project.editor.clipSplits) === at(aStart, aStart + 500, aStart + 500 + dLen), JSON.stringify(project.editor.clipSplits));
   check('Still no undo step for the moves', !(await canUndo()));
   await fs.writeFile(path.join(artifacts, 'move-part-playhead.png'), (await win.webContents.capturePage()).toPNG());
 })()

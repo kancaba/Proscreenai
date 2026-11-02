@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canJoinWithoutEncoding, concatListFile, copyJoinArgs, encodeJoinArgs, ffmpegProgressMs, joinedBaseName, joinTelemetry, parseFfmpegProbe, type ProbedVideo } from "./videoConcat";
+import { canCopyPieces, canJoinWithoutEncoding, concatListFile, concatPiecesList, copyJoinArgs, encodeJoinArgs, ffmpegProgressMs, joinedBaseName, joinTelemetry, keyframeCuts, parseFfmpegProbe, parseKeyframeTimes, type ProbedVideo } from "./videoConcat";
 
 // What ffmpeg prints for a screen recording made by the app and for a test clip with sound.
 const RECORDING = `Input #0, mov,mp4,m4a,3gp,3g2,mj2, from '/Users/me/recording-1.mp4':
@@ -98,5 +98,29 @@ describe("putting pieces of one video in a new order", () => {
     const graph = args[args.indexOf("-filter_complex") + 1];
     expect(graph).toContain("[0:v:0]setpts=PTS-STARTPTS,scale=1920:1080");
     expect(graph).toContain("[1:a:0]asetpts=PTS-STARTPTS,aresample=48000");
+  });
+});
+
+describe("moving parts without re-encoding", () => {
+  // A recording's key frames, the added video starting on one at 75.4733 s.
+  const keyframes = parseKeyframeTimes("[Parsed_showinfo_0 @ 0x1] n:   0 pts:      0 pts_time:0       duration:1\n[Parsed_showinfo_0 @ 0x1] n:   1 pts:1449088 pts_time:75.4733 duration:1\n");
+
+  it("cuts just inside the key frames where the parts meet", () => {
+    expect(keyframes.map((ms) => Math.round(ms * 10) / 10)).toEqual([0, 75473.3]);
+    const cuts = keyframeCuts([{ startMs: 75470, endMs: 89640 }, { startMs: 0, endMs: 75470 }], keyframes, 89640);
+    expect(concatPiecesList("/v's.mp4", cuts ?? [])).toBe("file '/v'\\''s.mp4'\ninpoint 75.4743\nfile '/v'\\''s.mp4'\noutpoint 75.4723\n");
+  });
+
+  it("re-encodes when a part edge is not on a key frame", () => {
+    expect(keyframeCuts([{ startMs: 9500, endMs: 20000 }, { startMs: 0, endMs: 9500 }], [0, 9400, 9600], 20000)).toBeNull();
+    const h264: ProbedVideo = { durationMs: 1, video: { codec: "h264", width: 2, height: 2, fps: 60 }, audio: null };
+    expect(canCopyPieces("/v.mp4", h264)).toBe(true);
+    expect(canCopyPieces("/v.webm", h264)).toBe(false);
+  });
+
+  it("puts a key frame where each joined input starts", () => {
+    const video: ProbedVideo = { durationMs: 14000, video: { codec: "h264", width: 1920, height: 1080, fps: 60 }, audio: null };
+    const args = encodeJoinArgs([{ path: "/v.mp4", probe: video, range: { startMs: 10000 } }, { path: "/v.mp4", probe: video, range: { startMs: 0, endMs: 10000 } }], "/out.mp4", "libx264");
+    expect(args[args.indexOf("-force_key_frames") + 1]).toBe("4.000");
   });
 });
