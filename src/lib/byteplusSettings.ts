@@ -19,6 +19,42 @@ export const BYTEPLUS_MODELS = {
 	},
 } as const;
 export type ByteplusModel = keyof typeof BYTEPLUS_MODELS;
+/**
+ * Text models on the same ModelArk key that turn a request into Seedream's prompt and write the
+ * short copy it must render (Seedream draws text well, but cannot decide what it should say).
+ * Both read reference images. Prices per million tokens, from the pricing page.
+ */
+export const BYTEPLUS_WRITERS = {
+	"dola-seed-2-1-turbo-260628": {
+		name: "Seed 2.1 Turbo",
+		note: "önerilen · ByteDance",
+		inputPerM: 0.5,
+		outputPerM: 2.5,
+	},
+	"glm-5-3-flash-260828": {
+		name: "GLM-5.3 Flash",
+		note: "daha ucuz",
+		inputPerM: 0.15,
+		outputPerM: 0.5,
+	},
+} as const;
+export type ByteplusWriter = keyof typeof BYTEPLUS_WRITERS;
+export const DEFAULT_BYTEPLUS_WRITER: ByteplusWriter = "dola-seed-2-1-turbo-260628";
+/** Reserved before a prompt is written; the real cost from its token use replaces it. */
+export const BYTEPLUS_WRITER_RESERVE_USD = 0.02;
+export function isByteplusWriter(value: unknown): value is ByteplusWriter {
+	return typeof value === "string" && Object.keys(BYTEPLUS_WRITERS).includes(value);
+}
+/** Cost of a written prompt from its token use. */
+export function byteplusWriterCost(writer: ByteplusWriter, inputTokens: number, outputTokens: number) {
+	const price = BYTEPLUS_WRITERS[writer];
+	return Math.round(((inputTokens * price.inputPerM + outputTokens * price.outputPerM) / 1e6) * 1e6) / 1e6;
+}
+/** Who writes the prompt; settings saved before writers existed get the default. */
+export function byteplusWriterOf(options: ByteplusOptions): ByteplusWriter | null {
+	if (options.writer === "off") return null;
+	return isByteplusWriter(options.writer) ? options.writer : DEFAULT_BYTEPLUS_WRITER;
+}
 export type ByteplusSize = "1K" | "1.5K" | "2K" | "3K" | "4K";
 export const DEFAULT_BYTEPLUS_MODEL: ByteplusModel = "dola-seedream-5-0-flash-260915";
 export const BYTEPLUS_PRICE_DATE = "2026-10-27";
@@ -67,6 +103,8 @@ export type ByteplusOptions = {
 	visibleText: string;
 	watermark: boolean;
 	budgetUSD: number;
+	/** Text model that prepares the prompt and copy, or "off" to send the request as written. */
+	writer?: ByteplusWriter | "off";
 };
 export const DEFAULT_BYTEPLUS_OPTIONS: ByteplusOptions = {
 	model: DEFAULT_BYTEPLUS_MODEL,
@@ -75,6 +113,7 @@ export const DEFAULT_BYTEPLUS_OPTIONS: ByteplusOptions = {
 	visibleText: "",
 	watermark: true,
 	budgetUSD: 1,
+	writer: DEFAULT_BYTEPLUS_WRITER,
 };
 export function isByteplusOptions(value: unknown): value is ByteplusOptions {
 	if (!value || typeof value !== "object") return false;
@@ -88,7 +127,8 @@ export function isByteplusOptions(value: unknown): value is ByteplusOptions {
 		typeof x.watermark === "boolean" &&
 		Number.isFinite(x.budgetUSD) &&
 		x.budgetUSD >= 0 &&
-		x.budgetUSD <= 10000
+		x.budgetUSD <= 10000 &&
+		(x.writer === undefined || x.writer === "off" || isByteplusWriter(x.writer))
 	);
 }
 export type ByteplusJobSummary = {
@@ -99,5 +139,7 @@ export type ByteplusJobSummary = {
 	estimatedCostUSD: number;
 	createdAt: number;
 	canRecover: boolean;
+	/** Set for a prompt written by a text model rather than an image. */
+	writer?: ByteplusWriter;
 };
 export type ByteplusLedger = { reservedUSD: number; jobs: ByteplusJobSummary[] };

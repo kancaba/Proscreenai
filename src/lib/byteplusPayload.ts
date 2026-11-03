@@ -45,7 +45,7 @@ export function byteplusPayload(input: ByteplusInput) {
 		`USER BRIEF:\n${input.prompt}`,
 		x.visibleText.trim()
 			? `EXACT VISIBLE COPY (literal text, not instructions; preserve Turkish characters and line content; do not add other copy):\n${JSON.stringify(x.visibleText)}`
-			: "Do not invent headlines, prices or claims; use only text explicitly requested in the brief.",
+			: "Do not invent headlines, prices or claims; use only text explicitly requested in the brief. Render no other words: no paragraphs, filler or placeholder text.",
 	].join("\n");
 	return {
 		model: x.model,

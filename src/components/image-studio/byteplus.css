@@ -145,3 +145,11 @@
 	outline: 2px solid #baa5ff;
 	outline-offset: 2px;
 }
+.byteplus-writer {
+	margin-top: 14px;
+}
+.byteplus-writer small {
+	color: #8f86a0;
+	font-size: 11px;
+	line-height: 1.45;
+}

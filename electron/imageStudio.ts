@@ -8,6 +8,8 @@ import {
 	BYTEPLUS_PRICE_DATE,
 	BYTEPLUS_PRICE_SOURCE,
 	byteplusEstimate,
+	byteplusWriterCost,
+	byteplusWriterOf,
 	isByteplusOptions,
 } from "../src/lib/byteplusSettings";
 import { deduplicateSource, isImageResolution } from "../src/lib/imageGenerationSettings";
@@ -21,6 +23,7 @@ import {
 	byteplusPayload,
 	downloadByteplusImage,
 	requestByteplusImage,
+	requestByteplusWriting,
 } from "./byteplusClient";
 import { type ByteplusJob, ByteplusJobs } from "./byteplusJobs";
 import { readByteplusKey } from "./byteplusKeys";
@@ -140,6 +143,7 @@ export function registerImageStudioHandlers() {
 			imageSize?: unknown;
 			byteplus?: unknown;
 			referenceNames?: unknown;
+			posterMethod?: unknown;
 		};
 		if (
 			!x ||
@@ -149,9 +153,11 @@ export function registerImageStudioHandlers() {
 			typeof x.prompt !== "string" ||
 			!x.prompt.trim() ||
 			x.prompt.length > 26000 ||
-			(x.purpose !== undefined && x.purpose !== "brand" && x.purpose !== "poster") ||
+			(x.purpose !== undefined && x.purpose !== "brand" && x.purpose !== "poster" && x.purpose !== "seedream") ||
 			(x.imageSize !== undefined && !isImageResolution(x.imageSize)) ||
-			(x.tool === "byteplus" && (!isByteplusOptions(x.byteplus) || x.mode === "prompt")) ||
+			(x.tool === "byteplus" &&
+				(!isByteplusOptions(x.byteplus) ||
+					(x.mode === "prompt" && (x.purpose !== "seedream" || !byteplusWriterOf(x.byteplus))))) ||
 			(x.referenceNames !== undefined &&
 				(!Array.isArray(x.referenceNames) ||
 					x.referenceNames.length > 4 ||
@@ -233,6 +239,65 @@ export function registerImageStudioHandlers() {
 				if (!isByteplusOptions(x.byteplus)) throw Error("Geçersiz BytePlus ayarları.");
 				const key = await readByteplusKey();
 				if (!key) throw Error("AI bağlantı ayarlarından ModelArk API anahtarını ekleyin.");
+				const writer = x.mode === "prompt" ? byteplusWriterOf(x.byteplus) : null;
+				if (writer) {
+					// Small copies are enough to read a logo or product, and cost far fewer tokens.
+					const references = images.map((file) => {
+						const image = nativeImage.createFromPath(file);
+						const { width, height } = image.getSize();
+						const scale = Math.min(1, 1024 / Math.max(width, height));
+						const small = scale < 1 ? image.resize({ width: Math.round(width * scale), height: Math.round(height * scale), quality: "good" }) : image;
+						return `data:image/jpeg;base64,${small.toJPEG(85).toString("base64")}`;
+					});
+					const job = await byteplusJobs.reserve(id, x.byteplus, x.references.length, writer);
+					const controller = new AbortController();
+					cancelHandle = () => controller.abort();
+					if (cancelled) controller.abort();
+					const timeout = setTimeout(() => controller.abort(), 120000);
+					try {
+						send("generating", "Prompt yazarı isteği ve metni hazırlıyor…");
+						const answer = await requestByteplusWriting(
+							key,
+							{
+								writer,
+								request: requestText,
+								references,
+								referenceNames: (x.referenceNames as string[] | undefined) ?? [],
+								width: typeof x.width === "number" ? x.width : 1080,
+								height: typeof x.height === "number" ? x.height : 1080,
+								options: x.byteplus,
+								posterMethod: x.posterMethod === true,
+							},
+							controller.signal,
+						);
+						// Answered means billed, usable or not: keep its real cost in the ledger.
+						job.state = "complete";
+						job.estimatedCostUSD = byteplusWriterCost(writer, answer.inputTokens, answer.outputTokens);
+						usage = job.usage = {
+							provider: "byteplus",
+							scope: "request",
+							model: writer,
+							inputTokens: answer.inputTokens,
+							outputTokens: answer.outputTokens,
+							totalTokens: answer.inputTokens + answer.outputTokens,
+							estimatedCostUSD: job.estimatedCostUSD,
+							priceDate: BYTEPLUS_PRICE_DATE,
+							priceSource: BYTEPLUS_PRICE_SOURCE,
+						};
+						await byteplusJobs.update(job);
+						if (!answer.writing) throw Error("Prompt yazarı kullanılabilir bir yanıt vermedi.");
+						send("prompt", "Prompt ve metin hazır");
+						return { success: true, ...answer.writing, jobId: conversationId, ...metadata() };
+					} catch (e) {
+						if (job.state === "submitted") {
+							job.state = e instanceof ByteplusRequestError && !e.uncertain ? "failed" : "uncertain";
+							await byteplusJobs.update(job);
+						}
+						throw e;
+					} finally {
+						clearTimeout(timeout);
+					}
+				}
 				const request = {
 					prompt: requestText,
 					references: x.references as string[],

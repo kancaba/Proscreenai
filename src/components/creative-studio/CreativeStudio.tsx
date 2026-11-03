@@ -505,6 +505,11 @@ export default function CreativeStudio({ onHome, initialCreationId, initialGalle
 													{c.width} × {c.height}{c.requestedResolution ? ` · Hedef ${c.requestedResolution}` : ""}
 												</small>
 												<p>{c.prompt || c.name}</p>
+												{c.writerWarnings?.map((warning) => (
+													<small key={warning} className="creative-writer-warning" role="note">
+														⚠ {warning}
+													</small>
+												))}
 												<UsageDetails usage={c.usage} durationMs={c.durationMs} />
 												{posts
 													.filter((p) => p.creationId === c.id && p.status === "planned")

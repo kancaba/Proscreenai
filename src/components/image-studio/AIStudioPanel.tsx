@@ -3,8 +3,11 @@ import "./poster-method.css";
 import { KeyRound, RefreshCw, ShieldCheck, X } from "lucide-react";
 import { type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { byteplusPayload } from "../../lib/byteplusPayload";
+import { seedreamWriterPayload, withSeedreamPrompt } from "../../lib/byteplusWriter";
 import {
 	type ByteplusLedger,
+	BYTEPLUS_WRITERS,
+	byteplusWriterOf,
 	DEFAULT_BYTEPLUS_OPTIONS,
 	isByteplusOptions,
 } from "../../lib/byteplusSettings";
@@ -66,6 +69,8 @@ export function AIStudioPanel({
 		[mode, setMode] = useState<"auto" | "generate" | "edit">("auto"),
 		[posterMethod, setPosterMethod] = useState(settings?.posterMethod ?? false),
 		[posterPrompt, setPosterPrompt] = useState(""),
+		/** What the BytePlus prompt writer prepared for the last image. */
+		[written, setWritten] = useState<{ copy: string; warnings: string[] }>(),
 		[imageSize, setImageSize] = useState<ImageResolution>(settings?.imageSize ?? "1K"),
 		[refs, setRefs] = useState<string[]>(
 			settings?.refs.length
@@ -228,11 +233,13 @@ export function AIStudioPanel({
 							references[0]?.name.startsWith("AI ") ?? false,
 						)
 					: mode;
+			const request = (context ? context.slice(0, 6000) + "\nUSER REQUEST:\n" : "") + requestText,
+				writer = resolved === "generate" ? byteplusWriterOf(byteplus) : null,
+				imageLabel = (i: number) => `[Referans ${i + 1}: ${references[i].name}]`;
 			const body = byteplusPayload({
-				prompt: withPosterMethod(
-					(context ? context.slice(0, 6000) + "\nUSER REQUEST:\n" : "") + requestText,
-					posterMethod,
-				),
+				prompt: writer
+					? withSeedreamPrompt(request, "[Prompt yazarının hazırlayacağı prompt]")
+					: withPosterMethod(request, posterMethod),
 				references: references.map((l) => l.src!),
 				referenceNames: references.map((l) => l.name.slice(0, 200)),
 				width: target.width,
@@ -240,18 +247,22 @@ export function AIStudioPanel({
 				mode: resolved,
 				options: byteplus,
 			});
+			const image = { ...body, ...(body.image ? { image: body.image.map((_x, i) => imageLabel(i)) } : {}) };
+			const written = writer
+				? seedreamWriterPayload({
+						writer,
+						request,
+						references: references.map((_x, i) => imageLabel(i)),
+						referenceNames: references.map((l) => l.name.slice(0, 200)),
+						width: target.width,
+						height: target.height,
+						options: byteplus,
+						posterMethod,
+					})
+				: null;
 			setPreview(
 				JSON.stringify(
-					{
-						...body,
-						...(body.image
-							? {
-									image: body.image.map(
-										(_image, i) => `[Referans ${i + 1}: ${references[i].name}]`,
-									),
-								}
-							: {}),
-					},
+					written ? { "1 · prompt yazarı (chat/completions)": written, "2 · Seedream (images/generations)": image } : image,
 					null,
 					2,
 				),
@@ -328,7 +339,9 @@ export function AIStudioPanel({
 		const target = fixedFormat ? { width, height } : inferImageFormat(requestText, width, height),
 			id = crypto.randomUUID(),
 			poster = posterMethod && resolved === "generate",
-			filler = poster ? posterFiller : null,
+			// For Seedream a ModelArk text model writes the prompt and copy (and follows the poster method).
+			writer = provider === "byteplus" && resolved === "generate" ? byteplusWriterOf(byteplus) : null,
+			filler = poster && !writer ? posterFiller : null,
 			request = (context ? context.slice(0, 6000) + "\nUSER REQUEST:\n" : "") + requestText;
 		activeRequest.current = id;
 		setBusy(true);
@@ -337,13 +350,52 @@ export function AIStudioPanel({
 		setLastRun(undefined);
 		setLiveUsage(undefined);
 		setPosterPrompt("");
+		setWritten(undefined);
 		onBusy?.(true);
 		setStatus("İsteğin hazırlanıyor…");
 		try {
 			// Without a text model to fill the template, the poster rules still go with the request.
-			let imageRequest = withPosterMethod(request, poster),
+			let imageRequest = withPosterMethod(request, poster && !writer),
+				imageOptions = byteplus,
 				posterNote = "",
-				filledPrompt = "";
+				filledPrompt = "",
+				writtenCopy = "",
+				writerWarnings: string[] = [];
+			if (writer) {
+				const writeId = crypto.randomUUID();
+				activeRequest.current = writeId;
+				setPhase("generating");
+				setStatus("Prompt yazarı isteğini ve görseldeki metni hazırlıyor…");
+				const prepared = await window.electronAPI.imageStudioRun({
+					requestId: writeId,
+					mode: "prompt",
+					purpose: "seedream",
+					tool: "byteplus",
+					byteplus,
+					posterMethod: poster,
+					prompt: request,
+					references: references.map((l) => l.src!),
+					referenceNames: references.map((l) => l.name.slice(0, 200)),
+					width: target.width,
+					height: target.height,
+					auto: true,
+				});
+				if (!mounted.current) return;
+				if (prepared.cancelled) throw Error(prepared.error || "İş iptal edildi.");
+				// Without a prepared prompt the image would come out with made-up text: stop here.
+				if (!prepared.success || !prepared.prompt)
+					throw Error(prepared.error || "Prompt yazarı yanıt vermedi; görsel üretilmedi.");
+				filledPrompt = prepared.prompt;
+				setPosterPrompt(prepared.prompt);
+				writtenCopy = byteplus.visibleText.trim() ? "" : prepared.copy ?? "";
+				writerWarnings = prepared.warnings ?? [];
+				setWritten({ copy: writtenCopy, warnings: writerWarnings });
+				imageRequest = withSeedreamPrompt(request, prepared.prompt);
+				// The user's own copy always wins; the writer only fills an empty field.
+				if (!byteplus.visibleText.trim()) imageOptions = { ...byteplus, visibleText: prepared.copy ?? "" };
+				activeRequest.current = id;
+				setStatus("Seedream hazırlanan promptla görseli çiziyor…");
+			}
 			if (filler) {
 				const fillId = crypto.randomUUID();
 				activeRequest.current = fillId;
@@ -382,7 +434,7 @@ export function AIStudioPanel({
 						: `\nComposition aspect ratio: ${target.width}:${target.height}. Native resolution preset: ${imageSize}. Preserve this aspect ratio; do not upscale to simulate native detail.`),
 				references: references.map((l) => l.src!),
 				referenceNames: references.map((l) => l.name.slice(0, 200)),
-				...(provider === "byteplus" ? { byteplus } : {}),
+				...(provider === "byteplus" ? { byteplus: imageOptions } : {}),
 				width: target.width,
 				height: target.height,
 				imageSize,
@@ -411,6 +463,8 @@ export function AIStudioPanel({
 					actualWidth: result.actualWidth,
 					actualHeight: result.actualHeight,
 					...(filledPrompt ? { posterPrompt: filledPrompt } : {}),
+					...(writtenCopy ? { writtenCopy } : {}),
+					...(writerWarnings.length ? { writerWarnings } : {}),
 				},
 			);
 			setStatus(
@@ -541,7 +595,9 @@ export function AIStudioPanel({
 					<span>
 						Kusursuz poster yapısı
 						<small>
-							{posterFiller === "gemini"
+							{provider === "byteplus" && byteplusWriterOf(byteplus)
+								? `Seedream için prompt yazarı (${BYTEPLUS_WRITERS[byteplusWriterOf(byteplus)!].name}) tasarımı 13 bölümlük şablona göre planlar.`
+								: posterFiller === "gemini"
 								? "İsteğini 13 bölümlük şablona göre otomatik doldurur, sonra o promptla üretir. Doldurma için küçük bir Gemini metin isteği yapılır."
 								: posterFiller === "codex"
 									? "İsteğini 13 bölümlük şablona göre Codex ile otomatik doldurur, sonra o promptla üretir. Hazırlık biraz sürebilir."
@@ -625,9 +681,29 @@ export function AIStudioPanel({
 			<p role="status" className="image-ai-status" aria-live="polite">
 				{!busy ? status : ""}
 			</p>
+			{!busy && written?.warnings.length ? (
+				<ul className="image-writer-warnings" role="note">
+					{written.warnings.map((warning) => (
+						<li key={warning}>{warning}</li>
+					))}
+				</ul>
+			) : null}
+			{!busy && written?.copy && (
+				<div className="image-writer-copy">
+					<span>Görsele yazılan metin</span>
+					<pre>{written.copy}</pre>
+					<button
+						type="button"
+						title="Metni düzenleyip aynı metinle yeniden üretmek için"
+						onClick={() => setByteplus((old) => ({ ...old, visibleText: written.copy }))}
+					>
+						Metni sabitle
+					</button>
+				</div>
+			)}
 			{!busy && posterPrompt && (
 				<details className="image-poster-result">
-					<summary>Şablona göre doldurulan prompt</summary>
+					<summary>{written ? "Prompt yazarının hazırladığı prompt" : "Şablona göre doldurulan prompt"}</summary>
 					<pre>{posterPrompt}</pre>
 					<button
 						type="button"

@@ -4,6 +4,8 @@ import {
 	type ByteplusJobSummary,
 	type ByteplusLedger,
 	type ByteplusOptions,
+	BYTEPLUS_WRITER_RESERVE_USD,
+	type ByteplusWriter,
 	byteplusEstimate,
 	isByteplusOptions,
 } from "../src/lib/byteplusSettings";
@@ -20,6 +22,8 @@ export type ByteplusJob = {
 	usage?: ImageUsage;
 	actualWidth?: number;
 	actualHeight?: number;
+	/** The text model, for a prompt written before the image; no image belongs to it. */
+	writer?: ByteplusWriter;
 };
 const validId = (id: string) => /^[\w-]{8,80}$/.test(id);
 /** Serializes budget reservations across windows in this Electron process. */
@@ -79,12 +83,14 @@ export class ByteplusJobs {
 						size: j.options.size,
 						estimatedCostUSD: j.estimatedCostUSD,
 						createdAt: j.createdAt,
-						canRecover: j.state === "complete" || !!j.receipt,
+						canRecover: !j.writer && (j.state === "complete" || !!j.receipt),
+						...(j.writer ? { writer: j.writer } : {}),
 					})),
 			};
 		});
 	}
-	async reserve(id: string, options: ByteplusOptions, references: number) {
+	/** With `writer`, reserves a prompt written before the image, only when the image fits the limit too. */
+	async reserve(id: string, options: ByteplusOptions, references: number, writer?: ByteplusWriter) {
 		return this.serial(async () => {
 			this.file(id);
 			if (!isByteplusOptions(options)) throw Error("Geçersiz BytePlus ayarları.");
@@ -93,11 +99,12 @@ export class ByteplusJobs {
 				throw Error(
 					"Bu istek daha önce gönderildi. Yeni üretim yapılmadı; kayıtlı sonucu kurtarabilirsiniz.",
 				);
-			const estimate = byteplusEstimate(options.model, options.size, references);
+			const image = byteplusEstimate(options.model, options.size, references);
+			const estimate = writer ? BYTEPLUS_WRITER_RESERVE_USD : image;
 			const used = jobs
 				.filter((j) => j.state !== "failed")
 				.reduce((n, j) => n + j.estimatedCostUSD, 0);
-			if (Math.round((used + estimate) * 1e6) > Math.round(options.budgetUSD * 1e6))
+			if (Math.round((used + estimate + (writer ? image : 0)) * 1e6) > Math.round(options.budgetUSD * 1e6))
 				throw Error(
 					"Yerel BytePlus harcama sınırı bu üretim için yetersiz. Sınırı ayarlardan artırın; hesap bakiyesi ayrıca kontrol edilmelidir.",
 				);
@@ -108,6 +115,7 @@ export class ByteplusJobs {
 				state: "submitted",
 				estimatedCostUSD: estimate,
 				createdAt: Date.now(),
+				...(writer ? { writer } : {}),
 			};
 			await fs.writeFile(this.file(id), JSON.stringify(job), { flag: "wx", mode: 0o600 });
 			return job;

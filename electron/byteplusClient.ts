@@ -1,5 +1,11 @@
 import { type ByteplusInput, byteplusPayload } from "../src/lib/byteplusPayload";
-import { BYTEPLUS_MODELS } from "../src/lib/byteplusSettings";
+import { BYTEPLUS_MODELS, BYTEPLUS_WRITERS } from "../src/lib/byteplusSettings";
+import {
+	BYTEPLUS_CHAT_ENDPOINT,
+	parseSeedreamWriting,
+	type SeedreamWriterInput,
+	seedreamWriterPayload,
+} from "../src/lib/byteplusWriter";
 
 export { byteplusPayload } from "../src/lib/byteplusPayload";
 export const BYTEPLUS_ENDPOINT =
@@ -152,4 +158,51 @@ export async function downloadByteplusImage(
 			"Üretilen görsel indirilemedi. Yeni üretim yerine 'Sonucu kurtar' ile indirmeyi tekrar deneyin; bağlantı 24 saat geçerlidir.",
 		);
 	}
+}
+/** Asks a ModelArk text model to prepare Seedream's prompt and copy; returns it with its token use. */
+export async function requestByteplusWriting(
+	key: string,
+	input: SeedreamWriterInput,
+	signal: AbortSignal,
+	fetcher: typeof fetch = fetch,
+) {
+	let response: Response;
+	try {
+		response = await fetcher(BYTEPLUS_CHAT_ENDPOINT, {
+			method: "POST",
+			headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+			body: JSON.stringify(seedreamWriterPayload(input)),
+			signal,
+			redirect: "error",
+		});
+	} catch {
+		throw new ByteplusRequestError("Prompt yazarına bağlanılamadı veya zaman aşımına uğradı.", true);
+	}
+	if (!response.ok) {
+		await response.body?.cancel().catch(() => {
+			/* The stream may already have closed. */
+		});
+		throw new ByteplusRequestError(
+			response.status === 404
+				? `${BYTEPLUS_WRITERS[input.writer].name} bu hesapta açık değil. ModelArk konsolunda modeli etkinleştirin veya prompt yazarını değiştirin.`
+				: byteplusError(response.status),
+			response.status >= 500 || response.status === 408,
+		);
+	}
+	let wire: {
+		choices?: { message?: { content?: unknown } }[];
+		usage?: { prompt_tokens?: unknown; completion_tokens?: unknown };
+	};
+	try {
+		wire = JSON.parse((await boundedBytes(response, 2 * 1024 * 1024)).toString("utf8"));
+	} catch {
+		throw new ByteplusRequestError("Prompt yazarı okunabilir bir yanıt döndürmedi.", false);
+	}
+	const token = (n: unknown) => (typeof n === "number" && Number.isSafeInteger(n) && n >= 0 ? n : 0);
+	const content = wire.choices?.[0]?.message?.content;
+	return {
+		writing: typeof content === "string" ? parseSeedreamWriting(content) : undefined,
+		inputTokens: token(wire.usage?.prompt_tokens),
+		outputTokens: token(wire.usage?.completion_tokens),
+	};
 }

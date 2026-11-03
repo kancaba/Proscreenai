@@ -63,4 +63,8 @@ export type ImageRunMetadata = {
 	provider?: "codex" | "gemini" | "byteplus";
 	/** The poster template filled from the request ("Kusursuz poster yapısı"). */
 	posterPrompt?: string;
+	/** The text the BytePlus prompt writer put on the image. */
+	writtenCopy?: string;
+	/** What the prompt writer could not do as asked, e.g. draw a real person's face. */
+	writerWarnings?: string[];
 };

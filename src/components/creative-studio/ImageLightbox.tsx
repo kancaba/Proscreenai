@@ -92,9 +92,22 @@ export function ImageLightbox({
 			</div>
 			<footer>
 				<p>{creation.prompt || creation.name}</p>
+				{creation.writerWarnings?.length ? (
+					<ul className="creative-writer-warnings" role="note">
+						{creation.writerWarnings.map((warning) => (
+							<li key={warning}>{warning}</li>
+						))}
+					</ul>
+				) : null}
+				{creation.writtenCopy && (
+					<p className="creative-written-copy">
+						<span>Görsele yazılan metin</span>
+						{creation.writtenCopy}
+					</p>
+				)}
 				{creation.posterPrompt && (
 					<details className="creative-poster-prompt">
-						<summary>Şablona göre doldurulan prompt</summary>
+						<summary>Hazırlanan prompt</summary>
 						<pre>{creation.posterPrompt}</pre>
 					</details>
 				)}

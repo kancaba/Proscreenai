@@ -10,7 +10,10 @@ import {
 	type ByteplusModel,
 	type ByteplusOptions,
 	type ByteplusSize,
+	BYTEPLUS_WRITERS,
+	type ByteplusWriter,
 	byteplusEstimate,
+	byteplusWriterOf,
 	POSTER_TYPES,
 	type PosterType,
 } from "../../lib/byteplusSettings";
@@ -38,6 +41,7 @@ export function ByteplusControls({
 	onSettings: () => void;
 }) {
 	const cost = byteplusEstimate(options.model, options.size, references);
+	const writer = byteplusWriterOf(options);
 	return (
 		<div className="byteplus-controls">
 			<div className="byteplus-fields">
@@ -88,6 +92,27 @@ export function ByteplusControls({
 					</select>
 				</label>
 			</div>
+			<label className="byteplus-writer">
+				Prompt yazarı
+				<select
+					aria-label="Prompt yazarı"
+					value={writer ?? "off"}
+					disabled={busy}
+					onChange={(e) => onChange({ ...options, writer: e.target.value as ByteplusWriter | "off" })}
+				>
+					{Object.entries(BYTEPLUS_WRITERS).map(([id, item]) => (
+						<option key={id} value={id}>
+							{item.name} · {item.note}
+						</option>
+					))}
+					<option value="off">Kapalı · isteği olduğu gibi gönder</option>
+				</select>
+				<small>
+					{writer
+						? "Önce bir metin modeli isteğini ve referansları okur; görseldeki kısa metni yazar ve Seedream’in anladığı görsel tarifi hazırlar. Seedream yalnızca çizer."
+						: "İstek Seedream’e olduğu gibi gider. Seedream metin uyduramaz: görselde yazı olacaksa aşağıya aynen yaz."}
+				</small>
+			</label>
 			<label className="byteplus-copy">
 				Görselde aynen yazılacak metin
 				<textarea
@@ -96,7 +121,11 @@ export function ByteplusControls({
 					maxLength={2000}
 					rows={2}
 					disabled={busy}
-					placeholder={"Örn. Yeni Koleksiyon\nTarzını Keşfet"}
+					placeholder={
+						writer
+							? "Boş bırakırsan prompt yazarı kısa bir metin yazar. Örn. Yeni Koleksiyon"
+							: "Örn. Yeni Koleksiyon\nTarzını Keşfet"
+					}
 					onChange={(e) => onChange({ ...options, visibleText: e.target.value })}
 				/>
 			</label>
@@ -130,7 +159,9 @@ export function ByteplusControls({
 				</label>
 			</div>
 			<div className="byteplus-cost" role="status">
-				<strong>1 görsel · Tahmini ${cost.toFixed(3)} USD</strong>
+				<strong>
+					1 görsel · Tahmini ${cost.toFixed(3)} USD{writer ? " + prompt yazarı ≈ $0.01" : ""}
+				</strong>
 				<span>
 					{ledger
 						? `Bu cihazda kullanılan/ayrılan: $${ledger.reservedUSD.toFixed(3)} USD`
@@ -162,7 +193,7 @@ export function ByteplusControls({
 						<div className="byteplus-job" key={job.id}>
 							<span>
 								{new Date(job.createdAt).toLocaleString("tr-TR")} ·{" "}
-								{BYTEPLUS_MODELS[job.model].name}
+								{job.writer ? `${BYTEPLUS_WRITERS[job.writer].name} · prompt` : BYTEPLUS_MODELS[job.model].name}
 								<small>
 									{job.state === "complete"
 										? "Kaydedildi"
