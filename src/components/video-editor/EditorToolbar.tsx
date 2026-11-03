@@ -4,6 +4,7 @@ import {
 	Check,
 	Circle,
 	Clapperboard,
+	EyeOff,
 	Keyboard,
 	Mic,
 	Gauge,
@@ -16,7 +17,7 @@ import {
 	ZoomIn,
 } from "lucide-react";
 import { useI18n } from "@/contexts/I18nContext";
-export type EditorTool = "zoom" | "trim" | "speed" | "text";
+export type EditorTool = "zoom" | "trim" | "speed" | "text" | "blur";
 export function EditorToolbar({
 	onAdd,
 	onVoiceover,
@@ -57,6 +58,7 @@ export function EditorToolbar({
 		{ id: "trim", icon: Scissors, label: tr ? "Kes" : "Trim", key: "C" },
 		{ id: "speed", icon: Gauge, label: tr ? "Hız" : "Speed", key: "S" },
 		{ id: "text", icon: Type, label: tr ? "Metin" : "Text", key: "A" },
+		{ id: "blur", icon: EyeOff, label: tr ? "Bulanıklaştır" : "Blur", key: "" },
 	] as const;
 	return (
 		<div
@@ -121,11 +123,11 @@ export function EditorToolbar({
 							data-testid={`tool-${id}`}
 							disabled={disabled}
 							onClick={() => onAdd(id)}
-							title={`${label} (${key})`}
+							title={key ? `${label} (${key})` : label}
 						>
 							<Icon size={16} />
 							<span>{label}</span>
-							<kbd>{key}</kbd>
+							{key && <kbd>{key}</kbd>}
 						</button>
 					))}
 				</div>

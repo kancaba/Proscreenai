@@ -1,4 +1,4 @@
-export type RegionKind = "zoom" | "trim" | "speed" | "annotation" | "audio";
+export type RegionKind = "zoom" | "trim" | "speed" | "annotation" | "audio" | "blur";
 
 export interface RegionTarget {
   kind: RegionKind;
@@ -22,13 +22,14 @@ export interface TimedRegion {
 /** Shortest piece a split or paste may create. */
 export const MIN_REGION_PIECE_MS = 100;
 
-/** Text and audio may stack in lanes; zoom, trim and speed regions may not overlap. */
+/** Text, audio and blur areas may stack in lanes; zoom, trim and speed regions may not overlap. */
 export const KIND_ALLOWS_OVERLAP: Record<RegionKind, boolean> = {
   zoom: false,
   trim: false,
   speed: false,
   annotation: true,
   audio: true,
+  blur: true,
 };
 
 const overlaps = (a: TimedRegion, b: TimedRegion) => a.startMs < b.endMs && a.endMs > b.startMs;

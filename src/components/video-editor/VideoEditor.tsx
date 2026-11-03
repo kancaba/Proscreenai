@@ -102,6 +102,8 @@ import { fadeAmount, type Fades, NO_FADES } from '@/lib/fades';
 import { type EndingHold, NO_ENDING } from '@/lib/endingHold';
 import { applyAudioTimelineChange, audioFileOffsetSeconds, audioTimelineSpan, firstFreeAudioTrack, isAudioActive, MAX_AUDIO_TRACKS, splitAudioRegion } from './audioRegionSpan';
 import type { EditorAppearance } from './appearancePresets';
+import { type BlurRect, type BlurRegion, clampBlurRect, DEFAULT_BLUR_RECT, DEFAULT_BLUR_SPAN_MS, DEFAULT_BLUR_STRENGTH } from './blurRegions';
+import { BlurControls } from './BlurControls';
 
 const LOOP_CURSOR_END_WINDOW_MS = 670;
 
@@ -112,6 +114,7 @@ type EditorHistorySnapshot = {
   speedRegions: SpeedRegion[];
   annotationRegions: AnnotationRegion[];
   audioRegions: AudioRegion[];
+  blurRegions: BlurRegion[];
   sourceAudioVolume: number;
   fades: Fades;
   ending: EndingHold;
@@ -121,6 +124,7 @@ type EditorHistorySnapshot = {
   selectedSpeedId: string | null;
   selectedAnnotationId: string | null;
   selectedAudioId: string | null;
+  selectedBlurId: string | null;
 };
 
 type PendingExportSave = {
@@ -196,6 +200,8 @@ export default function VideoEditor() {
   const [annotationRegions, setAnnotationRegions] = useState<AnnotationRegion[]>([]);
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
   const [audioRegions, setAudioRegions] = useState<AudioRegion[]>([]);
+  const [blurRegions, setBlurRegions] = useState<BlurRegion[]>([]);
+  const [selectedBlurId, setSelectedBlurId] = useState<string | null>(null);
   /** Volume of the recording's own sound, 0 (muted) to 1. */
   const [sourceAudioVolume, setSourceAudioVolume] = useState(1);
   /** Optional fade from/to black at the video's start and end. */
@@ -345,6 +351,7 @@ export default function VideoEditor() {
   const nextTrimIdRef = useRef(1);
   const nextSpeedIdRef = useRef(1);
   const nextAudioIdRef = useRef(1);
+  const nextBlurIdRef = useRef(1);
 
   const { shortcuts, isMac, openConfig } = useShortcuts();
   const nextAnnotationIdRef = useRef(1);
@@ -404,6 +411,7 @@ export default function VideoEditor() {
       speedRegions: JSON.parse(JSON.stringify(snapshot.speedRegions)),
       annotationRegions: JSON.parse(JSON.stringify(snapshot.annotationRegions)),
       audioRegions: JSON.parse(JSON.stringify(snapshot.audioRegions)),
+      blurRegions: JSON.parse(JSON.stringify(snapshot.blurRegions ?? [])),
       sourceAudioVolume: snapshot.sourceAudioVolume,
       fades: { ...snapshot.fades },
       ending: { ...(snapshot.ending ?? NO_ENDING) },
@@ -413,6 +421,7 @@ export default function VideoEditor() {
       selectedSpeedId: snapshot.selectedSpeedId,
       selectedAnnotationId: snapshot.selectedAnnotationId,
       selectedAudioId: snapshot.selectedAudioId,
+      selectedBlurId: snapshot.selectedBlurId ?? null,
     };
   }, []);
 
@@ -424,6 +433,7 @@ export default function VideoEditor() {
       speedRegions,
       annotationRegions,
       audioRegions,
+      blurRegions,
       sourceAudioVolume,
       fades,
       ending,
@@ -433,6 +443,7 @@ export default function VideoEditor() {
       selectedSpeedId,
       selectedAnnotationId,
       selectedAudioId,
+      selectedBlurId,
     };
   }, [
     appearance,
@@ -441,6 +452,7 @@ export default function VideoEditor() {
     speedRegions,
     annotationRegions,
     audioRegions,
+    blurRegions,
     sourceAudioVolume,
     fades,
     ending,
@@ -450,6 +462,7 @@ export default function VideoEditor() {
     selectedSpeedId,
     selectedAnnotationId,
     selectedAudioId,
+    selectedBlurId,
   ]);
 
   const applyHistorySnapshot = useCallback((snapshot: EditorHistorySnapshot) => {
@@ -461,6 +474,7 @@ export default function VideoEditor() {
     setSpeedRegions(cloned.speedRegions);
     setAnnotationRegions(cloned.annotationRegions);
     setAudioRegions(cloned.audioRegions);
+    setBlurRegions(cloned.blurRegions);
     setSourceAudioVolume(cloned.sourceAudioVolume ?? 1);
     setFades(cloned.fades ?? NO_FADES);
     setEnding(cloned.ending ?? NO_ENDING);
@@ -471,7 +485,9 @@ export default function VideoEditor() {
     setSelectedSpeedId(cloned.selectedSpeedId);
     setSelectedAnnotationId(cloned.selectedAnnotationId);
     setSelectedAudioId(cloned.selectedAudioId);
+    setSelectedBlurId(cloned.selectedBlurId);
 
+    nextBlurIdRef.current = deriveNextId("blur", cloned.blurRegions.map((region) => region.id));
     nextZoomIdRef.current = deriveNextId("zoom", cloned.zoomRegions.map((region) => region.id));
     nextTrimIdRef.current = deriveNextId("trim", cloned.trimRegions.map((region) => region.id));
     nextSpeedIdRef.current = deriveNextId("speed", cloned.speedRegions.map((region) => region.id));
@@ -561,6 +577,7 @@ export default function VideoEditor() {
     setSpeedRegions(normalizedEditor.speedRegions);
     setAnnotationRegions(normalizedEditor.annotationRegions);
     setAudioRegions(normalizedEditor.audioRegions);
+    setBlurRegions(normalizedEditor.blurRegions ?? []);
     setSourceAudioVolume(normalizedEditor.sourceAudioVolume);
     setFades(normalizedEditor.fades);
     setEnding(normalizedEditor.ending ?? NO_ENDING);
@@ -583,7 +600,9 @@ export default function VideoEditor() {
     setSelectedSpeedId(null);
     setSelectedAnnotationId(null);
     setSelectedAudioId(null);
+    setSelectedBlurId(null);
 
+    nextBlurIdRef.current = deriveNextId("blur", (normalizedEditor.blurRegions ?? []).map((region) => region.id));
     nextZoomIdRef.current = deriveNextId("zoom", normalizedEditor.zoomRegions.map((region) => region.id));
     nextTrimIdRef.current = deriveNextId("trim", normalizedEditor.trimRegions.map((region) => region.id));
     nextSpeedIdRef.current = deriveNextId("speed", normalizedEditor.speedRegions.map((region) => region.id));
@@ -625,6 +644,7 @@ export default function VideoEditor() {
         speedRegions,
         annotationRegions,
         audioRegions,
+        ...(blurRegions.length > 0 ? { blurRegions } : {}),
         sourceAudioVolume,
         fades,
         ...(ending.durationMs > 0 ? { ending } : {}),
@@ -659,6 +679,7 @@ export default function VideoEditor() {
     trimRegions,
     speedRegions,
     audioRegions,
+    blurRegions,
     sourceAudioVolume,
     fades,
     ending,
@@ -840,6 +861,7 @@ export default function VideoEditor() {
       speedRegions,
       annotationRegions,
       audioRegions,
+      ...(blurRegions.length > 0 ? { blurRegions } : {}),
       sourceAudioVolume,
       fades,
       ...(ending.durationMs > 0 ? { ending } : {}),
@@ -903,6 +925,7 @@ export default function VideoEditor() {
     speedRegions,
     annotationRegions,
     audioRegions,
+    blurRegions,
     sourceAudioVolume,
     fades,
     ending,
@@ -1295,6 +1318,47 @@ export default function VideoEditor() {
     }
   }, []);
 
+  const handleSelectBlur = useCallback((id: string | null) => {
+    setSelectedBlurId(id);
+    if (id) {
+      setSelectedZoomId(null);
+      setSelectedTrimId(null);
+      setSelectedSpeedId(null);
+      setSelectedAnnotationId(null);
+      setSelectedAudioId(null);
+      setSelectedClipStart(null);
+      setSelectedTypingStart(null);
+    }
+  }, []);
+
+  /** A new blur area at `span`, selected so it can be placed on the preview right away. */
+  const handleBlurAdded = useCallback((span: Span) => {
+    const id = `blur-${nextBlurIdRef.current++}`;
+    const region: BlurRegion = {
+      id,
+      startMs: Math.round(span.start),
+      endMs: Math.round(span.end),
+      rect: { ...DEFAULT_BLUR_RECT },
+      style: 'blur',
+      strength: DEFAULT_BLUR_STRENGTH,
+    };
+    setBlurRegions((prev) => [...prev, region]);
+    handleSelectBlur(id);
+  }, [handleSelectBlur]);
+
+  const handleBlurSpanChange = useCallback((id: string, span: Span) => {
+    setBlurRegions((prev) => prev.map((region) => (region.id === id ? { ...region, startMs: Math.round(span.start), endMs: Math.round(span.end) } : region)));
+  }, []);
+
+  const handleBlurRectChange = useCallback((id: string, rect: BlurRect) => {
+    setBlurRegions((prev) => prev.map((region) => (region.id === id ? { ...region, rect: clampBlurRect(rect) } : region)));
+  }, []);
+
+  const handleBlurDelete = useCallback((id: string) => {
+    setBlurRegions((prev) => prev.filter((region) => region.id !== id));
+    setSelectedBlurId((current) => (current === id ? null : current));
+  }, []);
+
   const handleZoomAdded = useCallback((span: Span) => {
     setSelectedSpeedId(null);
     setSelectedAudioId(null);
@@ -1495,6 +1559,7 @@ export default function VideoEditor() {
   const followReorder = useCallback((reorder: Reorder) => {
     const trimId = () => `trim-${nextTrimIdRef.current++}`;
     const speedId = () => `speed-${nextSpeedIdRef.current++}`;
+    const blurId = () => `blur-${nextBlurIdRef.current++}`;
     const remap = (snapshot: EditorHistorySnapshot): EditorHistorySnapshot => ({
       ...snapshot,
       zoomRegions: moveRegions(snapshot.zoomRegions, reorder),
@@ -1502,16 +1567,19 @@ export default function VideoEditor() {
       speedRegions: splitRegions(snapshot.speedRegions, reorder, speedId),
       annotationRegions: moveRegions(snapshot.annotationRegions, reorder),
       audioRegions: moveRegions(snapshot.audioRegions, reorder),
+      // A blur hides what is in the video there, so it goes wherever that piece goes.
+      blurRegions: splitRegions(snapshot.blurRegions ?? [], reorder, blurId),
       clipSplits: reorderSplits(snapshot.clipSplits ?? [], reorder),
     });
     historyPastRef.current = historyPastRef.current.map(remap);
     historyFutureRef.current = historyFutureRef.current.map(remap);
-    expectAutomaticChange('zoomRegions', 'trimRegions', 'speedRegions', 'annotationRegions', 'audioRegions', 'clipSplits');
+    expectAutomaticChange('zoomRegions', 'trimRegions', 'speedRegions', 'annotationRegions', 'audioRegions', 'blurRegions', 'clipSplits');
     setZoomRegions((previous) => moveRegions(previous, reorder));
     setTrimRegions((previous) => splitRegions(previous, reorder, trimId));
     setSpeedRegions((previous) => splitRegions(previous, reorder, speedId));
     setAnnotationRegions((previous) => moveRegions(previous, reorder));
     setAudioRegions((previous) => moveRegions(previous, reorder));
+    setBlurRegions((previous) => splitRegions(previous, reorder, blurId));
     setClipSplits((previous) => reorderSplits(previous, reorder));
     setVideoClips((previous) => reorderVideoClips(previous, reorder));
   }, [expectAutomaticChange]);
@@ -1891,6 +1959,7 @@ export default function VideoEditor() {
       speed: asTrack(speedRegions, setSpeedRegions, "speed", nextSpeedIdRef, handleSpeedDelete, handleSelectSpeed),
       annotation: asTrack(annotationRegions, setAnnotationRegions, "annotation", nextAnnotationIdRef, handleAnnotationDelete, handleSelectAnnotation),
       audio: asTrack(audioRegions, setAudioRegions, "audio", nextAudioIdRef, handleAudioDelete, handleSelectAudio),
+      blur: asTrack(blurRegions, setBlurRegions, "blur", nextBlurIdRef, handleBlurDelete, handleSelectBlur),
     };
     // Texts and sounds may sit in the ending extension; video edits stay on the video.
     const totalFor = (kind: RegionKind) => (kind === "annotation" || kind === "audio" ? totalSourceMs + endingMs : totalSourceMs);
@@ -1957,9 +2026,9 @@ export default function VideoEditor() {
         break;
     }
   }, [
-    zoomRegions, trimRegions, speedRegions, annotationRegions, audioRegions, totalSourceMs, endingMs, currentTime, t, cutMap,
-    handleZoomDelete, handleTrimDelete, handleSpeedDelete, handleAnnotationDelete, handleAudioDelete,
-    handleSelectZoom, handleSelectTrim, handleSelectSpeed, handleSelectAnnotation, handleSelectAudio,
+    zoomRegions, trimRegions, speedRegions, annotationRegions, audioRegions, blurRegions, totalSourceMs, endingMs, currentTime, t, cutMap,
+    handleZoomDelete, handleTrimDelete, handleSpeedDelete, handleAnnotationDelete, handleAudioDelete, handleBlurDelete,
+    handleSelectZoom, handleSelectTrim, handleSelectSpeed, handleSelectAnnotation, handleSelectAudio, handleSelectBlur,
   ]);
 
   const handleAnnotationContentChange = useCallback((id: string, content: string) => {
@@ -2305,6 +2374,7 @@ export default function VideoEditor() {
           videoPadding: padding,
           cropRegion,
           annotationRegions,
+          blurRegions,
           zoomRegions: effectiveZoomRegions,
           cursorTelemetry: effectiveCursorTelemetry,
           showCursor,
@@ -2371,6 +2441,7 @@ export default function VideoEditor() {
           padding,
           cropRegion,
           annotationRegions,
+          blurRegions,
           zoomRegions: effectiveZoomRegions,
           cursorTelemetry: effectiveCursorTelemetry,
           showCursor,
@@ -2437,7 +2508,7 @@ export default function VideoEditor() {
       setShowExportDialog(keepExportDialogOpen);
       setExportProgress(null);
     }
-  }, [exportFileBase, sourceAudioVolume, fades, ending, endingMs, videoPath, wallpaper, zoomRegions, trimRegions, speedRegions, shadowIntensity, backgroundBlur, zoomMotionBlur, connectZooms, showCursor, effectiveCursorTelemetry, cursorSize, cursorSmoothing, cursorMotionBlur, cursorClickBounce, borderRadius, padding, cropRegion, annotationRegions, audioRegions, isPlaying, aspectRatio, exportQuality, exportResolution, exportFps, exportCustomWidth, exportCustomHeight,showExportSuccessToast]);
+  }, [exportFileBase, sourceAudioVolume, fades, ending, endingMs, videoPath, wallpaper, zoomRegions, trimRegions, speedRegions, shadowIntensity, backgroundBlur, zoomMotionBlur, connectZooms, showCursor, effectiveCursorTelemetry, cursorSize, cursorSmoothing, cursorMotionBlur, cursorClickBounce, borderRadius, padding, cropRegion, annotationRegions, blurRegions, audioRegions, isPlaying, aspectRatio, exportQuality, exportResolution, exportFps, exportCustomWidth, exportCustomHeight,showExportSuccessToast]);
 
   const handleStartExport = useCallback(() => {
     if (!videoPath) {
@@ -2570,6 +2641,7 @@ export default function VideoEditor() {
   const timelineZooms = useMemo(() => toTimeline(effectiveZoomRegions), [toTimeline, effectiveZoomRegions]);
   const timelineSpeeds = useMemo(() => toTimeline(speedRegions), [toTimeline, speedRegions]);
   const timelineAnnotations = useMemo(() => toTimeline(annotationRegions), [toTimeline, annotationRegions]);
+  const timelineBlurs = useMemo(() => toTimeline(blurRegions), [toTimeline, blurRegions]);
   const timelineAudio = useMemo(() => audioRegions.flatMap((region) => {
     const span = audioTimelineSpan(region, cutMap);
     const end = Math.min(span.end, timelineMs);
@@ -2596,8 +2668,12 @@ export default function VideoEditor() {
 
   // Selecting any other item deselects the video part.
   useEffect(() => {
-    if (selectedZoomId || selectedTrimId || selectedSpeedId || selectedAnnotationId || selectedAudioId) { setSelectedClipStart(null); setSelectedTypingStart(null); }
-  }, [selectedZoomId, selectedTrimId, selectedSpeedId, selectedAnnotationId, selectedAudioId]);
+    if (selectedZoomId || selectedTrimId || selectedSpeedId || selectedAnnotationId || selectedAudioId || selectedBlurId) { setSelectedClipStart(null); setSelectedTypingStart(null); }
+  }, [selectedZoomId, selectedTrimId, selectedSpeedId, selectedAnnotationId, selectedAudioId, selectedBlurId]);
+  // Selecting any other item (or a video part) deselects the blur area.
+  useEffect(() => {
+    if (selectedZoomId || selectedTrimId || selectedSpeedId || selectedAnnotationId || selectedAudioId || selectedClipStart !== null) setSelectedBlurId(null);
+  }, [selectedZoomId, selectedTrimId, selectedSpeedId, selectedAnnotationId, selectedAudioId, selectedClipStart]);
 
   // Typing found in the recording's key press times; stretches already cut out are left out.
   const typingStretches = useMemo(() => findTypingStretches(keyTimes, totalSourceMs || undefined).filter((stretch) => !isStretchCut(stretch, trimRegions)), [keyTimes, totalSourceMs, trimRegions]);
@@ -2686,19 +2762,25 @@ export default function VideoEditor() {
       return;
     }
     const regions = tool === 'zoom' ? zoomRegions : [];
-    const span = findAvailableSpan(totalSourceMs + (tool === 'text' ? endingMs : 0), Math.round(currentTime * 1000), regions, tool === 'text' ? 2500 : tool === 'zoom' ? DEFAULT_ZOOM_SPAN_MS : 1500);
+    const span = findAvailableSpan(totalSourceMs + (tool === 'text' ? endingMs : 0), Math.round(currentTime * 1000), regions, tool === 'text' ? 2500 : tool === 'zoom' ? DEFAULT_ZOOM_SPAN_MS : tool === 'blur' ? DEFAULT_BLUR_SPAN_MS : 1500);
     if (!span) { toast.info(t('timeline.zoom.existsOrNoSpace')); return; }
     const timelineSpan = { start: span.startMs, end: span.endMs };
     if (tool === 'zoom') handleZoomAdded(timelineSpan);
     if (tool === 'text') handleAnnotationAdded(timelineSpan);
+    if (tool === 'blur') {
+      if (isPlaying) togglePlayPause();
+      handleBlurAdded(timelineSpan);
+    }
     handleSeek(span.startMs / 1000);
   };
   const selectedAudio = selectedAudioId ? audioRegions.find((r) => r.id === selectedAudioId) ?? null : null;
+  const selectedBlur = selectedBlurId ? blurRegions.find((r) => r.id === selectedBlurId) ?? null : null;
   // Audio clips are edited in edited-timeline time, as the timeline shows them.
   const activeRegion = selectedZoomId ? zoomRegions.find((r) => r.id === selectedZoomId)
     : selectedTrimId ? trimRegions.find((r) => r.id === selectedTrimId)
     : selectedSpeedId ? speedRegions.find((r) => r.id === selectedSpeedId)
-    : selectedAudioId ? timelineAudio.find((r) => r.id === selectedAudioId) : null;
+    : selectedAudioId ? timelineAudio.find((r) => r.id === selectedAudioId)
+    : selectedBlur;
   /** Whether the selected audio clip could sit on `track` without overlapping another clip there. */
   const isTrackFreeForSelectedAudio = (track: number) => {
     if (!selectedAudio) return false;
@@ -2709,13 +2791,19 @@ export default function VideoEditor() {
       return span.end > other.start && span.start < other.end;
     });
   };
-  const activeRegionKind = selectedZoomId ? 'zoom' : selectedTrimId ? 'trim' : selectedSpeedId ? 'speed' : 'audio';
+  const activeRegionKind = selectedZoomId ? 'zoom' : selectedTrimId ? 'trim' : selectedSpeedId ? 'speed' : selectedAudioId ? 'audio' : 'blur';
   const updateActiveRegion = (span: TimeSpan) => {
     if (!activeRegion) return false;
     if (activeRegionKind === 'audio') {
       // Typed in edited-timeline time; the clip may run past the video's end.
       if (!(span.startMs >= 0 && span.endMs - span.startMs >= 100 && span.startMs < timelineMs)) return false;
       handleAudioTimelineChange(activeRegion.id, { start: span.startMs, end: span.endMs });
+      return true;
+    }
+    if (activeRegionKind === 'blur') {
+      // Blur areas may overlap: several fields can be hidden at once.
+      if (!validRegionSpan(span, Math.round(duration * 1000), [])) return false;
+      handleBlurSpanChange(activeRegion.id, { start: span.startMs, end: span.endMs });
       return true;
     }
     const others = (activeRegionKind === 'zoom' ? zoomRegions : activeRegionKind === 'trim' ? trimRegions : speedRegions).filter((r) => r.id !== activeRegion.id);
@@ -2729,6 +2817,7 @@ export default function VideoEditor() {
     if (activeRegionKind === 'zoom') handleZoomDelete(activeRegion.id);
     else if (activeRegionKind === 'trim') handleTrimDelete(activeRegion.id);
     else if (activeRegionKind === 'audio') handleAudioDelete(activeRegion.id);
+    else if (activeRegionKind === 'blur') handleBlurDelete(activeRegion.id);
     else handleSpeedDelete(activeRegion.id);
   };
 
@@ -2839,6 +2928,9 @@ export default function VideoEditor() {
                       trimRegions={trimRegions}
                       speedRegions={speedRegions}
                       annotationRegions={annotationRegions}
+                      blurRegions={blurRegions}
+                      selectedBlurId={selectedBlurId}
+                      onBlurRectChange={handleBlurRectChange}
                       selectedAnnotationId={selectedAnnotationId}
                       onSelectAnnotation={handleSelectAnnotation}
                       onAnnotationPositionChange={handleAnnotationPositionChange}
@@ -2875,7 +2967,7 @@ export default function VideoEditor() {
             {/* Timeline section */}
             <Panel className="workspace-timeline-panel" defaultSize={38} minSize={25}>
               <div className="workspace-timeline h-full min-h-0 overflow-auto flex flex-col">
-                <div className="workspace-timeline-heading"><strong>{locale === 'tr' ? 'Zaman çizelgesi' : 'Timeline'}</strong><span>{duration > 0 ? "1 video · " : ""}{zoomRegions.length + trimRegions.length + speedRegions.length + annotationRegions.length + audioRegions.length} {locale === 'tr' ? 'düzenleme' : 'edits'}</span><small>{locale === 'tr' ? 'Sürükle, kısalt, hikâyeni oluştur.' : 'Drag, trim, tell your story.'}</small></div>
+                <div className="workspace-timeline-heading"><strong>{locale === 'tr' ? 'Zaman çizelgesi' : 'Timeline'}</strong><span>{duration > 0 ? "1 video · " : ""}{zoomRegions.length + trimRegions.length + speedRegions.length + annotationRegions.length + audioRegions.length + blurRegions.length} {locale === 'tr' ? 'düzenleme' : 'edits'}</span><small>{locale === 'tr' ? 'Sürükle, kısalt, hikâyeni oluştur.' : 'Drag, trim, tell your story.'}</small></div>
                 <TimelineEditor
               videoPath={videoSourcePath || videoPath || ''}
               videoDuration={timelineMs / 1000}
@@ -2917,6 +3009,11 @@ export default function VideoEditor() {
               onAnnotationDelete={handleAnnotationDelete}
               selectedAnnotationId={selectedAnnotationId}
               onSelectAnnotation={handleSelectAnnotation}
+              blurRegions={timelineBlurs}
+              onBlurSpanChange={(id, span) => handleBlurSpanChange(id, fromTimeline(span))}
+              onBlurDelete={handleBlurDelete}
+              selectedBlurId={selectedBlurId}
+              onSelectBlur={handleSelectBlur}
               clip={{
                 segments: clipParts,
                 markers: timelineMarkers,
@@ -2975,7 +3072,7 @@ export default function VideoEditor() {
                 onMove: (toIndex) => void moveClipPart(selectedPart.startMs, toIndex),
               } : undefined} />}
             {activeRegion && <RegionInspector region={activeRegion}
-              label={activeRegionKind === 'zoom' ? 'Zoom' : activeRegionKind === 'trim' ? t('timeline.trim.label', undefined, { index: '' }) : activeRegionKind === 'audio' && selectedAudio ? audioClipName(selectedAudio.audioPath, locale === 'tr') : t('timeline.speed.label')}
+              label={activeRegionKind === 'blur' ? (locale === 'tr' ? 'Bulanık alan' : 'Blur area') : activeRegionKind === 'zoom' ? 'Zoom' : activeRegionKind === 'trim' ? t('timeline.trim.label', undefined, { index: '' }) : activeRegionKind === 'audio' && selectedAudio ? audioClipName(selectedAudio.audioPath, locale === 'tr') : t('timeline.speed.label')}
               onChange={updateActiveRegion} onDelete={deleteActiveRegion}
               crossfade={activeRegionKind === 'trim' ? { enabled: Boolean((activeRegion as TrimRegion).crossfade), onChange: (on) => setTrimRegions((previous) => previous.map((region) => {
                 if (region.id !== activeRegion.id) return region;
@@ -2987,6 +3084,8 @@ export default function VideoEditor() {
                 isTrackFree={isTrackFreeForSelectedAudio}
                 onVolumeChange={volume => setAudioRegions(previous => previous.map(region => region.id === selectedAudio.id ? { ...region, volume } : region))}
                 onTrackChange={(track) => handleAudioTimelineChange(selectedAudio.id, audioTimelineSpan(selectedAudio, cutMap), track)} />}
+              {activeRegionKind === 'blur' && selectedBlur && <BlurControls region={selectedBlur}
+                onChange={(patch) => setBlurRegions((previous) => previous.map((region) => (region.id === selectedBlur.id ? { ...region, ...patch } : region)))} />}
             </RegionInspector>}
           </>}
           selected={wallpaper}

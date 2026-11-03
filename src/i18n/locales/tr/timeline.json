@@ -85,5 +85,9 @@
     "moving": "Parça taşınıyor, video yeni sırayla hazırlanıyor…",
     "moved": "Parça taşındı.",
     "failed": "Parça taşınamadı: {{error}}"
+  },
+  "blur": {
+    "label": "Bulanık {{index}}",
+    "addBlur": "Hassas bilgiyi gizle: araç çubuğunda Bulanıklaştır"
   }
 }

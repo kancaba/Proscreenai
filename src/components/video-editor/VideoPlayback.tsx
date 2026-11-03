@@ -3,7 +3,7 @@ import { useEffect, useRef, useImperativeHandle, forwardRef, useState, useMemo, 
 import { CUT_CROSSFADE_MS } from '@/lib/cutTransitions';
 import { getAssetPath, getRenderableAssetUrl } from "@/lib/assetPath";
 import { DEFAULT_WALLPAPER_PATH, DEFAULT_WALLPAPER_RELATIVE_PATH } from "@/lib/wallpapers";
-import { Application, Container, Sprite, Graphics, BlurFilter, Texture, VideoSource } from 'pixi.js';
+import { Application, Container, Sprite, Graphics, BlurFilter, Point, Texture, VideoSource } from 'pixi.js';
 import { MotionBlurFilter } from 'pixi-filters/motion-blur';
 import { ZoomBlurFilter } from 'pixi-filters/zoom-blur';
 import { ZOOM_DEPTH_SCALES, type ZoomRegion, type ZoomFocus, type ZoomDepth, type TrimRegion, type SpeedRegion, type AnnotationRegion, type CursorTelemetryPoint } from "./types";
@@ -18,6 +18,9 @@ import { applyZoomTransform, computeFocusFromTransform, computeZoomTransform, cr
 import { createVideoEventHandlers } from "./videoPlayback/videoEventHandlers";
 import { type AspectRatio, formatAspectRatioForCSS } from "@/utils/aspectRatioUtils";
 import { AnnotationOverlay } from "./AnnotationOverlay";
+import { BlurAreaEditor } from "./BlurAreaEditor";
+import { activeBlurRegions, type BlurRect, type BlurRegion } from "./blurRegions";
+import { BlurAreaLayer } from "./videoPlayback/blurLayer";
 import {
   DEFAULT_CURSOR_CLICK_BOUNCE,
   DEFAULT_CURSOR_MOTION_BLUR,
@@ -76,6 +79,11 @@ interface VideoPlaybackProps {
   speedRegions?: SpeedRegion[];
   aspectRatio: AspectRatio;
   annotationRegions?: AnnotationRegion[];
+  /** Areas of the recording to blur, drawn on the video so they follow zoom and crop. */
+  blurRegions?: BlurRegion[];
+  /** The blur area being edited: shown at any time while paused, with a box to move and resize it. */
+  selectedBlurId?: string | null;
+  onBlurRectChange?: (id: string, rect: BlurRect) => void;
   selectedAnnotationId?: string | null;
   onSelectAnnotation?: (id: string | null) => void;
   onAnnotationPositionChange?: (id: string, position: { x: number; y: number }) => void;
@@ -127,6 +135,9 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
   speedRegions = [],
   aspectRatio,
   annotationRegions = [],
+  blurRegions = [],
+  selectedBlurId = null,
+  onBlurRectChange,
   selectedAnnotationId,
   onSelectAnnotation,
   onAnnotationPositionChange,
@@ -217,6 +228,12 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
   const cursorMotionBlurRef = useRef(cursorMotionBlur);
   const cursorClickBounceRef = useRef(cursorClickBounce);
   const motionBlurStateRef = useRef<MotionBlurState>(createMotionBlurState());
+  const blurRegionsRef = useRef<BlurRegion[]>(blurRegions);
+  const selectedBlurIdRef = useRef<string | null>(selectedBlurId);
+  const blurLayerRef = useRef<BlurAreaLayer | null>(null);
+  const blurBoxRef = useRef<HTMLDivElement>(null);
+  blurRegionsRef.current = blurRegions;
+  selectedBlurIdRef.current = selectedBlurId;
 
   const clampFocusToStage = useCallback((focus: ZoomFocus, depth: ZoomDepth) => {
     return clampFocusToStageUtil(focus, depth, stageSizeRef.current);
@@ -379,6 +396,19 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
       });
     },
   }));
+
+  /** A point on the screen as a fraction of the recorded frame, through the current zoom and crop. */
+  const blurFramePoint = useCallback((clientX: number, clientY: number) => {
+    const overlayEl = overlayRef.current;
+    const sprite = videoSpriteRef.current;
+    if (!overlayEl || !sprite) return null;
+    const { width, height } = sprite.texture.source;
+    if (!width || !height) return null;
+    const bounds = overlayEl.getBoundingClientRect();
+    const local = sprite.toLocal(new Point(clientX - bounds.left, clientY - bounds.top));
+    return { x: local.x / width, y: local.y / height };
+  }, []);
+  const selectedBlur = selectedBlurId ? blurRegions.find((region) => region.id === selectedBlurId) ?? null : null;
 
   const updateFocusFromClientPoint = (clientX: number, clientY: number) => {
     const overlayEl = overlayRef.current;
@@ -747,6 +777,9 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
     
     const maskGraphics = new Graphics();
     videoContainer.addChild(videoSprite);
+    const blurLayer = new BlurAreaLayer();
+    blurLayerRef.current = blurLayer;
+    videoContainer.addChild(blurLayer.container);
     videoContainer.addChild(maskGraphics);
     videoContainer.mask = maskGraphics;
     maskGraphicsRef.current = maskGraphics;
@@ -818,6 +851,9 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
       }
       videoContainer.mask = null;
       maskGraphicsRef.current = null;
+      videoContainer.removeChild(blurLayer.container);
+      blurLayer.destroy();
+      blurLayerRef.current = null;
       if (blurFilterRef.current) {
         videoContainer.filters = [];
         blurFilterRef.current.destroy();
@@ -988,6 +1024,29 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
 
       applyTransform({ scale: appliedScale, x: appliedX, y: appliedY }, targetFocus, motionIntensity, motionVector);
 
+      // Blur areas sit on the video, so they are placed after the zoom for this frame.
+      const blurLayer = blurLayerRef.current;
+      const sprite = videoSpriteRef.current;
+      const camera = cameraContainerRef.current;
+      if (blurLayer && sprite && camera) {
+        const editingId = isPlayingRef.current ? null : selectedBlurIdRef.current;
+        blurLayer.update(activeBlurRegions(blurRegionsRef.current, currentTimeRef.current, editingId), sprite, camera.scale.x);
+        const box = blurBoxRef.current;
+        const editing = editingId ? blurRegionsRef.current.find((region) => region.id === editingId) : undefined;
+        if (box && editing) {
+          const { width, height } = sprite.texture.source;
+          const topLeft = sprite.toGlobal(new Point(editing.rect.x * width, editing.rect.y * height));
+          const bottomRight = sprite.toGlobal(new Point((editing.rect.x + editing.rect.width) * width, (editing.rect.y + editing.rect.height) * height));
+          box.style.display = 'block';
+          box.style.left = `${topLeft.x}px`;
+          box.style.top = `${topLeft.y}px`;
+          box.style.width = `${Math.max(1, bottomRight.x - topLeft.x)}px`;
+          box.style.height = `${Math.max(1, bottomRight.y - topLeft.y)}px`;
+        } else if (box) {
+          box.style.display = 'none';
+        }
+      }
+
       // Update cursor overlay
       const cursorOverlay = cursorOverlayRef.current;
       if (cursorOverlay) {
@@ -1152,6 +1211,14 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
             className="absolute rounded-md border border-[#2563EB]/80 bg-[#2563EB]/20 shadow-[0_0_0_1px_rgba(37,99,235,0.35)]"
             style={{ display: 'none', pointerEvents: 'none' }}
           />
+          {selectedBlur && !isPlaying && (
+            <BlurAreaEditor
+              rect={selectedBlur.rect}
+              boxRef={blurBoxRef}
+              framePoint={blurFramePoint}
+              onChange={(rect) => onBlurRectChange?.(selectedBlur.id, rect)}
+            />
+          )}
           {(() => {
             const filtered = (annotationRegions || []).filter((annotation) => {
               if (typeof annotation.startMs !== 'number' || typeof annotation.endMs !== 'number') return false;

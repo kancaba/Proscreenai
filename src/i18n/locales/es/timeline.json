@@ -85,5 +85,9 @@
     "moving": "Moviendo la parte, reconstruyendo el vídeo en el nuevo orden…",
     "moved": "Parte movida.",
     "failed": "No se pudo mover la parte: {{error}}"
+  },
+  "blur": {
+    "label": "Desenfoque {{index}}",
+    "addBlur": "Oculta datos sensibles: Desenfocar en la barra de herramientas"
   }
 }

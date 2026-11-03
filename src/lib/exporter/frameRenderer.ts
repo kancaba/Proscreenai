@@ -9,6 +9,8 @@ import { applyZoomTransform, computeFocusFromTransform, computeZoomTransform, cr
 import { DEFAULT_FOCUS, ZOOM_SCALE_DEADZONE, ZOOM_TRANSLATION_DEADZONE_PX } from '@/components/video-editor/videoPlayback/constants';
 import { renderAnnotations } from './annotationRenderer';
 import { PixiCursorOverlay, DEFAULT_CURSOR_CONFIG, preloadCursorAssets } from '@/components/video-editor/videoPlayback/cursorRenderer';
+import { BlurAreaLayer } from '@/components/video-editor/videoPlayback/blurLayer';
+import { activeBlurRegions, type BlurRegion } from '@/components/video-editor/blurRegions';
 
 interface FrameRenderConfig {
   width: number;
@@ -26,6 +28,8 @@ interface FrameRenderConfig {
   videoWidth: number;
   videoHeight: number;
   annotationRegions?: AnnotationRegion[];
+  /** Areas of the recording to blur; drawn on the video, so they follow zoom and crop. */
+  blurRegions?: BlurRegion[];
   speedRegions?: SpeedRegion[];
   previewWidth?: number;
   previewHeight?: number;
@@ -83,6 +87,7 @@ export class FrameRenderer {
   private currentVideoTime = 0;
   private lastMotionVector = { x: 0, y: 0 };
   private cursorOverlay: PixiCursorOverlay | null = null;
+  private blurLayer: BlurAreaLayer | null = null;
 
   constructor(config: FrameRenderConfig) {
     this.config = config;
@@ -351,6 +356,10 @@ export class FrameRenderer {
       const texture = Texture.from(videoFrame as any);
       this.videoSprite = new Sprite(texture);
       this.videoContainer.addChild(this.videoSprite);
+      if (this.config.blurRegions?.length) {
+        this.blurLayer = new BlurAreaLayer();
+        this.videoContainer.addChild(this.blurLayer.container);
+      }
       if (this.cursorOverlay && this.cursorContainer) {
         this.cursorContainer.addChild(this.cursorOverlay.container);
       }
@@ -413,6 +422,10 @@ export class FrameRenderer {
       motionBlurState: this.motionBlurState,
       frameTimeMs: timeMs,
     });
+
+    if (this.blurLayer && this.videoSprite) {
+      this.blurLayer.update(activeBlurRegions(this.config.blurRegions ?? [], timeMs), this.videoSprite, this.cameraContainer.scale.x);
+    }
 
     // Render the PixiJS stage to its canvas (video only, transparent background)
     this.app.renderer.render(this.app.stage);
@@ -708,6 +721,10 @@ export class FrameRenderer {
       this.videoSprite = null;
     }
     this.backgroundSprite = null;
+    if (this.blurLayer) {
+      this.blurLayer.destroy();
+      this.blurLayer = null;
+    }
     if (this.app) {
       this.app.destroy(true, { children: true, texture: false, textureSource: false });
       this.app = null;

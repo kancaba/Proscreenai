@@ -1,6 +1,6 @@
 import type { Span } from "dnd-timeline";
 import { useItem, useTimelineContext } from "dnd-timeline";
-import { Gauge, MessageSquare, Music, Scissors, ZoomIn } from "lucide-react";
+import { EyeOff, Gauge, MessageSquare, Music, Scissors, ZoomIn } from "lucide-react";
 import { useEffect, useRef, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { AudioWaveform } from "./AudioWaveform";
@@ -17,7 +17,7 @@ interface ItemProps {
   lane?: number;
   zoomDepth?: number;
   speedValue?: number;
-  variant?: 'zoom' | 'trim' | 'annotation' | 'speed' | 'audio';
+  variant?: 'zoom' | 'trim' | 'annotation' | 'speed' | 'audio' | 'blur';
   /** Audio clips: the file and where in it the clip starts, for the waveform. */
   waveform?: { audioPath: string; offsetMs: number };
 }
@@ -73,6 +73,7 @@ export default function Item({
   const isTrim = variant === 'trim';
   const isSpeed = variant === 'speed';
   const isAudio = variant === 'audio';
+  const isBlur = variant === 'blur';
 
   const glassClass = isZoom
     ? glassStyles.glassGreen
@@ -82,6 +83,8 @@ export default function Item({
     ? glassStyles.glassAmber
     : isAudio
     ? glassStyles.glassPurple
+    : isBlur
+    ? glassStyles.glassCyan
     : glassStyles.glassYellow;
 
   const endCapColor = isZoom
@@ -92,6 +95,8 @@ export default function Item({
     ? '#d97706'
     : isAudio
     ? '#a855f7'
+    : isBlur
+    ? '#0891b2'
     : '#B4A046';
 
 	const timeLabel = useMemo(
@@ -166,6 +171,13 @@ export default function Item({
                   <Gauge className="w-3.5 h-3.5 shrink-0" />
                   <span className="text-[11px] font-semibold tracking-tight whitespace-nowrap">
                     {speedValue !== undefined ? `${speedValue}×` : 'Speed'}
+                  </span>
+                </>
+              ) : isBlur ? (
+                <>
+                  <EyeOff className="w-3.5 h-3.5 shrink-0" />
+                  <span className="text-[11px] font-semibold tracking-tight whitespace-nowrap">
+                    {children}
                   </span>
                 </>
               ) : isAudio ? (

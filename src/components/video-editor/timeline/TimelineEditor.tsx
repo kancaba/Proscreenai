@@ -34,11 +34,13 @@ import { audioClipName } from "../audioClipName";
 import { detectInteractionCandidates, normalizeCursorTelemetry } from "./zoomSuggestionUtils";
 import { DEFAULT_ZOOM_SPAN_MS } from "../editingTools";
 import type { ClipSegment } from "./editedTime";
+import type { BlurRegion } from "../blurRegions";
 
 const ZOOM_ROW_ID = "row-zoom";
 const TRIM_ROW_ID = "row-trim";
 const ANNOTATION_ROW_ID = "row-annotation";
 const SPEED_ROW_ID = "row-speed";
+const BLUR_ROW_ID = "row-blur";
 const FALLBACK_RANGE_MS = 1000;
 const TARGET_MARKER_COUNT = 12;
 const SUGGESTION_SPACING_MS = 1800;
@@ -68,6 +70,12 @@ interface TimelineEditorProps {
   onAnnotationDelete?: (id: string) => void;
   selectedAnnotationId?: string | null;
   onSelectAnnotation?: (id: string | null) => void;
+  /** Areas of the recording that are blurred (added from the toolbar). */
+  blurRegions?: BlurRegion[];
+  onBlurSpanChange?: (id: string, span: Span) => void;
+  onBlurDelete?: (id: string) => void;
+  selectedBlurId?: string | null;
+  onSelectBlur?: (id: string | null) => void;
   speedRegions?: SpeedRegion[];
   onSpeedAdded?: (span: Span) => void;
   onSpeedSpanChange?: (id: string, span: Span) => void;
@@ -137,7 +145,7 @@ interface TimelineRenderItem {
   label: string;
   zoomDepth?: number;
   speedValue?: number;
-  variant: 'zoom' | 'trim' | 'annotation' | 'speed' | 'audio';
+  variant: 'zoom' | 'trim' | 'annotation' | 'speed' | 'audio' | 'blur';
   waveform?: { audioPath: string; offsetMs: number };
 }
 
@@ -500,6 +508,8 @@ function Timeline({
   selectedTrimId,
   selectedAnnotationId,
   selectedAudioId,
+  onSelectBlur,
+  selectedBlurId,
   keyframes = [],
   snapScaleRef,
   onItemContextMenu,
@@ -520,6 +530,8 @@ function Timeline({
   selectedAnnotationId?: string | null;
   selectedSpeedId?: string | null;
   selectedAudioId?: string | null;
+  onSelectBlur?: (id: string | null) => void;
+  selectedBlurId?: string | null;
   keyframes?: { id: string; time: number }[];
   snapScaleRef?: MutableRefObject<TimelineSnapScale>;
   onItemContextMenu?: (target: RegionTarget, event: React.MouseEvent) => void;
@@ -551,6 +563,7 @@ function Timeline({
     onSelectAnnotation?.(null);
     onSelectSpeed?.(null);
     onSelectAudio?.(null);
+    onSelectBlur?.(null);
     clip?.onSelectSegment(null);
 
 			const rect = e.currentTarget.getBoundingClientRect();
@@ -563,7 +576,7 @@ function Timeline({
 			const timeInSeconds = absoluteMs / 1000;
 
     onSeek(timeInSeconds);
-  }, [onSeek, onSelectZoom, onSelectTrim, onSelectAnnotation, onSelectSpeed, onSelectAudio, clip, videoDurationMs, sidebarWidth, range.start, pixelsToValue]);
+  }, [onSeek, onSelectZoom, onSelectTrim, onSelectAnnotation, onSelectSpeed, onSelectAudio, onSelectBlur, clip, videoDurationMs, sidebarWidth, range.start, pixelsToValue]);
 
   const zoomItems = items.filter(item => item.rowId === ZOOM_ROW_ID);
   const trimItems = items.filter(item => item.rowId === TRIM_ROW_ID);
@@ -572,6 +585,8 @@ function Timeline({
   // One row per audio track in use, plus an empty one to drop a clip onto a new track.
   const audioTrackCount = Math.min(MAX_AUDIO_TRACKS, Math.max(1, ...audioItems.map((item) => (trackOfAudioRow(item.rowId) ?? 0) + 2)));
   const annotationLayout = layoutTrackLanes(annotationItems);
+  const blurItems = items.filter(item => item.rowId === BLUR_ROW_ID);
+  const blurLayout = layoutTrackLanes(blurItems);
 
 	return (
 		<div
@@ -648,6 +663,23 @@ function Timeline({
 				))}
 			</Row>
 
+      <Row label="BULANIK" labelColor="#67e8f9" laneCount={blurLayout.count} id={BLUR_ROW_ID} isEmpty={blurItems.length === 0} hint={t('blur.addBlur', 'Hide sensitive info: Blur in the toolbar')}>
+        {blurItems.map((item) => (
+          <Item
+            id={item.id}
+            key={item.id}
+            rowId={item.rowId}
+            span={item.span}
+            isSelected={item.id === selectedBlurId}
+            onSelect={() => onSelectBlur?.(item.id)}
+            onContextMenu={(event) => onItemContextMenu?.({ kind: 'blur', id: item.id }, event)}
+            variant="blur" lane={blurLayout.lanes.get(item.id)}
+          >
+            {item.label}
+          </Item>
+        ))}
+      </Row>
+
       {/* Speed is set on parts of the video (select a part on the video track); there is no separate speed row. */}
 
       {Array.from({ length: audioTrackCount }, (_, track) => {
@@ -703,6 +735,11 @@ export default function TimelineEditor({
   onAnnotationDelete,
   selectedAnnotationId,
   onSelectAnnotation,
+  blurRegions = [],
+  onBlurSpanChange,
+  onBlurDelete,
+  selectedBlurId,
+  onSelectBlur,
   speedRegions = [],
   onSpeedAdded,
   onSpeedSpanChange,
@@ -757,8 +794,8 @@ export default function TimelineEditor({
   const selectedRegionTarget = useMemo<RegionTarget | null>(() => {
     const pick = (kind: RegionKind, id: string | null | undefined) => (id ? { kind, id } : null);
     return pick('zoom', selectedZoomId) ?? pick('trim', selectedTrimId) ?? pick('annotation', selectedAnnotationId)
-      ?? pick('speed', selectedSpeedId) ?? pick('audio', selectedAudioId);
-  }, [selectedZoomId, selectedTrimId, selectedAnnotationId, selectedSpeedId, selectedAudioId]);
+      ?? pick('speed', selectedSpeedId) ?? pick('audio', selectedAudioId) ?? pick('blur', selectedBlurId);
+  }, [selectedZoomId, selectedTrimId, selectedAnnotationId, selectedSpeedId, selectedAudioId, selectedBlurId]);
 
   useEffect(() => {
     if (!onRegionCommand) return;
@@ -867,6 +904,12 @@ export default function TimelineEditor({
     onSpeedDelete(selectedSpeedId);
     onSelectSpeed(null);
   }, [selectedSpeedId, onSpeedDelete, onSelectSpeed]);
+
+  const deleteSelectedBlur = useCallback(() => {
+    if (!selectedBlurId || !onBlurDelete || !onSelectBlur) return;
+    onBlurDelete(selectedBlurId);
+    onSelectBlur(null);
+  }, [selectedBlurId, onBlurDelete, onSelectBlur]);
 
   const deleteSelectedAudio = useCallback(() => {
     if (!selectedAudioId || !onAudioDelete || !onSelectAudio) return;
@@ -1245,7 +1288,7 @@ export default function TimelineEditor({
       if (matchesShortcut(e, keyShortcuts.addTrim, isMac)) {
         // Cut key: splits the selected item at the playhead, otherwise cuts the video there.
         const regionsByKind: Record<RegionKind, Array<{ id: string; startMs: number; endMs: number }>> = {
-          zoom: zoomRegions, trim: trimRegions, annotation: annotationRegions, speed: speedRegions, audio: audioRegions,
+          zoom: zoomRegions, trim: trimRegions, annotation: annotationRegions, speed: speedRegions, audio: audioRegions, blur: blurRegions,
         };
         const selected = selectedRegionTarget && regionsByKind[selectedRegionTarget.kind].find((region) => region.id === selectedRegionTarget.id);
         if (selected && onRegionCommand && currentTimeMs > selected.startMs && currentTimeMs < selected.endMs) {
@@ -1299,6 +1342,8 @@ export default function TimelineEditor({
           deleteSelectedSpeed();
         } else if (selectedAudioId) {
           deleteSelectedAudio();
+        } else if (selectedBlurId) {
+          deleteSelectedBlur();
         } else if (clip && clip.selectedStart !== null) {
           e.preventDefault();
           clip.onDeleteSegment();
@@ -1307,7 +1352,7 @@ export default function TimelineEditor({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [addKeyframe, handleAddZoom, handleAddTrim, handleAddAnnotation, handleAddSpeed, deleteSelectedKeyframe, deleteSelectedZoom, deleteSelectedTrim, deleteSelectedAnnotation, deleteSelectedSpeed, deleteSelectedAudio, selectedKeyframeId, selectedZoomId, selectedTrimId, selectedAnnotationId, selectedSpeedId, selectedAudioId, annotationRegions, currentTime, onSelectAnnotation, keyShortcuts, isMac, selectedRegionTarget, onRegionCommand, zoomRegions, trimRegions, speedRegions, audioRegions, currentTimeMs, clip]);
+  }, [addKeyframe, handleAddZoom, handleAddTrim, handleAddAnnotation, handleAddSpeed, deleteSelectedKeyframe, deleteSelectedZoom, deleteSelectedTrim, deleteSelectedAnnotation, deleteSelectedSpeed, deleteSelectedAudio, deleteSelectedBlur, selectedKeyframeId, selectedZoomId, selectedTrimId, selectedAnnotationId, selectedSpeedId, selectedAudioId, selectedBlurId, annotationRegions, currentTime, onSelectAnnotation, keyShortcuts, isMac, selectedRegionTarget, onRegionCommand, zoomRegions, trimRegions, speedRegions, audioRegions, blurRegions, currentTimeMs, clip]);
 
   const clampedRange = useMemo<Range>(() => {
     if (totalMs === 0) {
@@ -1380,8 +1425,16 @@ export default function TimelineEditor({
       };
     });
 
-    return [...zooms, ...trims, ...annotations, ...speeds, ...audios];
-  }, [zoomRegions, trimRegions, annotationRegions, speedRegions, audioRegions, locale]);
+    const blurs: TimelineRenderItem[] = [...blurRegions].sort((a, b) => a.startMs - b.startMs).map((region, index) => ({
+      id: region.id,
+      rowId: BLUR_ROW_ID,
+      span: { start: region.startMs, end: region.endMs },
+      label: tTimeline('blur.label', 'Blur {{index}}', { index: String(index + 1) }),
+      variant: 'blur',
+    }));
+
+    return [...zooms, ...trims, ...annotations, ...speeds, ...audios, ...blurs];
+  }, [zoomRegions, trimRegions, annotationRegions, speedRegions, audioRegions, blurRegions, locale, tTimeline]);
 
   // Flat list of all non-annotation region spans for neighbour-clamping during drag/resize
   const allRegionSpans = useMemo(() => {
@@ -1407,8 +1460,10 @@ export default function TimelineEditor({
       onAnnotationSpanChange?.(id, span);
     } else if (audioRegions.some(r => r.id === id)) {
       onAudioSpanChange?.(id, span, trackOfAudioRow(rowId));
+    } else if (blurRegions.some(r => r.id === id)) {
+      onBlurSpanChange?.(id, span);
     }
-  }, [zoomRegions, trimRegions, speedRegions, annotationRegions, audioRegions, onZoomSpanChange, onTrimSpanChange, onSpeedSpanChange, onAnnotationSpanChange, onAudioSpanChange]);
+  }, [zoomRegions, trimRegions, speedRegions, annotationRegions, audioRegions, blurRegions, onZoomSpanChange, onTrimSpanChange, onSpeedSpanChange, onAnnotationSpanChange, onAudioSpanChange, onBlurSpanChange]);
 
   // Follow the playhead while it moves (on by default; remembered per user).
   const [followPlayheadEnabled, setFollowPlayheadEnabled] = useState(() => {
@@ -1716,6 +1771,8 @@ export default function TimelineEditor({
             selectedAnnotationId={selectedAnnotationId}
             selectedSpeedId={selectedSpeedId}
             selectedAudioId={selectedAudioId}
+            onSelectBlur={onSelectBlur}
+            selectedBlurId={selectedBlurId}
             keyframes={keyframes}
             snapScaleRef={snapScaleRef}
             onItemContextMenu={openContextMenu}

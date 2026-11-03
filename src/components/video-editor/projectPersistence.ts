@@ -8,6 +8,7 @@ import { normalizeAnnotationAnimation } from "./annotationEffects";
 import { ASPECT_RATIOS, type AspectRatio, isCustomAspectRatio } from "@/utils/aspectRatioUtils";
 import type { ExportFormat, ExportQuality, GifFrameRate, GifSizePreset } from "@/lib/exporter";
 import { WALLPAPER_PATHS } from "@/lib/wallpapers";
+import { type BlurRegion, normalizeBlurRegions } from "./blurRegions";
 import {
   DEFAULT_CURSOR_CLICK_BOUNCE,
   DEFAULT_CURSOR_MOTION_BLUR,
@@ -52,6 +53,8 @@ export interface ProjectEditorState {
   speedRegions: SpeedRegion[];
   annotationRegions: AnnotationRegion[];
   audioRegions: AudioRegion[];
+  /** Areas of the recording that are blurred (absent when there are none). */
+  blurRegions?: BlurRegion[];
   /** Volume of the recording's own sound, 0 (muted) to 1. */
   sourceAudioVolume: number;
   /** Fade from/to black at the start and end of the video. */
@@ -72,6 +75,12 @@ export interface ProjectEditorState {
   gifFrameRate: GifFrameRate;
   gifLoop: boolean;
   gifSizePreset: GifSizePreset;
+}
+
+/** Blur areas of a saved project; nothing when there are none. */
+function normalizedBlurs(value: unknown): { blurRegions?: BlurRegion[] } {
+  const blurRegions = normalizeBlurRegions(value);
+  return blurRegions.length > 0 ? { blurRegions } : {};
 }
 
 /** Joined videos sorted by where they start, the first at 0; nothing when there is only one. */
@@ -395,6 +404,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
     speedRegions: normalizedSpeedRegions,
     annotationRegions: normalizedAnnotationRegions,
     audioRegions: normalizedAudioRegions,
+    ...normalizedBlurs((editor as Partial<ProjectEditorState>).blurRegions),
     sourceAudioVolume: isFiniteNumber((editor as Partial<ProjectEditorState>).sourceAudioVolume)
       ? clamp((editor as Partial<ProjectEditorState>).sourceAudioVolume as number, 0, 1)
       : 1,

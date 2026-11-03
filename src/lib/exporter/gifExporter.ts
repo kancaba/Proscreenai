@@ -7,6 +7,7 @@ import type { EndingHold } from '@/lib/endingHold';
 import { CutCrossfadeTracker } from '@/lib/cutTransitions';
 import { createCutMap } from '@/components/video-editor/timeline/editedTime';
 import type { ZoomRegion, CropRegion, TrimRegion, AnnotationRegion, SpeedRegion, CursorTelemetryPoint } from '@/components/video-editor/types';
+import type { BlurRegion } from '@/components/video-editor/blurRegions';
 
 const GIF_WORKER_URL = new URL('gif.js/dist/gif.worker.js', import.meta.url).toString();
 
@@ -35,6 +36,7 @@ interface GifExporterConfig {
   videoPadding?: number;
   cropRegion: CropRegion;
   annotationRegions?: AnnotationRegion[];
+  blurRegions?: BlurRegion[];
   cursorTelemetry?: CursorTelemetryPoint[];
   showCursor?: boolean;
   cursorSize?: number;
@@ -117,6 +119,7 @@ export class GifExporter {
         videoWidth: videoInfo.width,
         videoHeight: videoInfo.height,
         annotationRegions: this.config.annotationRegions,
+        blurRegions: this.config.blurRegions,
         speedRegions: this.config.speedRegions,
         previewWidth: this.config.previewWidth,
         previewHeight: this.config.previewHeight,

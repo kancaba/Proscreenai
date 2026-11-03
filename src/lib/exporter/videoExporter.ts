@@ -8,6 +8,7 @@ import { StreamingVideoDecoder } from './streamingDecoder';
 import { FrameRenderer } from './frameRenderer';
 import { VideoMuxer } from './muxer';
 import type { ZoomRegion, CropRegion, TrimRegion, AnnotationRegion, SpeedRegion, AudioRegion, CursorTelemetryPoint } from '@/components/video-editor/types';
+import type { BlurRegion } from '@/components/video-editor/blurRegions';
 
 interface VideoExporterConfig extends ExportConfig {
   videoUrl: string;
@@ -25,6 +26,7 @@ interface VideoExporterConfig extends ExportConfig {
   videoPadding?: number;
   cropRegion: CropRegion;
   annotationRegions?: AnnotationRegion[];
+  blurRegions?: BlurRegion[];
   cursorTelemetry?: CursorTelemetryPoint[];
   showCursor?: boolean;
   cursorSize?: number;
@@ -90,6 +92,7 @@ export class VideoExporter {
         videoWidth: videoInfo.width,
         videoHeight: videoInfo.height,
         annotationRegions: this.config.annotationRegions,
+        blurRegions: this.config.blurRegions,
         speedRegions: this.config.speedRegions,
         previewWidth: this.config.previewWidth,
         previewHeight: this.config.previewHeight,

@@ -4,7 +4,7 @@ export const HISTORY_COALESCE_MS = 400;
 export const AUTOMATIC_CHANGE_WINDOW_MS = 1500;
 
 // Undoable editor values compared as a whole (regions, the recording volume, fades and the ending).
-const REGION_KEYS = ["zoomRegions", "trimRegions", "speedRegions", "annotationRegions", "audioRegions", "sourceAudioVolume", "fades", "ending", "clipSplits"] as const;
+const REGION_KEYS = ["zoomRegions", "trimRegions", "speedRegions", "annotationRegions", "audioRegions", "blurRegions", "sourceAudioVolume", "fades", "ending", "clipSplits"] as const;
 
 export type HistoryContent = {
   appearance: object;

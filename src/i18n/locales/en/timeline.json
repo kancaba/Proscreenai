@@ -85,5 +85,9 @@
     "moving": "Moving the part, rebuilding the video in the new order…",
     "moved": "Part moved.",
     "failed": "Could not move the part: {{error}}"
+  },
+  "blur": {
+    "label": "Blur {{index}}",
+    "addBlur": "Hide sensitive info: Blur in the toolbar"
   }
 }
