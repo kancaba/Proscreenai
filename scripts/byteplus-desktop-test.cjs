@@ -55,6 +55,9 @@ const request = () => ({requestId:randomUUID(),mode:'generate',tool:'byteplus',p
   await field('Görsel üretim aracı','byteplus');
   await wait(()=>run('!!document.querySelector(".byteplus-controls")'));
   check('Create screen exposes API model, size, poster and budget controls', await run(`['Seedream modeli','Seedream çözünürlüğü','Poster türü','Posterde kullanılacak metin','BytePlus harcama sınırı USD'].every(label=>!!document.querySelector('[aria-label="'+label+'"]'))`));
+  check('Advanced settings start collapsed and watermark defaults off', await run(`!document.querySelector('.byteplus-advanced').open&&!document.querySelector('[aria-label="Seedream filigranı"]').checked`));
+  await fs.writeFile(path.join(root,'artifacts/byteplus-refined-controls.png'),(await win.webContents.capturePage()).toPNG());
+  await run(`document.querySelector('.byteplus-advanced > summary').click()`);
   await field('Seedream modeli','seedream-5-0-lite-260128');
   check('Model change switches supported sizes and default',await run(`document.querySelector('[aria-label="Seedream çözünürlüğü"]').value==='2K'&&Array.from(document.querySelector('[aria-label="Seedream çözünürlüğü"]').options).some(o=>o.value==='4K')`));
   await field('Seedream modeli',options.model);
@@ -104,7 +107,7 @@ const request = () => ({requestId:randomUUID(),mode:'generate',tool:'byteplus',p
   check('Double click sends exactly one POST and saves to gallery',posts===1&&downloads===1);
   check('The prompt writer runs once before Seedream with the default text model',chats===1&&lastChat.model==='dola-seed-2-1-turbo-260628'&&lastChat.messages[0].content.includes(JSON.stringify('İndirim\nŞimdi Keşfet')));
   check('Request includes poster guidance, Turkish copy, ratio and no secret in body',lastBody.prompt.includes('promotional poster')&&lastBody.prompt.includes('Şimdi Keşfet')&&!lastBody.prompt.includes('Saygıyla')&&lastBody.prompt.includes('1080:1350')&&!JSON.stringify(lastBody).includes('fake-modelark-key-test-only')&&lastHeaders.Authorization==='Bearer fake-modelark-key-test-only');
-  check('Seedream gets the prepared prompt',lastBody.prompt.includes('PREPARED IMAGE PROMPT')&&lastBody.prompt.includes('calm black commemorative poster'));
+  check('Seedream gets the prepared prompt',!lastBody.prompt.includes('PREPARED IMAGE PROMPT')&&!lastBody.prompt.includes('Ürünüm için krem')&&lastBody.prompt.includes('calm black commemorative poster')&&lastBody.watermark===false);
   // With the copy field empty, the writer's copy is what Seedream renders, and it is shown to the user.
   const backToCreate=async()=>{await run(`Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Oluştur')).click()`);await wait(()=>run('!!document.querySelector(".image-ai-generate")'));};
   await backToCreate();

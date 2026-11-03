@@ -21,7 +21,7 @@ export const BYTEPLUS_MODELS = {
 export type ByteplusModel = keyof typeof BYTEPLUS_MODELS;
 /**
  * Text models on the same ModelArk key that turn a request into Seedream's prompt and write the
- * short copy it must render (Seedream draws text well, but cannot decide what it should say).
+ * requested copy it must render.
  * Both read reference images. Prices per million tokens, from the pricing page.
  */
 export const BYTEPLUS_WRITERS = {
@@ -46,9 +46,16 @@ export function isByteplusWriter(value: unknown): value is ByteplusWriter {
 	return typeof value === "string" && Object.keys(BYTEPLUS_WRITERS).includes(value);
 }
 /** Cost of a written prompt from its token use. */
-export function byteplusWriterCost(writer: ByteplusWriter, inputTokens: number, outputTokens: number) {
+export function byteplusWriterCost(
+	writer: ByteplusWriter,
+	inputTokens: number,
+	outputTokens: number,
+) {
 	const price = BYTEPLUS_WRITERS[writer];
-	return Math.round(((inputTokens * price.inputPerM + outputTokens * price.outputPerM) / 1e6) * 1e6) / 1e6;
+	return (
+		Math.round(((inputTokens * price.inputPerM + outputTokens * price.outputPerM) / 1e6) * 1e6) /
+		1e6
+	);
 }
 /** Who writes the prompt; settings saved before writers existed get the default. */
 export function byteplusWriterOf(options: ByteplusOptions): ByteplusWriter | null {
@@ -111,7 +118,7 @@ export const DEFAULT_BYTEPLUS_OPTIONS: ByteplusOptions = {
 	size: "1.5K",
 	posterType: "free",
 	visibleText: "",
-	watermark: true,
+	watermark: false,
 	budgetUSD: 1,
 	writer: DEFAULT_BYTEPLUS_WRITER,
 };

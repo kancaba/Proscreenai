@@ -11,7 +11,12 @@ import {
 	DEFAULT_BYTEPLUS_OPTIONS,
 	isByteplusOptions,
 } from "./byteplusSettings";
-import { BYTEPLUS_CHAT_ENDPOINT, parseSeedreamWriting, seedreamWriterPayload, withSeedreamPrompt } from "./byteplusWriter";
+import {
+	BYTEPLUS_CHAT_ENDPOINT,
+	parseSeedreamWriting,
+	seedreamWriterPayload,
+	withSeedreamPrompt,
+} from "./byteplusWriter";
 
 const input = (visibleText = "", watermark = true) => ({
 	writer: "dola-seed-2-1-turbo-260628" as const,
@@ -23,40 +28,58 @@ const input = (visibleText = "", watermark = true) => ({
 	options: { ...DEFAULT_BYTEPLUS_OPTIONS, visibleText, watermark },
 	posterMethod: false,
 });
-const system = (payload: ReturnType<typeof seedreamWriterPayload>) => payload.messages[0].content as string;
+const system = (payload: ReturnType<typeof seedreamWriterPayload>) =>
+	payload.messages[0].content as string;
 
 describe("Seedream prompt writer", () => {
 	it("writes the copy itself when none is given, and keeps the user's copy when it is", () => {
 		const free = seedreamWriterPayload(input());
-		expect(system(free)).toMatch(/write them yourself/);
+		expect(system(free)).toMatch(/write it yourself/);
 		expect(system(free)).toMatch(/Never invent prices/);
 		const fixed = seedreamWriterPayload(input("10 KASIM\nSaygıyla anıyoruz."));
 		expect(system(fixed)).toContain(JSON.stringify("10 KASIM\nSaygıyla anıyoruz."));
-		expect(system(fixed)).not.toMatch(/write them yourself/);
+		expect(system(fixed)).not.toMatch(/write it yourself/);
 	});
 
-	it("sends the request and reference images, keeps text off the watermark without boxes, and warns about real people", () => {
+	it("preserves references and medium without forcing stock layouts or replacing subjects", () => {
 		const payload = seedreamWriterPayload(input());
 		expect(payload.model).toBe("dola-seed-2-1-turbo-260628");
 		const user = payload.messages[1].content as { type: string; image_url?: { url: string } }[];
 		expect(user[0]).toMatchObject({ type: "text" });
-		expect(user[1]).toEqual({ type: "image_url", image_url: { url: "data:image/jpeg;base64,AAAA" } });
+		expect(user[1]).toEqual({
+			type: "image_url",
+			image_url: { url: "data:image/jpeg;base64,AAAA" },
+		});
 		expect(system(payload)).toMatch(/"mersel logo"/);
-		expect(system(payload)).toMatch(/away from the lowest 12% of the right third, and do not mention that corner/);
-		expect(system(payload)).toMatch(/never ask for empty boxes, panels/);
-		expect(system(payload)).toMatch(/cannot reproduce a specific person's real likeness/);
-		expect(system(seedreamWriterPayload(input("", false)))).not.toMatch(/AI generated/);
+		expect(system(payload)).toMatch(/bottom-right watermark area/);
+		expect(system(payload)).toMatch(/Never introduce placeholders/);
+		expect(system(payload)).toMatch(/Do not substitute a different subject/);
+		expect(system(seedreamWriterPayload(input("", false)))).not.toMatch(
+			/bottom-right watermark area/,
+		);
 	});
 
 	it("reads the answer, also inside a code fence, and rejects unusable ones", () => {
-		expect(parseSeedreamWriting('```json\n{"prompt":" A calm poster ","copy":"10 KASIM","warnings":["Fotoğraf ekleyin",3]}\n```')).toEqual({
+		expect(
+			parseSeedreamWriting(
+				'```json\n{"prompt":" A calm poster ","copy":"10 KASIM","warnings":["Fotoğraf ekleyin",3]}\n```',
+			),
+		).toEqual({
 			prompt: "A calm poster",
 			copy: "10 KASIM",
 			warnings: ["Fotoğraf ekleyin"],
 		});
 		expect(parseSeedreamWriting("Here you go")).toBeUndefined();
 		expect(parseSeedreamWriting('{"copy":"x"}')).toBeUndefined();
-		expect(withSeedreamPrompt("istek", "prompt")).toMatch(/^istek\n\nPREPARED IMAGE PROMPT.*\nprompt$/s);
+		expect(withSeedreamPrompt("istek", "prompt")).toBe("prompt");
+	});
+
+	it("does not silently truncate detailed briefs or literal copy", () => {
+		const prompt = "Detailed material and lighting. ".repeat(180);
+		const copy = "İstanbul ".repeat(100);
+		expect(parseSeedreamWriting(JSON.stringify({ prompt, copy }))?.prompt).toBe(prompt.trim());
+		expect(parseSeedreamWriting(JSON.stringify({ prompt, copy }))?.copy).toBe(copy.trim());
+		expect(parseSeedreamWriting(JSON.stringify({ prompt: "x".repeat(20001) }))).toBeUndefined();
 	});
 
 	it("is on by default, can be turned off, and older settings still load", () => {
@@ -74,15 +97,28 @@ describe("Seedream prompt writer", () => {
 		const fetcher = (async (url: string, init: RequestInit) => {
 			calls.push({ url, auth: new Headers(init.headers).get("authorization") });
 			return Response.json({
-				choices: [{ message: { content: '{"prompt":"Black poster","copy":"10 KASIM","warnings":[]}' } }],
+				choices: [
+					{ message: { content: '{"prompt":"Black poster","copy":"10 KASIM","warnings":[]}' } },
+				],
 				usage: { prompt_tokens: 3000, completion_tokens: 900 },
 			});
 		}) as typeof fetch;
-		const answer = await requestByteplusWriting("ark-test", input(), new AbortController().signal, fetcher);
+		const answer = await requestByteplusWriting(
+			"ark-test",
+			input(),
+			new AbortController().signal,
+			fetcher,
+		);
 		expect(calls).toEqual([{ url: BYTEPLUS_CHAT_ENDPOINT, auth: "Bearer ark-test" }]);
-		expect(answer).toEqual({ writing: { prompt: "Black poster", copy: "10 KASIM", warnings: [] }, inputTokens: 3000, outputTokens: 900 });
+		expect(answer).toEqual({
+			writing: { prompt: "Black poster", copy: "10 KASIM", warnings: [] },
+			inputTokens: 3000,
+			outputTokens: 900,
+		});
 		const missing = (async () => new Response("{}", { status: 404 })) as unknown as typeof fetch;
-		await expect(requestByteplusWriting("ark-test", input(), new AbortController().signal, missing)).rejects.toThrow(/açık değil/);
+		await expect(
+			requestByteplusWriting("ark-test", input(), new AbortController().signal, missing),
+		).rejects.toThrow(/açık değil/);
 	});
 
 	it("reserves the writer only when the image after it also fits the spending limit", async () => {
@@ -90,11 +126,21 @@ describe("Seedream prompt writer", () => {
 		const jobs = new ByteplusJobs(root);
 		// Flash costs 0.018; with the writer's reserve that needs 0.038.
 		const tight = { ...DEFAULT_BYTEPLUS_OPTIONS, budgetUSD: 0.03 };
-		await expect(jobs.reserve("writer-job-1", tight, 0, "dola-seed-2-1-turbo-260628")).rejects.toThrow(/sınırı/);
-		const job = await jobs.reserve("writer-job-2", { ...tight, budgetUSD: 0.04 }, 0, "dola-seed-2-1-turbo-260628");
+		await expect(
+			jobs.reserve("writer-job-1", tight, 0, "dola-seed-2-1-turbo-260628"),
+		).rejects.toThrow(/sınırı/);
+		const job = await jobs.reserve(
+			"writer-job-2",
+			{ ...tight, budgetUSD: 0.04 },
+			0,
+			"dola-seed-2-1-turbo-260628",
+		);
 		expect(job.estimatedCostUSD).toBe(BYTEPLUS_WRITER_RESERVE_USD);
 		const ledger = await jobs.ledger();
-		expect(ledger.jobs[0]).toMatchObject({ writer: "dola-seed-2-1-turbo-260628", canRecover: false });
+		expect(ledger.jobs[0]).toMatchObject({
+			writer: "dola-seed-2-1-turbo-260628",
+			canRecover: false,
+		});
 		await fs.rm(root, { recursive: true, force: true });
 	});
 });

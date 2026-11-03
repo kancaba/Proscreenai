@@ -33,6 +33,10 @@ describe("BytePlus API contract", () => {
 		});
 		expect(body.model).toBe(DEFAULT_BYTEPLUS_OPTIONS.model);
 		expect(body.size).toBe("1.5K");
+		expect(body.watermark).toBe(false);
+		expect(
+			byteplusPayload({ ...input(), options: { ...input().options, watermark: true } }).watermark,
+		).toBe(true);
 		expect(body).not.toHaveProperty("sequential_image_generation");
 		expect(body).not.toHaveProperty("n");
 		expect(body.image).toEqual(["data:image/png;base64,YQ==", "data:image/png;base64,Yg=="]);

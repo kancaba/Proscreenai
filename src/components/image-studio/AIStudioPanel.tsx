@@ -533,20 +533,6 @@ export function AIStudioPanel({
 					</button>
 				</div>
 			</div>
-			{provider === "byteplus" && (
-				<ByteplusControls
-					options={byteplus}
-					onChange={setByteplus}
-					busy={busy}
-					references={refs.length}
-					ledger={ledger}
-					onRefresh={() => void refreshByteplus()}
-					onRecover={(id) => void recoverByteplus(id)}
-					onPreview={previewByteplus}
-					keyReady={byteplusKey.configured}
-					onSettings={openConnections}
-				/>
-			)}
 			{busy && <GenerationProgress stage={phase} detail={status} startedAt={startedAt} />}
 			<label className="image-prompt-label" htmlFor={promptId}>
 				<span>Fikrini anlat</span>
@@ -583,6 +569,20 @@ export function AIStudioPanel({
 					{requestText.length.toLocaleString("tr-TR")} / {context ? "8.500" : "12.000"}
 				</span>
 			</div>
+			{provider === "byteplus" && (
+				<ByteplusControls
+					options={byteplus}
+					onChange={setByteplus}
+					busy={busy}
+					references={refs.length}
+					ledger={ledger}
+					onRefresh={() => void refreshByteplus()}
+					onRecover={(id) => void recoverByteplus(id)}
+					onPreview={previewByteplus}
+					keyReady={byteplusKey.configured}
+					onSettings={openConnections}
+				/>
+			)}
 			<div className="image-poster-method">
 				<label>
 					<input

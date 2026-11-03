@@ -153,3 +153,31 @@
 	font-size: 11px;
 	line-height: 1.45;
 }
+
+.byteplus-advanced {
+	margin-top: 14px;
+	border-top: 1px solid #ffffff12;
+	padding-top: 12px;
+}
+.byteplus-advanced > summary {
+	cursor: pointer;
+	color: #d8cbea;
+	font-size: 12px;
+	padding: 4px 0;
+}
+.byteplus-advanced > summary span {
+	margin-left: 10px;
+	color: #92869f;
+	font-size: 11px;
+}
+.byteplus-advanced > summary:focus-visible {
+	outline: 2px solid #baa5ff;
+	outline-offset: 4px;
+	border-radius: 4px;
+}
+.byteplus-controls select {
+	min-width: 0;
+}
+.byteplus-controls .byteplus-fields > label {
+	min-width: 0;
+}

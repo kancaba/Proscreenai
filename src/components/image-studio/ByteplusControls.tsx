@@ -92,29 +92,8 @@ export function ByteplusControls({
 					</select>
 				</label>
 			</div>
-			<label className="byteplus-writer">
-				Prompt yazarı
-				<select
-					aria-label="Prompt yazarı"
-					value={writer ?? "off"}
-					disabled={busy}
-					onChange={(e) => onChange({ ...options, writer: e.target.value as ByteplusWriter | "off" })}
-				>
-					{Object.entries(BYTEPLUS_WRITERS).map(([id, item]) => (
-						<option key={id} value={id}>
-							{item.name} · {item.note}
-						</option>
-					))}
-					<option value="off">Kapalı · isteği olduğu gibi gönder</option>
-				</select>
-				<small>
-					{writer
-						? "Önce bir metin modeli isteğini ve referansları okur; görseldeki kısa metni yazar ve Seedream’in anladığı görsel tarifi hazırlar. Seedream yalnızca çizer."
-						: "İstek Seedream’e olduğu gibi gider. Seedream metin uyduramaz: görselde yazı olacaksa aşağıya aynen yaz."}
-				</small>
-			</label>
 			<label className="byteplus-copy">
-				Görselde aynen yazılacak metin
+				Görseldeki metin · isteğe bağlı
 				<textarea
 					aria-label="Posterde kullanılacak metin"
 					value={options.visibleText}
@@ -123,41 +102,12 @@ export function ByteplusControls({
 					disabled={busy}
 					placeholder={
 						writer
-							? "Boş bırakırsan prompt yazarı kısa bir metin yazar. Örn. Yeni Koleksiyon"
+							? "Yalnızca görselde yer almasını istediğin sözler. Örn. Yeni Koleksiyon"
 							: "Örn. Yeni Koleksiyon\nTarzını Keşfet"
 					}
 					onChange={(e) => onChange({ ...options, visibleText: e.target.value })}
 				/>
 			</label>
-			<div className="byteplus-budget">
-				<label>
-					Yerel toplam harcama sınırı (USD)
-					<input
-						aria-label="BytePlus harcama sınırı USD"
-						type="number"
-						min="0"
-						max="10000"
-						step="0.01"
-						value={options.budgetUSD}
-						disabled={busy}
-						onChange={(e) => {
-							const value = Number(e.target.value);
-							if (Number.isFinite(value))
-								onChange({ ...options, budgetUSD: Math.max(0, Math.min(10000, value)) });
-						}}
-					/>
-				</label>
-				<label className="byteplus-watermark">
-					<input
-						aria-label="Seedream filigranı"
-						type="checkbox"
-						checked={options.watermark}
-						disabled={busy}
-						onChange={(e) => onChange({ ...options, watermark: e.target.checked })}
-					/>{" "}
-					AI filigranı
-				</label>
-			</div>
 			<div className="byteplus-cost" role="status">
 				<strong>
 					1 görsel · Tahmini ${cost.toFixed(3)} USD{writer ? " + prompt yazarı ≈ $0.01" : ""}
@@ -168,57 +118,121 @@ export function ByteplusControls({
 						: "Yerel kullanım yüklenmedi; üretim öncesi yeniden kontrol edilir."}
 				</span>
 			</div>
-			<p className="image-hint">
-				Sınır bu cihazdaki BytePlus kayıtları içindir; hesap bakiyesi veya deneme kredisi değildir.
-				Belirsiz istekler de sınıra dahildir. Fiyat tahmini: {BYTEPLUS_PRICE_DATE}.{" "}
-				<a href={BYTEPLUS_PRICE_SOURCE} target="_blank" rel="noreferrer">
-					Fiyat kaynağı
-				</a>
-			</p>
-			<div className="byteplus-buttons">
+			{!keyReady && (
 				<button type="button" disabled={busy} onClick={onSettings}>
-					{keyReady ? "API bağlantısını yönet" : "ModelArk API anahtarı ekle"}
+					ModelArk API anahtarı ekle
 				</button>
-				<button type="button" disabled={busy} onClick={onPreview}>
-					API isteğini önizle · ücretsiz
-				</button>
-			</div>
-			<details className="byteplus-history">
-				<summary>Kayıtlı API sonuçları</summary>
-				<button type="button" disabled={busy} onClick={onRefresh}>
-					Kayıtları yenile
-				</button>
-				{ledger?.jobs.length ? (
-					ledger.jobs.map((job) => (
-						<div className="byteplus-job" key={job.id}>
-							<span>
-								{new Date(job.createdAt).toLocaleString("tr-TR")} ·{" "}
-								{job.writer ? `${BYTEPLUS_WRITERS[job.writer].name} · prompt` : BYTEPLUS_MODELS[job.model].name}
-								<small>
-									{job.state === "complete"
-										? "Kaydedildi"
-										: job.state === "received"
-											? "İndirilmeyi bekliyor"
-											: job.state === "failed"
-												? "Reddedildi"
-												: "Sonuç belirsiz"}{" "}
-									· ${job.estimatedCostUSD.toFixed(3)}
-								</small>
-							</span>
-							{job.canRecover && (
-								<button type="button" disabled={busy} onClick={() => onRecover(job.id)}>
-									{job.state === "complete" ? "Galeriye al" : "Sonucu kurtar"}
-								</button>
-							)}
-						</div>
-					))
-				) : (
-					<p className="image-hint">Henüz kayıtlı üretim yok.</p>
-				)}
+			)}
+			<details className="byteplus-advanced">
+				<summary>
+					Gelişmiş ayarlar <span>Prompt, harcama ve API</span>
+				</summary>
+				<label className="byteplus-writer">
+					Prompt yazarı
+					<select
+						aria-label="Prompt yazarı"
+						value={writer ?? "off"}
+						disabled={busy}
+						onChange={(e) =>
+							onChange({ ...options, writer: e.target.value as ByteplusWriter | "off" })
+						}
+					>
+						{Object.entries(BYTEPLUS_WRITERS).map(([id, item]) => (
+							<option key={id} value={id}>
+								{item.name} · {item.note}
+							</option>
+						))}
+						<option value="off">Kapalı · isteği olduğu gibi gönder</option>
+					</select>
+					<small>
+						{writer
+							? "İsteğini ve referanslarını koruyarak görsel tarifini hazırlar. Yalnızca istediğinde yeni metin yazar."
+							: "İsteğin ek bir prompt yazarı kullanılmadan gönderilir. Gerekli görsel ayrıntılarını isteğinde belirt."}
+					</small>
+				</label>
+				<div className="byteplus-budget">
+					<label>
+						Yerel toplam harcama sınırı (USD)
+						<input
+							aria-label="BytePlus harcama sınırı USD"
+							type="number"
+							min="0"
+							max="10000"
+							step="0.01"
+							value={options.budgetUSD}
+							disabled={busy}
+							onChange={(e) => {
+								const value = Number(e.target.value);
+								if (Number.isFinite(value))
+									onChange({ ...options, budgetUSD: Math.max(0, Math.min(10000, value)) });
+							}}
+						/>
+					</label>
+					<label className="byteplus-watermark">
+						<input
+							aria-label="Seedream filigranı"
+							type="checkbox"
+							checked={options.watermark}
+							disabled={busy}
+							onChange={(e) => onChange({ ...options, watermark: e.target.checked })}
+						/>{" "}
+						AI filigranı
+					</label>
+				</div>
 				<p className="image-hint">
-					Bu düğmeler yeni üretim yapmaz. İndirme bağlantıları 24 saat geçerlidir; tamamlanan
-					dosyalar bu cihazdan alınır.
+					Sınır bu cihazdaki BytePlus kayıtları içindir; hesap bakiyesi veya deneme kredisi
+					değildir. Belirsiz istekler de sınıra dahildir. Fiyat tahmini: {BYTEPLUS_PRICE_DATE}.{" "}
+					<a href={BYTEPLUS_PRICE_SOURCE} target="_blank" rel="noreferrer">
+						Fiyat kaynağı
+					</a>
 				</p>
+				<div className="byteplus-buttons">
+					<button type="button" disabled={busy} onClick={onSettings}>
+						{keyReady ? "API bağlantısını yönet" : "ModelArk API anahtarı ekle"}
+					</button>
+					<button type="button" disabled={busy} onClick={onPreview}>
+						API isteğini önizle · ücretsiz
+					</button>
+				</div>
+				<details className="byteplus-history">
+					<summary>Kayıtlı API sonuçları</summary>
+					<button type="button" disabled={busy} onClick={onRefresh}>
+						Kayıtları yenile
+					</button>
+					{ledger?.jobs.length ? (
+						ledger.jobs.map((job) => (
+							<div className="byteplus-job" key={job.id}>
+								<span>
+									{new Date(job.createdAt).toLocaleString("tr-TR")} ·{" "}
+									{job.writer
+										? `${BYTEPLUS_WRITERS[job.writer].name} · prompt`
+										: BYTEPLUS_MODELS[job.model].name}
+									<small>
+										{job.state === "complete"
+											? "Kaydedildi"
+											: job.state === "received"
+												? "İndirilmeyi bekliyor"
+												: job.state === "failed"
+													? "Reddedildi"
+													: "Sonuç belirsiz"}{" "}
+										· ${job.estimatedCostUSD.toFixed(3)}
+									</small>
+								</span>
+								{job.canRecover && (
+									<button type="button" disabled={busy} onClick={() => onRecover(job.id)}>
+										{job.state === "complete" ? "Galeriye al" : "Sonucu kurtar"}
+									</button>
+								)}
+							</div>
+						))
+					) : (
+						<p className="image-hint">Henüz kayıtlı üretim yok.</p>
+					)}
+					<p className="image-hint">
+						Bu düğmeler yeni üretim yapmaz. İndirme bağlantıları 24 saat geçerlidir; tamamlanan
+						dosyalar bu cihazdan alınır.
+					</p>
+				</details>
 			</details>
 		</div>
 	);
