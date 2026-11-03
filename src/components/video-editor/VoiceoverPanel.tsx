@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { useI18n } from '@/contexts/I18nContext'
 import { toFileUrl } from './projectPersistence'
+import type { VoiceoverTake } from './voiceoverTakes'
 type Provider = 'modelion' | 'fish' | 'elevenlabs'
 type CloudProvider = Exclude<Provider, 'modelion'>
 type Voice = { id: string; title: string; author: string; languages: string[]; likes: number; sample?: string }
@@ -44,9 +45,12 @@ const isProvider = (value: unknown): value is Provider => value === 'modelion' |
 const isModelOf = (provider: CloudProvider) => (value: unknown): value is string => cloud[provider].models.some(model => model.id === value)
 const isVoiceOf = (provider: CloudProvider) => (value: unknown): value is ChosenVoice => typeof value === 'object' && value !== null && typeof (value as { id?: unknown }).id === 'string' && cloud[provider].voiceId.test((value as { id: string }).id) && typeof (value as { title?: unknown }).title === 'string'
 const cancel = (active: { id: string; provider: Provider }) => void (active.provider === 'modelion' ? window.electronAPI.modelionCancelSpeech(active.id) : cloud[active.provider].cancel(active.id))
-export function VoiceoverPanel({ open, onOpenChange, initialText, onSettings, onAdd, remainingSeconds }: {
+type AddAt = 'playhead' | 'start'
+export function VoiceoverPanel({ open, onOpenChange, initialText, onSettings, onAdd, remainingSeconds, takes, onTakeCreated, onTakeRemove }: {
   open: boolean; onOpenChange: (open: boolean) => void; initialText: string; onSettings: () => void
-  onAdd: (path: string, durationSeconds: number) => void; remainingSeconds: number
+  onAdd: (path: string, durationSeconds: number, at: AddAt) => void; remainingSeconds: number
+  /** Voiceovers already generated for this project, newest first. */
+  takes: VoiceoverTake[]; onTakeCreated: (take: VoiceoverTake) => void; onTakeRemove: (id: string) => void
 }) {
   const { locale } = useI18n(), tr = locale === 'tr'
   const [text, setText] = useState(initialText), [language, setLanguage] = useState(locale === 'tr' ? 'tr' : 'en')
@@ -84,12 +88,13 @@ export function VoiceoverPanel({ open, onOpenChange, initialText, onSettings, on
       const response = active && voice
         ? await cloud[active].generate({ text: text.trim(), voiceId: voice.id, model: models[active], language, requestId: current.id })
         : await window.electronAPI.modelionGenerateSpeech({ text: text.trim(), language, requestId: current.id })
-      if (request.current !== current) return
       const duration = await new Promise<number>((resolve, reject) => {
         const audio = new Audio(toFileUrl(response.path)); const timer = setTimeout(() => { audio.src = ''; reject(new Error('Audio metadata timed out.')) }, 15000)
         audio.onloadedmetadata = () => { clearTimeout(timer); const seconds = audio.duration; audio.src = ''; Number.isFinite(seconds) && seconds > 0 ? resolve(seconds) : reject(new Error('Invalid audio duration.')) }
         audio.onerror = () => { clearTimeout(timer); audio.src = ''; reject(new Error('Generated audio could not be decoded.')) }
       })
+      // Kept with the project right away, even if the panel was closed meanwhile: it was paid for.
+      onTakeCreated({ id: crypto.randomUUID(), path: response.path, durationMs: Math.round(duration * 1000), text: text.trim(), voice: active && voice ? `${providerName[active]} · ${voice.title}` : 'Ema Lightning', createdAt: Date.now() })
       if (request.current === current) setResult({ path: response.path, duration })
     } catch (cause) { if (request.current === current) setError(aiErrorMessage(cause, tr, providerName[current.provider])) }
     finally { if (request.current === current) { request.current = null; setBusy(false) } }
@@ -97,7 +102,10 @@ export function VoiceoverPanel({ open, onOpenChange, initialText, onSettings, on
   const ready = configured[provider] && (!active || voice !== null)
   const engine = active ? providerName[active] : 'Ema Lightning'
   const hint = active && cloud[active].hint?.models.includes(models[active]) ? cloud[active].hint?.[tr ? 'tr' : 'en'] : undefined
-  return <Dialog open={open} onOpenChange={close}><DialogContent className="max-w-xl border-white/10 bg-[#15151c] text-white"><DialogHeader><DialogTitle>{tr ? 'AI seslendirme' : 'AI voiceover'}</DialogTitle><DialogDescription>{engine}{voice ? ` · ${voice.title}` : ''} · {tr ? 'Metninizi yazın veya AI yazılarını kullanın. Sesi dinleyip zaman çizelgesine ekleyin.' : 'Write a script or use AI captions. Preview the voice before adding it to your timeline.'}</DialogDescription></DialogHeader>
+  const add = (path: string, seconds: number, at: AddAt) => { onAdd(path, seconds, at); close(false) }
+  const atEnd = remainingSeconds < .1
+  const earlier = takes.filter(take => take.path !== result?.path)
+  return <Dialog open={open} onOpenChange={close}><DialogContent onInteractOutside={event => event.preventDefault()} className="max-h-[92vh] max-w-xl overflow-y-auto border-white/10 bg-[#15151c] text-white"><DialogHeader><DialogTitle>{tr ? 'AI seslendirme' : 'AI voiceover'}</DialogTitle><DialogDescription>{engine}{voice ? ` · ${voice.title}` : ''} · {tr ? 'Metninizi yazın veya AI yazılarını kullanın. Sesi dinleyip zaman çizelgesine ekleyin.' : 'Write a script or use AI captions. Preview the voice before adding it to your timeline.'}</DialogDescription></DialogHeader>
     <div role="radiogroup" aria-label={tr ? 'Seslendirme sağlayıcısı' : 'Voice provider'} className="grid grid-cols-3 gap-2 rounded-xl bg-black/20 p-1 text-xs">{(['modelion', 'fish', 'elevenlabs'] as const).map(option => <button key={option} role="radio" aria-checked={provider === option} data-testid={`voice-provider-${option}`} disabled={busy} onClick={() => chooseProvider(option)} className={provider === option ? 'rounded-lg bg-violet-300/20 p-2 text-violet-100' : 'rounded-lg p-2 text-slate-400'}>{option === 'modelion' ? 'Modelion · Ema Lightning' : providerName[option]}</button>)}</div>
     {!configured[provider] && <div className="flex items-center justify-between rounded-lg border border-violet-300/20 p-3 text-xs"><span>{tr ? `${providerName[provider]} bağlantısı gerekli.` : `Connect ${providerName[provider]} first.`}</span><button onClick={onSettings} className="text-violet-300">{tr ? 'AI ayarları' : 'AI settings'}</button></div>}
     {active && configured[active] && <div className="space-y-2 rounded-xl border border-white/10 p-3 text-xs">
@@ -115,6 +123,12 @@ export function VoiceoverPanel({ open, onOpenChange, initialText, onSettings, on
     <p className="text-[11px] text-slate-500">{tr ? `Ses oluşturulduğunda bu metin ${providerDative[provider]} gönderilir; kullanım hesabınıza yansıyabilir.` : `Generating speech sends this script to ${providerName[provider]} and may use account credits.`}</p>
     <button data-testid="generate-speech" disabled={busy || !ready || !text.trim()} onClick={() => void generate()} className="rounded-xl bg-violet-300 px-4 py-3 text-sm font-medium text-black disabled:opacity-40">{busy ? (tr ? 'Ses oluşturuluyor…' : 'Generating speech…') : (tr ? `${engine} ile seslendir` : `Generate with ${engine}`)}</button>
     {error && <p role="alert" className="text-xs text-red-300">{error}</p>}
-    {result && <div className="space-y-3 rounded-xl border border-emerald-300/20 p-3"><audio controls src={toFileUrl(result.path)} className="w-full" /><p className="text-xs text-slate-400">{result.duration.toFixed(1)} {tr ? 'saniye' : 'seconds'}</p>{result.duration > remainingSeconds && <p className="text-xs text-amber-300">{tr ? 'Ses video sonunu aşıyor. Video sonuna kadar olan bölüm kullanılacak.' : 'The audio exceeds the remaining video. Only the part before the end will be used.'}</p>}<button data-testid="add-voiceover" disabled={remainingSeconds < .1} onClick={() => { onAdd(result.path, result.duration); close(false) }} className="w-full rounded-lg bg-emerald-300/15 p-2 text-sm text-emerald-200">{tr ? 'Oynatma konumuna ekle' : 'Add at playhead'}</button></div>}
+    {result && <div className="space-y-3 rounded-xl border border-emerald-300/20 p-3"><audio controls src={toFileUrl(result.path)} className="w-full" /><p className="text-xs text-slate-400">{result.duration.toFixed(1)} {tr ? 'saniye' : 'seconds'}</p>{atEnd ? <p className="text-xs text-amber-300">{tr ? 'Oynatma konumu videonun sonunda. Başa ekleyin ya da paneli kapatıp konumu seçin; ses bu projede saklanır.' : 'The playhead is at the end of the video. Add it at the start, or close the panel and pick a spot; the voiceover is kept in this project.'}</p> : result.duration > remainingSeconds && <p className="text-xs text-amber-300">{tr ? 'Ses video sonunu aşıyor. Video sonuna kadar olan bölüm kullanılacak.' : 'The audio exceeds the remaining video. Only the part before the end will be used.'}</p>}<div className="grid grid-cols-2 gap-2"><button data-testid="add-voiceover" disabled={atEnd} onClick={() => add(result.path, result.duration, 'playhead')} className="rounded-lg bg-emerald-300/15 p-2 text-sm text-emerald-200 disabled:opacity-40">{tr ? 'Oynatma konumuna ekle' : 'Add at playhead'}</button><button data-testid="add-voiceover-start" onClick={() => add(result.path, result.duration, 'start')} className="rounded-lg bg-white/10 p-2 text-sm text-slate-200">{tr ? 'Başa ekle' : 'Add at start'}</button></div><p className="text-[11px] text-slate-500">{tr ? 'Bu ses projeye kaydedildi; panel kapansa da aşağıdaki listeden tekrar eklenebilir.' : 'This voiceover is saved with the project; you can add it again later from the list.'}</p></div>}
+    {earlier.length > 0 && <div data-testid="voiceover-takes" className="space-y-2 rounded-xl border border-white/10 p-3"><p className="text-xs text-slate-400">{tr ? `Bu projede üretilen sesler · ${earlier.length}` : `Voiceovers made for this project · ${earlier.length}`}</p>
+      <ul className="max-h-60 space-y-2 overflow-y-auto pr-1">{earlier.map(take => <li key={take.id} data-testid="voiceover-take" className="space-y-1 rounded-lg bg-black/20 p-2">
+        <div className="flex items-start gap-2"><p title={take.text} className="line-clamp-2 min-w-0 flex-1 text-xs text-slate-200">{take.text || (tr ? '(metin yok)' : '(no script)')}</p><button aria-label={tr ? 'Listeden kaldır' : 'Remove from list'} title={tr ? 'Listeden kaldır' : 'Remove from list'} disabled={busy} onClick={() => onTakeRemove(take.id)} className="text-slate-500 hover:text-red-300">✕</button></div>
+        <p className="text-[10px] text-slate-500">{[take.voice, `${(take.durationMs / 1000).toFixed(1)} ${tr ? 'sn' : 's'}`, take.createdAt ? new Date(take.createdAt).toLocaleString(tr ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''].filter(Boolean).join(' · ')}</p>
+        <div className="flex items-center gap-2"><audio controls preload="none" src={toFileUrl(take.path)} className="h-8 min-w-0 flex-1" /><button data-testid="take-add-playhead" disabled={busy || atEnd} onClick={() => add(take.path, take.durationMs / 1000, 'playhead')} className="rounded-lg bg-emerald-300/15 px-2 py-1 text-xs text-emerald-200 disabled:opacity-40">{tr ? 'Konuma ekle' : 'At playhead'}</button><button data-testid="take-add-start" disabled={busy} onClick={() => add(take.path, take.durationMs / 1000, 'start')} className="rounded-lg bg-white/10 px-2 py-1 text-xs text-slate-200">{tr ? 'Başa' : 'At start'}</button></div>
+      </li>)}</ul></div>}
   </DialogContent></Dialog>
 }

@@ -9,6 +9,7 @@ import { ASPECT_RATIOS, type AspectRatio, isCustomAspectRatio } from "@/utils/as
 import type { ExportFormat, ExportQuality, GifFrameRate, GifSizePreset } from "@/lib/exporter";
 import { WALLPAPER_PATHS } from "@/lib/wallpapers";
 import { type BlurRegion, normalizeBlurRegions } from "./blurRegions";
+import { normalizeVoiceoverTakes, type VoiceoverTake } from "./voiceoverTakes";
 import {
   DEFAULT_CURSOR_CLICK_BOUNCE,
   DEFAULT_CURSOR_MOTION_BLUR,
@@ -55,6 +56,8 @@ export interface ProjectEditorState {
   audioRegions: AudioRegion[];
   /** Areas of the recording that are blurred (absent when there are none). */
   blurRegions?: BlurRegion[];
+  /** Voiceovers generated for this project, newest first, whether or not they are on the timeline. */
+  voiceoverTakes?: VoiceoverTake[];
   /** Volume of the recording's own sound, 0 (muted) to 1. */
   sourceAudioVolume: number;
   /** Fade from/to black at the start and end of the video. */
@@ -81,6 +84,12 @@ export interface ProjectEditorState {
 function normalizedBlurs(value: unknown): { blurRegions?: BlurRegion[] } {
   const blurRegions = normalizeBlurRegions(value);
   return blurRegions.length > 0 ? { blurRegions } : {};
+}
+
+/** Generated voiceovers of a saved project; nothing when there are none. */
+function normalizedTakes(value: unknown): { voiceoverTakes?: VoiceoverTake[] } {
+  const voiceoverTakes = normalizeVoiceoverTakes(value);
+  return voiceoverTakes.length > 0 ? { voiceoverTakes } : {};
 }
 
 /** Joined videos sorted by where they start, the first at 0; nothing when there is only one. */
@@ -405,6 +414,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
     annotationRegions: normalizedAnnotationRegions,
     audioRegions: normalizedAudioRegions,
     ...normalizedBlurs((editor as Partial<ProjectEditorState>).blurRegions),
+    ...normalizedTakes((editor as Partial<ProjectEditorState>).voiceoverTakes),
     sourceAudioVolume: isFiniteNumber((editor as Partial<ProjectEditorState>).sourceAudioVolume)
       ? clamp((editor as Partial<ProjectEditorState>).sourceAudioVolume as number, 0, 1)
       : 1,

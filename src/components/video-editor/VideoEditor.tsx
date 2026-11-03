@@ -3,6 +3,7 @@ import './editor-workspace.css';
 import { PreviewWorkspaceBar } from './PreviewWorkspaceBar';
 import { ModelionSettings } from './ModelionSettings';
 import { VoiceoverPanel } from './VoiceoverPanel';
+import { addVoiceoverTake, type VoiceoverTake } from './voiceoverTakes';
 import { ExportSetupDialog } from './ExportSetupDialog';
 import { outputDimensions, exportBitrate, fitCustomSizeToRatio, matchesRatio, type ResolutionPreset, type VideoFps } from '@/lib/video/outputSettings';
 import { AudioClipControls } from './AudioInspector';
@@ -201,6 +202,8 @@ export default function VideoEditor() {
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
   const [audioRegions, setAudioRegions] = useState<AudioRegion[]>([]);
   const [blurRegions, setBlurRegions] = useState<BlurRegion[]>([]);
+  // Not part of undo: a generated voiceover is kept even when the edits around it are undone.
+  const [voiceoverTakes, setVoiceoverTakes] = useState<VoiceoverTake[]>([]);
   const [selectedBlurId, setSelectedBlurId] = useState<string | null>(null);
   /** Volume of the recording's own sound, 0 (muted) to 1. */
   const [sourceAudioVolume, setSourceAudioVolume] = useState(1);
@@ -578,6 +581,7 @@ export default function VideoEditor() {
     setAnnotationRegions(normalizedEditor.annotationRegions);
     setAudioRegions(normalizedEditor.audioRegions);
     setBlurRegions(normalizedEditor.blurRegions ?? []);
+    setVoiceoverTakes(normalizedEditor.voiceoverTakes ?? []);
     setSourceAudioVolume(normalizedEditor.sourceAudioVolume);
     setFades(normalizedEditor.fades);
     setEnding(normalizedEditor.ending ?? NO_ENDING);
@@ -645,6 +649,7 @@ export default function VideoEditor() {
         annotationRegions,
         audioRegions,
         ...(blurRegions.length > 0 ? { blurRegions } : {}),
+        ...(voiceoverTakes.length > 0 ? { voiceoverTakes } : {}),
         sourceAudioVolume,
         fades,
         ...(ending.durationMs > 0 ? { ending } : {}),
@@ -680,6 +685,7 @@ export default function VideoEditor() {
     speedRegions,
     audioRegions,
     blurRegions,
+    voiceoverTakes,
     sourceAudioVolume,
     fades,
     ending,
@@ -862,6 +868,7 @@ export default function VideoEditor() {
       annotationRegions,
       audioRegions,
       ...(blurRegions.length > 0 ? { blurRegions } : {}),
+      ...(voiceoverTakes.length > 0 ? { voiceoverTakes } : {}),
       sourceAudioVolume,
       fades,
       ...(ending.durationMs > 0 ? { ending } : {}),
@@ -926,6 +933,7 @@ export default function VideoEditor() {
     annotationRegions,
     audioRegions,
     blurRegions,
+    voiceoverTakes,
     sourceAudioVolume,
     fades,
     ending,
@@ -3185,7 +3193,8 @@ export default function VideoEditor() {
       </Dialog>
       <VoiceoverPanel open={voiceoverOpen} onOpenChange={setVoiceoverOpen} initialText={voiceoverText}
         onSettings={() => { setVoiceoverOpen(false); setAiSettingsOpen(true); }} remainingSeconds={Math.max(0, duration-currentTime)}
-        onAdd={(path, seconds) => { const start = Math.min(currentTime, Math.max(0,duration-.1)); handleAudioAdded({start:Math.round(start*1000),end:Math.round((start+seconds)*1000)},path,seconds*1000); }} />
+        takes={voiceoverTakes} onTakeCreated={take => setVoiceoverTakes(previous => addVoiceoverTake(previous, take))} onTakeRemove={id => setVoiceoverTakes(previous => previous.filter(take => take.id !== id))}
+        onAdd={(path, seconds, at) => { const start = at === 'start' ? 0 : Math.min(currentTime, Math.max(0,duration-.1)); handleAudioAdded({start:Math.round(start*1000),end:Math.round((start+seconds)*1000)},path,seconds*1000); }} />
       <ExportSetupDialog open={exportSetupOpen} onOpenChange={setExportSetupOpen} onStart={() => { setExportSetupOpen(false); handleStartExport(); }}
         selected={wallpaper} onWallpaperChange={setWallpaper} aspectRatio={aspectRatio} videoElement={videoPlaybackRef.current?.video}
         exportFormat={exportFormat} onExportFormatChange={setExportFormat} exportQuality={exportQuality} onExportQualityChange={value => { setExportQuality(value); if (exportResolution === 'legacy') setExportResolution('source'); }}
