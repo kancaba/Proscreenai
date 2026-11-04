@@ -1,5 +1,5 @@
 import type { Proposal, ProposalSet, TextPreset } from "@/lib/agent/proposals";
-import { TEXT_STYLE_PRESETS } from "./annotationEffects";
+import { SUBTITLE_PLACEMENT, TEXT_STYLE_PRESETS } from "./annotationEffects";
 import {
   type AnnotationRegion,
   DEFAULT_ANNOTATION_STYLE,
@@ -26,7 +26,7 @@ export interface RegionIds {
 /** Where each text style sits by default (percent of the frame). */
 const PLACEMENT: Record<TextPreset, { position: { x: number; y: number }; size: { width: number; height: number } }> = {
   title: { position: { x: 10, y: 8 }, size: { width: 80, height: 18 } },
-  subtitle: { position: { x: 10, y: 74 }, size: { width: 80, height: 20 } },
+  subtitle: SUBTITLE_PLACEMENT,
   label: { position: { x: 30, y: 10 }, size: { width: 40, height: 10 } },
   callout: { position: { x: 25, y: 40 }, size: { width: 50, height: 16 } },
   typing: { position: { x: 10, y: 40 }, size: { width: 80, height: 16 } },

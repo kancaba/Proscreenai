@@ -182,41 +182,50 @@ export interface TextStylePreset {
   animation?: AnnotationAnimation;
 }
 
+/** Subtitle text size (px at preview scale). */
+export const SUBTITLE_FONT_SIZE = 20;
+
+/**
+ * Where new subtitles go, in % of the frame: across the lower part with room for two lines, the
+ * text resting on the box's bottom edge, just above the bottom of the frame.
+ */
+export const SUBTITLE_PLACEMENT = { position: { x: 10, y: 72 }, size: { width: 80, height: 25 } };
+
 /** One-click looks for common uses; they only change style and animation, never the text. */
 export const TEXT_STYLE_PRESETS: TextStylePreset[] = [
   {
     id: "title",
     tr: "Başlık",
     en: "Title",
-    style: { fontSize: 56, fontWeight: "bold", color: "#ffffff", backgroundColor: "transparent", textShadow: "strong", strokeWidth: 0, textAlign: "center" },
+    style: { fontSize: 56, fontWeight: "bold", color: "#ffffff", backgroundColor: "transparent", textShadow: "strong", strokeWidth: 0, textAlign: "center", verticalAlign: "center" },
     animation: { enter: "pop", exit: "fade", durationMs: 450 },
   },
   {
     id: "subtitle",
     tr: "Alt yazı",
     en: "Subtitle",
-    style: { fontSize: 28, fontWeight: "normal", color: "#ffffff", backgroundColor: "#000000b3", textShadow: "none", strokeWidth: 0, textAlign: "center" },
+    style: { fontSize: SUBTITLE_FONT_SIZE, fontWeight: "normal", color: "#ffffff", backgroundColor: "#000000b3", textShadow: "none", strokeWidth: 0, textAlign: "center", verticalAlign: "bottom" },
     animation: { enter: "fade", exit: "fade", durationMs: 250 },
   },
   {
     id: "label",
     tr: "Etiket",
     en: "Label",
-    style: { fontSize: 22, fontWeight: "bold", color: "#111827", backgroundColor: "#ffffff", textShadow: "soft", strokeWidth: 0, textAlign: "center" },
+    style: { fontSize: 22, fontWeight: "bold", color: "#111827", backgroundColor: "#ffffff", textShadow: "soft", strokeWidth: 0, textAlign: "center", verticalAlign: "center" },
     animation: { enter: "slide-up", exit: "fade", durationMs: 350 },
   },
   {
     id: "callout",
     tr: "Vurgu",
     en: "Callout",
-    style: { fontSize: 40, fontWeight: "bold", color: "#ffffff", backgroundColor: "transparent", strokeWidth: 3, strokeColor: "#111827", highlightColor: DEFAULT_HIGHLIGHT_COLOR, textShadow: "soft", textAlign: "center" },
+    style: { fontSize: 40, fontWeight: "bold", color: "#ffffff", backgroundColor: "transparent", strokeWidth: 3, strokeColor: "#111827", highlightColor: DEFAULT_HIGHLIGHT_COLOR, textShadow: "soft", textAlign: "center", verticalAlign: "center" },
     animation: { enter: "pop", exit: "pop", durationMs: 350 },
   },
   {
     id: "typing",
     tr: "Daktilo",
     en: "Typewriter",
-    style: { fontSize: 30, fontWeight: "normal", color: "#e5e7eb", backgroundColor: "#111827e6", textShadow: "none", strokeWidth: 0, textAlign: "left" },
+    style: { fontSize: 30, fontWeight: "normal", color: "#e5e7eb", backgroundColor: "#111827e6", textShadow: "none", strokeWidth: 0, textAlign: "left", verticalAlign: "center" },
     animation: { enter: "typewriter", exit: "fade", durationMs: 1200 },
   },
 ];

@@ -184,7 +184,7 @@ function renderText(
   ctx.textAlign = 'left';
 
   // Same box model as the editor (AnnotationOverlay): an 8 px padded flex box centres one
-  // text block, which has 0.1em × 0.2em padding, line-height 1.4 and a single background.
+  // text block (or rests it on the bottom edge for subtitles), which has 0.1em × 0.2em padding, line-height 1.4 and a single background.
   const containerPadding = 8 * scaleFactor;
   const innerWidth = Math.max(0, width - containerPadding * 2);
   const padX = scaledFontSize * 0.2;
@@ -196,7 +196,7 @@ function renderText(
   const blockWidth = Math.min(innerWidth, longestParagraph + padX * 2);
   const blockHeight = lines.length * lineHeight + padY * 2;
   const blockX = style.textAlign === 'left' ? x + containerPadding : style.textAlign === 'right' ? x + width - containerPadding - blockWidth : x + width / 2 - blockWidth / 2;
-  const blockY = y + height / 2 - blockHeight / 2;
+  const blockY = style.verticalAlign === 'bottom' ? y + height - containerPadding - blockHeight : y + height / 2 - blockHeight / 2;
   const contentX = blockX + padX;
   const contentWidth = blockWidth - padX * 2;
   const shadow = getTextShadow(style.textShadow);

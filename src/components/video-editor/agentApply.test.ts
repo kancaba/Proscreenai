@@ -40,6 +40,12 @@ describe("applying agent proposals", () => {
     expect(result.annotations[2].style.fontSize).toBe(56);
   });
 
+  it("puts captions at 20 px on the bottom of the frame", () => {
+    const caption = applyProposals(current, set, new Set(["p4"]), ids()).annotations.find((a) => a.generatedBy === "transcript");
+    expect(caption?.style).toMatchObject({ fontSize: 20, verticalAlign: "bottom" });
+    expect((caption?.position.y ?? 0) + (caption?.size.height ?? 0)).toBe(97);
+  });
+
   it("keeps current zooms when no zoom was chosen, and skips colliding additions", () => {
     const keep = applyProposals(current, set, new Set(["p2"]), ids());
     expect(keep.zooms).toEqual(current.zooms);

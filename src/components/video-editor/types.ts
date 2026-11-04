@@ -81,6 +81,8 @@ export interface AnnotationTextStyle {
   strokeColor?: string;
   /** Colour for ==highlighted== words. */
   highlightColor?: string;
+  /** Where the text sits in its box; subtitles rest on the bottom edge. Older texts are centred. */
+  verticalAlign?: 'center' | 'bottom';
 }
 
 export type AnnotationTextShadow = 'none' | 'soft' | 'strong';

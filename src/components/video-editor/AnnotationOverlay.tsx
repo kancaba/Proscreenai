@@ -169,7 +169,7 @@ export function AnnotationOverlay({
             style={{
               justifyContent: style.textAlign === 'left' ? 'flex-start' :
                             style.textAlign === 'right' ? 'flex-end' : 'center',
-              alignItems: 'center',
+              alignItems: style.verticalAlign === 'bottom' ? 'flex-end' : 'center',
               opacity: editing ? 1 : motion.opacity,
               transform: !editing && (motion.offsetY || motion.scale !== 1)
                 ? `translateY(${motion.offsetY * height}px) scale(${motion.scale})`

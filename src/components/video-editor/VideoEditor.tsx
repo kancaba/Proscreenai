@@ -85,7 +85,7 @@ import { applyProposals, mergeTrims } from "./agentApply";
 import { clipSegments, createCutMap, cutMarkers, normalizeSplits, spanToOutput, spanToSource, toOutputMs, toSourceMs } from "./timeline/editedTime";
 import { createReorder, insertAddedAt, isInOrder, movePiece, moveRegions, piecesBetween, type Reorder, reorderSplits, reorderVideoClips, type SourcePiece, splitRegions } from "@/lib/videoReorder";
 import type { AgentProjectSnapshot } from "@/lib/agent/agentSnapshot";
-import { TEXT_STYLE_PRESETS } from "./annotationEffects";
+import { SUBTITLE_PLACEMENT, TEXT_STYLE_PRESETS } from "./annotationEffects";
 import type { CaptionCue } from "@/lib/captions/captionCues";
 import { AUTOMATIC_CHANGE_WINDOW_MS, changedHistoryKeys, decideHistoryChange } from "./editorHistory";
 import { buildLoopedCursorTelemetry, getDisplayedTimelineWindowMs } from "./videoPlayback/cursorLoopTelemetry";
@@ -1792,6 +1792,7 @@ export default function VideoEditor() {
   }, [t]);
 
   const handleAiCaptionsApply = useCallback((captions: { slot: CaptionSlot; text: string }[]) => {
+    const preset = TEXT_STYLE_PRESETS.find((candidate) => candidate.id === 'subtitle');
     const newRegions = captions.map(({ slot, text }): AnnotationRegion => ({
       id: `annotation-${nextAnnotationIdRef.current++}`,
       startMs: slot.startMs,
@@ -1799,9 +1800,9 @@ export default function VideoEditor() {
       type: 'text',
       content: text,
       textContent: text,
-      position: { x: 10, y: 74 },
-      size: { width: 80, height: 20 },
-      style: { ...DEFAULT_ANNOTATION_STYLE, fontSize: 28, backgroundColor: '#000000aa' },
+      position: { ...SUBTITLE_PLACEMENT.position },
+      size: { ...SUBTITLE_PLACEMENT.size },
+      style: { ...DEFAULT_ANNOTATION_STYLE, ...preset?.style, backgroundColor: '#000000aa' },
       zIndex: nextAnnotationZIndexRef.current++,
     }));
     setAnnotationRegions((previous) => [...previous, ...newRegions]);
@@ -1828,9 +1829,8 @@ export default function VideoEditor() {
       type: 'text',
       content: cue.text,
       textContent: cue.text,
-      // Room for two lines of subtitle text.
-      position: { x: 10, y: 74 },
-      size: { width: 80, height: 20 },
+      position: { ...SUBTITLE_PLACEMENT.position },
+      size: { ...SUBTITLE_PLACEMENT.size },
       style: { ...DEFAULT_ANNOTATION_STYLE, ...preset?.style, ...captionLook(captionStyle) },
       zIndex: nextAnnotationZIndexRef.current++,
       animation: preset?.animation,
