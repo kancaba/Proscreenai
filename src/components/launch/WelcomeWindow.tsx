@@ -13,6 +13,7 @@ type RecentProject = { path: string; name: string; updatedAt: string }
 export function WelcomeWindow() {
   const { locale, setLocale, t } = useI18n()
   const [projects, setProjects] = useState<RecentProject[]>([])
+  const [allProjects, setAllProjects] = useState(false)
   const [creations, setCreations] = useState<Creation[]>([])
   const [imageError, setImageError] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -107,11 +108,11 @@ export function WelcomeWindow() {
           <div className="home-libraries">
             <section className="home-library home-video-library" aria-label={h('Son video projeleri', 'Recent video projects')}>
               <header className="home-library-heading"><span className="home-library-icon"><Video size={17} /></span><div><h3>{h('Video projelerin', 'Your video projects')}</h3><p>{h('Son çalışmalarına geri dön.', 'Return to your recent work.')}</p></div><span className="home-count">{projects.length}</span></header>
-              {projects.length ? <div className="home-video-list">{projects.slice(0, 5).map((project, index) => <button key={project.path} disabled={busy} title={project.path} onClick={() => void run(async () => {
+              {projects.length ? <div className="home-video-list">{(allProjects ? projects : projects.slice(0, 5)).map((project, index) => <button key={project.path} disabled={busy} title={project.path} onClick={() => void run(async () => {
                 const result = await window.electronAPI.openRecentProject(project.path);
                 if (!result.success) { setError(result.message || w('openError')); return; }
                 await window.electronAPI.switchToEditor();
-              })}><span className={`home-video-file tone-${index % 3}`}><Clapperboard size={19} /></span><span className="home-file-copy"><strong>{project.name}</strong><small>{new Date(project.updatedAt).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })}</small></span><ArrowRight size={15} /></button>)}</div> : <div className="home-library-empty"><Video size={28} /><strong>{h('İlk hikâyen burada başlayacak.', 'Your first story starts here.')}</strong><p>{h('Bir kayıt al veya bilgisayarından video ekle.', 'Record your screen or import a video.')}</p><button disabled={busy} onClick={() => void run(importVideo)}>{w('chooseVideo')} <ArrowRight size={14} /></button></div>}
+              })}><span className={`home-video-file tone-${index % 3}`}><Clapperboard size={19} /></span><span className="home-file-copy"><strong>{project.name}</strong><small>{new Date(project.updatedAt).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })}</small></span><ArrowRight size={15} /></button>)}{projects.length > 5 && <button type="button" className="home-video-more" data-testid="home-video-more" aria-expanded={allProjects} onClick={() => setAllProjects((value) => !value)}>{allProjects ? h('Daha az göster', 'Show fewer') : h(`${projects.length - 5} proje daha göster`, `Show ${projects.length - 5} more`)}</button>}</div> : <div className="home-library-empty"><Video size={28} /><strong>{h('İlk hikâyen burada başlayacak.', 'Your first story starts here.')}</strong><p>{h('Bir kayıt al veya bilgisayarından video ekle.', 'Record your screen or import a video.')}</p><button disabled={busy} onClick={() => void run(importVideo)}>{w('chooseVideo')} <ArrowRight size={14} /></button></div>}
             </section>
             <section className="home-library home-image-library" aria-label={h('Son görseller', 'Recent images')}>
               <header className="home-library-heading"><span className="home-library-icon"><Image size={17} /></span><div><h3>{h('Son görsellerin', 'Your latest images')}</h3><p>{h('Bir fikrin bir sonraki versiyonu.', 'The next version of an idea.')}</p></div><button className="home-library-link" onClick={() => openImage()}>{h('Tümü', 'View all')} <ArrowRight size={14} /></button></header>
