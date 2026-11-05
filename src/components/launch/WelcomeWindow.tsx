@@ -2,7 +2,7 @@ import { RecordingRecoveryPanel } from './RecordingRecoveryPanel'
 import { ProjectRecoveryPanel } from './ProjectRecoveryPanel'
 import { PermissionSetupPanel } from './PermissionSetupPanel'
 import { useEffect, useState } from 'react'
-import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clapperboard, FolderOpen, Languages, Sparkles, Video, Image } from 'lucide-react'
+import { ArrowRight, Check, ChevronRight, Clapperboard, FolderOpen, Languages, Sparkles, Video, Image } from 'lucide-react'
 import { useI18n } from '@/contexts/I18nContext'
 import { listRecentCreations } from '../creative-studio/database'
 import type { Creation } from '../creative-studio/brand'
@@ -47,7 +47,7 @@ export function WelcomeWindow() {
     const result = await window.electronAPI.openVideoFilePicker()
     if (result.canceled) return
     if (!result.success || !result.path) throw new Error('Import failed')
-    await window.electronAPI.setCurrentVideoPath(result.path)
+    await window.electronAPI.setCurrentVideoPath(result.path, true)
     await window.electronAPI.switchToEditor()
   }
 
@@ -77,15 +77,14 @@ export function WelcomeWindow() {
           <p>{h('Hikâyeni hareketle anlat. Ya da tek bir görselle.', 'Tell your story in motion. Or with a single image.')}</p>
         </section>
         <section className="studio-mode-choice" aria-label={h('Çalışma alanı seç', 'Choose a workspace')}>
-          <button className="home-workspace home-video" disabled={busy} onClick={() => void run(() => window.electronAPI.showRecorder())}>
+          <button className="home-workspace home-video" disabled={busy} onClick={() => void run(importVideo)}>
             <div className="home-workspace-top"><span><Video size={17} /> VIDEO</span><span className="home-workspace-number">01</span></div>
             <div className="home-art home-video-art" aria-hidden="true">
               <div className="home-video-window"><div className="home-mini-title"><i /><i /><i /><span>pro screen ai / take 01</span></div><div className="home-video-scene"><div className="home-scene-orbit" /><span>Make it<br /><b>move.</b></span><div className="home-scene-cursor"><ArrowRight size={27} /></div></div></div>
-              <span className="home-record-pill"><i /> REC <b>00:12</b></span>
               <div className="home-mini-timeline"><span /><span /><span /><span /><span /><span /><span /><span /></div>
             </div>
-            <div className="home-workspace-copy"><strong>{h('Video Stüdyo', 'Video Studio')}</strong><span>{h('Ekranını kaydet. Önemli anlara yaklaş. Kendi stilinle paylaş.', 'Record your screen. Zoom into what matters. Share it in your style.')}</span></div>
-            <div className="home-workspace-bottom"><span>{h('Ekran kaydı · Kurgu · Dışa aktarım', 'Screen recording · Editing · Export')}</span><b>{h('Kayda başla', 'Start recording')} <ArrowRight size={17} /></b></div>
+            <div className="home-workspace-copy"><strong>{h('Video düzenleme', 'Video editing')}</strong><span>{h('Videoları katmanlara yerleştir, ses ve efektlerini düzenle.', 'Arrange video layers and edit their sound and effects.')}</span></div>
+            <div className="home-workspace-bottom"><span>{h('Ekran kaydı · Kurgu · Dışa aktarım', 'Screen recording · Editing · Export')}</span><b>{h('Video seç', 'Choose video')} <ArrowRight size={17} /></b></div>
           </button>
           <button className="home-workspace home-image" disabled={busy} onClick={() => window.dispatchEvent(new Event('open-image-studio'))}>
             <div className="home-workspace-top"><span><Image size={17} /> {h('GÖRSEL', 'IMAGE')}</span><span className="home-workspace-number">02</span></div>
@@ -100,7 +99,7 @@ export function WelcomeWindow() {
         <section className="home-desk" aria-label={h('Çalışma masan', 'Your workbench')}>
           <div className="home-desk-heading"><div><span className="studio-eyebrow">{h('KALDIĞIN YERDEN', 'PICK UP WHERE YOU LEFT OFF')}</span><h2>{h('Çalışma masan.', 'Your workbench.')}</h2></div><span className="home-local-badge"><Check size={12} /> {h('Bu bilgisayarda', 'On this computer')}</span></div>
           <section className="studio-actions home-shortcuts" aria-label={w('start')}>
-            <button disabled={busy} onClick={() => void run(importVideo)}><span className="studio-action-icon peach"><ArrowDownToLine size={19} /></span><span><strong>{w('importTitle')}</strong><small>{w('importDescription')}</small></span><ChevronRight size={16} /></button>
+            <button disabled={busy} onClick={() => void run(() => window.electronAPI.showRecorder())}><span className="studio-action-icon peach"><Video size={19}/></span><span><strong>{h('Ekran kaydı','Screen recording')}</strong><small>{h('Ekranı veya pencereyi kaydet','Record a screen or window')}</small></span><ChevronRight size={16}/></button>
             <button disabled={busy} onClick={() => void run(openProject)}><span className="studio-action-icon mint"><FolderOpen size={19} /></span><span><strong>{w('openTitle')}</strong><small>{w('openDescription')}</small></span><ChevronRight size={16} /></button>
             <button onClick={() => openImage()}><span className="studio-action-icon lilac"><Image size={19} /></span><span><strong>{h('Görsel galerisi', 'Image gallery')}</strong><small>{h('Ürettiklerini keşfet ve düzenle', 'Explore and refine your creations')}</small></span><ChevronRight size={16} /></button>
           </section>

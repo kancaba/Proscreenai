@@ -19,6 +19,7 @@ import { ProjectLibrary } from '../projectLibrary'
 import { writeExportFile } from '../exportFile'
 import { registerTranscriptionHandlers } from '../transcription'
 import { registerAudioWaveformHandlers } from '../audioWaveform'
+import { registerSequenceMedia } from '../sequenceMedia'
 import { registerVideoAppendHandlers } from '../videoAppend'
 import { registerAgentHandlers } from '../agents/agentManager'
 import { isAllowedExternalUrl, resolveReadableMediaPath, resolveRecordingFilePath } from '../ipcValidation'
@@ -1612,6 +1613,7 @@ export function registerIpcHandlers(
   }
   registerTranscriptionHandlers(transcriptionDeps)
   registerAudioWaveformHandlers(getFfmpegBinaryPath)
+  registerSequenceMedia(getFfmpegBinaryPath, getRecordingsDir)
   registerVideoAppendHandlers({
     getFfmpegPath: getFfmpegBinaryPath,
     getRecordingsDir,
@@ -3080,15 +3082,17 @@ export function registerIpcHandlers(
       }
     }
   })
-  ipcMain.handle('set-current-video-path', (_, path: string) => {
+  let importedSequencePath: string | null = null
+  ipcMain.handle('set-current-video-path', (_, path: string, sequence?: boolean) => {
     recoveredProject = null
     currentVideoPath = normalizeVideoSourcePath(path) ?? path
+    importedSequencePath = sequence === true ? currentVideoPath : null
     currentProjectPath = null
     return { success: true }
   })
 
   ipcMain.handle('get-current-video-path', () => {
-    return currentVideoPath ? { success: true, path: currentVideoPath } : { success: false };
+    return currentVideoPath ? { success: true, path: currentVideoPath, sequence: currentVideoPath === importedSequencePath } : { success: false };
   });
 
   ipcMain.handle('clear-current-video-path', () => {

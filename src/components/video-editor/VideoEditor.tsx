@@ -1,3 +1,6 @@
+import type { ClipSession } from './sequenceClipEdit';
+import SequenceWorkspace, { inspectClip } from './SequenceWorkspace';
+import { sequenceEnd, validSequence, type Sequence, type SequenceClip } from '@/lib/sequence';
 import { useProjectDraft } from '@/hooks/useProjectDraft';
 import './editor-workspace.css';
 import { PreviewWorkspaceBar } from './PreviewWorkspaceBar';
@@ -157,12 +160,36 @@ function getGifOutputDimensions(width: number, height: number, aspect: AspectRat
   return calculateOutputDimensions(canvas.width, canvas.height, preset, GIF_SIZE_PRESETS);
 }
 
-export default function VideoEditor() {
+export default function VideoEditor({ clipSession }: { clipSession?: ClipSession } = {}) {
+  const sessionRef = useRef(clipSession);
+  sessionRef.current = clipSession;
+  const embedded = Boolean(clipSession);
+  const initialClipTool = useRef(clipSession?.tool);
   const { t, locale } = useI18n();
   const [videoPath, setVideoPath] = useState<string | null>(null);
   const videoPathRef = useRef<string | null>(null);
   videoPathRef.current = videoPath;
   const [videoSourcePath, setVideoSourcePath] = useState<string | null>(null);
+  const [sequence, setSequence] = useState<Sequence | null>(null);
+  const [sequenceVisible, setSequenceVisible] = useState(false);
+  const [sequenceEdited, setSequenceEdited] = useState(false);
+  const [projectGeneration, setProjectGeneration] = useState(0);
+  const sequenceTime = useRef(0);
+  const voiceInsert = useRef<((path:string,at:"start"|"playhead")=>Promise<void>) | null>(null);
+  const attemptedProxy = useRef(false);
+  const mounted = useRef(true);
+  useEffect(()=>{mounted.current=true; return ()=>{mounted.current=false;};},[]);
+  const handlePreviewError = useCallback(async (message:string)=>{
+    const source = sessionRef.current?.initial.videoPath;
+    if (!source || attemptedProxy.current || message !== "Failed to load video") { setError(message); return; }
+    attemptedProxy.current = true;
+    try {
+      const proxy = await window.electronAPI.sequencePreviewCopy(fromFileUrl(source));
+      if (mounted.current) { setError(null);setVideoPath(toFileUrl(proxy)); }
+    } catch(e){ if(mounted.current)setError(String(e)); }
+  },[]);
+  const rememberSequenceTime = useCallback((ms: number) => { sequenceTime.current = ms; }, []);
+  const editSequence = useCallback((next: Sequence) => { setSequence(next); setSequenceEdited(true); }, []);
   const [currentProjectPath, setCurrentProjectPath] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -533,9 +560,15 @@ export default function VideoEditor() {
 
     const project = candidate;
     setRecoveredDraft(recovered);
+    setProjectGeneration(g => g+1);
     pendingPlayheadRef.current = typeof project.workspace?.playheadSeconds === 'number' && Number.isFinite(project.workspace.playheadSeconds) ? Math.max(0,project.workspace.playheadSeconds) : null;
     const sourcePath = fromFileUrl(project.videoPath);
     const normalizedEditor = normalizeProjectEditor(project.editor);
+    setSequence(normalizedEditor.sequence ?? null);
+    setSequenceVisible(Boolean(normalizedEditor.sequence));
+    setSequenceEdited(false);
+    sequenceTime.current = normalizedEditor.sequence ? (pendingPlayheadRef.current ?? 0)*1000 : 0;
+    if (normalizedEditor.sequence) pendingPlayheadRef.current = null;
 
     try {
       pausePlayback();
@@ -629,6 +662,7 @@ export default function VideoEditor() {
     }
     return JSON.stringify(
       createProjectData(sourcePath, {
+        ...(sequence ? {sequence} : {}),
         wallpaper,
         shadowIntensity,
         backgroundBlur,
@@ -666,6 +700,7 @@ export default function VideoEditor() {
   }, [
     videoPath,
     videoSourcePath,
+    sequence,
     wallpaper,
     shadowIntensity,
     backgroundBlur,
@@ -771,12 +806,12 @@ export default function VideoEditor() {
   const hasUnsavedChanges = Boolean(
     videoPath && currentProjectSnapshot && (recoveredDraft || (
       lastSavedSnapshot === null
-        ? historyAvailability.canUndo
+        ? historyAvailability.canUndo || sequenceEdited
         : currentProjectSnapshot !== lastSavedSnapshot
     )),
   );
 
-  const autoDraft = useProjectDraft(currentProjectSnapshot,currentProjectPath,hasUnsavedChanges,() => videoPlaybackRef.current?.video?.currentTime ?? currentTime);
+  const autoDraft = useProjectDraft(currentProjectSnapshot,currentProjectPath,!embedded && hasUnsavedChanges,() => sequenceVisible ? sequenceTime.current/1000 : videoPlaybackRef.current?.video?.currentTime ?? currentTime);
   useEffect(() => {
     if (duration <= 0 || pendingPlayheadRef.current === null) return;
     const time = Math.min(duration,pendingPlayheadRef.current);
@@ -785,6 +820,12 @@ export default function VideoEditor() {
     if (video) video.currentTime = time;
     setCurrentTime(time);
   },[duration]);
+
+  useEffect(() => {
+    if (!embedded || loading || !currentProjectSnapshot || !totalSourceMs) return;
+    const {videoPath,editor} = JSON.parse(currentProjectSnapshot) as ReturnType<typeof createProjectData>;
+    sessionRef.current?.onDraft({videoPath,editor,sourceMs:totalSourceMs});
+  }, [embedded, loading, currentProjectSnapshot, totalSourceMs]);
 
   const wasCleanRef = useRef(true);
   useEffect(() => {
@@ -800,9 +841,15 @@ export default function VideoEditor() {
   }, [currentProjectSnapshot, hasUnsavedChanges, lastSavedSnapshot, recoveredDraft]);
 
   useEffect(() => {
+    let active = true;
     async function loadInitialData() {
       try {
+        if (sessionRef.current) {
+          await applyLoadedProject(sessionRef.current.initial);
+          return;
+        }
         const currentProjectResult = await window.electronAPI.loadCurrentProjectFile();
+        if (!active) return;
         if (currentProjectResult.success && currentProjectResult.project) {
           const restored = await applyLoadedProject(
             currentProjectResult.project,
@@ -810,14 +857,26 @@ export default function VideoEditor() {
             currentProjectResult.recovered ?? false,
           );
           if (restored) {
-            pendingAppendRecordingRef.current = currentProjectResult.appendRecordingPath ?? null;
+            const added = currentProjectResult.appendRecordingPath;
+            const project = currentProjectResult.project;
+            if (added && validateProjectData(project) && project.editor.sequence) {
+              const base = project.editor.sequence;
+              const {clip} = await inspectClip(added,sequenceEnd(base.clips),0);
+              if (active) editSequence({...base, clips:[...base.clips,clip]});
+            } else pendingAppendRecordingRef.current = added ?? null;
             return;
           }
         }
 
         const result = await window.electronAPI.getCurrentVideoPath();
+        if (!active) return;
         if (result.success && result.path) {
           const sourcePath = fromFileUrl(result.path);
+          const {clip,width,height,fps} = await inspectClip(sourcePath,0,0);
+          if (!active) return;
+          const even = (n: number) => Math.max(2,Math.min(8192,Math.round(n/2)*2));
+          setSequence({width:even(width||1920),height:even(height||1080),fps,clips:[clip]});
+          setSequenceVisible(true);
           setVideoSourcePath(sourcePath);
           setVideoPath(toFileUrl(sourcePath));
           setCurrentProjectPath(null);
@@ -828,12 +887,13 @@ export default function VideoEditor() {
       } catch (err) {
         setError("Error loading video: " + String(err));
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     }
 
     loadInitialData();
-  }, [applyLoadedProject]);
+    return () => { active = false; };
+  }, [applyLoadedProject,editSequence]);
 
   const saveProject = useCallback(async (forceSaveAs: boolean) => {
     if (!videoPath) {
@@ -847,44 +907,12 @@ export default function VideoEditor() {
       return false;
     }
 
-    const projectData = createProjectData(sourcePath, {
-      wallpaper,
-      shadowIntensity,
-      backgroundBlur,
-      zoomMotionBlur,
-      connectZooms,
-      showCursor,
-      loopCursor,
-      cursorSize,
-      cursorSmoothing,
-      cursorMotionBlur,
-      cursorClickBounce,
-      borderRadius,
-      padding,
-      cropRegion,
-      zoomRegions,
-      trimRegions,
-      speedRegions,
-      annotationRegions,
-      audioRegions,
-      ...(blurRegions.length > 0 ? { blurRegions } : {}),
-      ...(voiceoverTakes.length > 0 ? { voiceoverTakes } : {}),
-      sourceAudioVolume,
-      fades,
-      ...(ending.durationMs > 0 ? { ending } : {}),
-      clipSplits,
-      ...(videoClips.length > 1 ? { videoClips } : {}),
-      aspectRatio,
-      exportQuality, exportResolution, exportFps, exportCustomWidth, exportCustomHeight,
-      exportFormat,
-      gifFrameRate,
-      gifLoop,
-      gifSizePreset,
-    });
+    if (!currentProjectSnapshot) return false;
+    const projectData = JSON.parse(currentProjectSnapshot) as ReturnType<typeof createProjectData>;
 
     const fileNameBase = sourcePath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, '') || `project-${Date.now()}`;
     const projectSnapshot = JSON.stringify(projectData);
-    projectData.workspace = {playheadSeconds: videoPlaybackRef.current?.video?.currentTime ?? 0};
+    projectData.workspace = {playheadSeconds: sequenceVisible ? sequenceTime.current/1000 : videoPlaybackRef.current?.video?.currentTime ?? 0};
     const result = await window.electronAPI.saveProjectFile(
       projectData,
       fileNameBase,
@@ -909,55 +937,20 @@ export default function VideoEditor() {
 
     toast.success(`Proje kaydedildi: ${result.path}`);
     return true;
-  }, [
-    videoPath,
-    videoSourcePath,
-    currentProjectPath,
-    wallpaper,
-    shadowIntensity,
-    backgroundBlur,
-    zoomMotionBlur,
-    connectZooms,
-    showCursor,
-    loopCursor,
-    cursorSize,
-    cursorSmoothing,
-    cursorMotionBlur,
-    cursorClickBounce,
-    borderRadius,
-    padding,
-    cropRegion,
-    zoomRegions,
-    trimRegions,
-    speedRegions,
-    annotationRegions,
-    audioRegions,
-    blurRegions,
-    voiceoverTakes,
-    sourceAudioVolume,
-    fades,
-    ending,
-    clipSplits,
-    videoClips,
-    aspectRatio,
-    exportQuality, exportResolution, exportFps, exportCustomWidth, exportCustomHeight,
-    exportFormat,
-    gifFrameRate,
-    gifLoop,
-    gifSizePreset,
-  ]);
+  }, [videoPath, videoSourcePath, currentProjectPath, currentProjectSnapshot, sequenceVisible]);
 
   useEffect(() => {
-    window.electronAPI.setHasUnsavedChanges(hasUnsavedChanges);
-  }, [hasUnsavedChanges]);
+    if (!embedded) window.electronAPI.setHasUnsavedChanges(hasUnsavedChanges);
+  }, [hasUnsavedChanges,embedded]);
 
   useEffect(() => {
+    if (embedded) return;
     const cleanup = window.electronAPI.onRequestSaveBeforeClose(async () => {
       return saveProject(false);
     });
 
     return () => cleanup?.();
-  }, [saveProject]);
+  }, [saveProject, embedded]);
 
   const handleSaveProject = useCallback(async () => {
     await saveProject(false);
@@ -989,6 +982,7 @@ export default function VideoEditor() {
   }, [applyLoadedProject]);
 
   useEffect(() => {
+    if (embedded) return;
     const removeLoadListener = window.electronAPI.onMenuLoadProject(handleLoadProject);
     const removeSaveListener = window.electronAPI.onMenuSaveProject(handleSaveProject);
     const removeSaveAsListener = window.electronAPI.onMenuSaveProjectAs(handleSaveProjectAs);
@@ -998,7 +992,7 @@ export default function VideoEditor() {
       removeSaveListener?.();
       removeSaveAsListener?.();
     };
-  }, [handleLoadProject, handleSaveProject, handleSaveProjectAs]);
+  }, [handleLoadProject, handleSaveProject, handleSaveProjectAs, embedded]);
 
   useEffect(() => {
     let mounted = true;
@@ -1014,7 +1008,7 @@ export default function VideoEditor() {
       }
 
       try {
-        const result = await window.electronAPI.getCursorTelemetry(fromFileUrl(videoPath));
+        const result = await window.electronAPI.getCursorTelemetry(sessionRef.current?.initial.videoPath ?? fromFileUrl(videoPath));
         if (mounted) {
           setCursorTelemetry(result.success ? result.samples : []);
           setKeyTimes(result.success ? result.keys ?? [] : []);
@@ -1692,10 +1686,10 @@ export default function VideoEditor() {
   const recordAndAppend = useCallback(async () => {
     if (!currentProjectSnapshot) return;
     pausePlayback();
-    const project = { ...JSON.parse(currentProjectSnapshot), workspace: { playheadSeconds: currentTime } };
+    const project = { ...JSON.parse(currentProjectSnapshot), workspace: { playheadSeconds: sequenceVisible ? sequenceTime.current/1000 : currentTime } };
     const started = await window.electronAPI.recordAndAppend(project, hasUnsavedChanges);
     if (!started) toast.error(t('timeline.addVideo.failed', undefined, { error: '' }));
-  }, [currentProjectSnapshot, currentTime, hasUnsavedChanges, t]);
+  }, [currentProjectSnapshot, currentTime, sequenceVisible, hasUnsavedChanges, t]);
   const handleAddVideo = useCallback((from: 'file' | 'record', place: VideoInsertPlace = 'end') => {
     if (from === 'record') void recordAndAppend();
     else void appendVideo(undefined, place);
@@ -2132,7 +2126,7 @@ export default function VideoEditor() {
   // Editor shortcuts yield to dialog controls and text fields.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (document.querySelector('[role="dialog"]')) return;
+      if (sequenceVisible || document.querySelector('[role="dialog"]')) return;
       const target = e.target as HTMLElement | null;
       const isEditableTarget =
         target instanceof HTMLInputElement
@@ -2182,7 +2176,7 @@ export default function VideoEditor() {
     
     window.addEventListener('keydown', handleKeyDown, { capture: true });
     return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
-  }, [shortcuts, isMac, handleUndo, handleRedo]);
+  }, [shortcuts, isMac, handleUndo, handleRedo, sequenceVisible]);
 
   useEffect(() => {
     if (selectedZoomId && !zoomRegions.some((region) => region.id === selectedZoomId)) {
@@ -2320,7 +2314,7 @@ export default function VideoEditor() {
     });
   }, [t]);
 
-  const handleExport = useCallback(async (settings: ExportSettings) => {
+  const handleExport = useCallback(async (settings: ExportSettings, addToSequence = false) => {
     if (!videoPath) {
       toast.error('No video loaded');
       return;
@@ -2457,7 +2451,7 @@ export default function VideoEditor() {
           cursorSmoothing,
           cursorMotionBlur,
           cursorClickBounce,
-          audioRegions,
+          audioRegions: addToSequence && !embedded ? [] : audioRegions,
           sourceAudioVolume,
           fades,
           ending: endingMs > 0 ? ending : undefined,
@@ -2473,6 +2467,54 @@ export default function VideoEditor() {
 
         if (result.success && result.blob) {
           const arrayBuffer = await result.blob.arrayBuffer();
+          if (addToSequence && clipSession && currentProjectSnapshot) {
+            const path = await window.electronAPI.storeSequenceSource(arrayBuffer);
+            const {videoPath,editor} = JSON.parse(currentProjectSnapshot) as ReturnType<typeof createProjectData>;
+            await clipSession.onApply(path, {videoPath,editor,sourceMs:totalSourceMs});
+            return;
+          }
+          if (addToSequence) {
+            const source = await window.electronAPI.storeSequenceSource(arrayBuffer);
+            const { clip, width, height } = await inspectClip(source, 0, 0);
+            const offset = sequenceEnd(sequence?.clips ?? []);
+            const parts = clipSegments(cutMap, clipSplits);
+            const boundaries = normalizeSplits(parts.flatMap(part => [part.outStart, part.outEnd]).map(Math.round), clip.sourceMs);
+            const starts = [0, ...boundaries];
+            const labels = [...videoClips].reverse();
+            const sourceName = fromFileUrl(videoPath).split(/[\\/]/).pop() ?? clip.name;
+            const edit = currentProjectSnapshot ? {
+              videoPath: fromFileUrl(videoPath), sourceMs: totalSourceMs,
+              editor: {...JSON.parse(currentProjectSnapshot).editor, audioRegions: []},
+            } : undefined;
+            if (edit) delete edit.editor.sequence;
+            const picture: SequenceClip[] = starts.map((start, index) => ({
+              ...clip, edit,
+              id: crypto.randomUUID(),
+              name: labels.find(item => item.startMs <= toSourceMs(cutMap, start))?.name ?? sourceName,
+              start: offset + start,
+              inMs: start,
+              outMs: starts[index + 1] ?? clip.sourceMs,
+            }));
+            const sounds: SequenceClip[] = [];
+            for (const region of audioRegions) {
+              const span = audioTimelineSpan(region, cutMap);
+              const track = -1 - (region.track ?? 0);
+              const { clip: sound } = await inspectClip(region.audioPath, offset + span.start, track);
+              const inMs = region.sourceStartMs ?? 0;
+              const outMs = Math.min(sound.sourceMs, inMs + span.end - span.start);
+              if (outMs > inMs) sounds.push({ ...sound, track, inMs, outMs, volume: region.volume });
+            }
+            const next = {
+              width, height, fps: exportFps, ...sequence,
+              clips: [...(sequence?.clips ?? []), ...picture, ...sounds],
+            };
+            if (!validSequence(next)) throw new Error('Klip sayısı, süre veya kurgu boyutları desteklenen sınırı aşıyor.');
+            editSequence(next);
+            sequenceTime.current = offset;
+            setSequenceVisible(true);
+            setIsPlaying(false);
+            return;
+          }
           const fileName = `${exportFileBase()}.mp4`;
 
           const saveResult = await window.electronAPI.saveExportedVideo(arrayBuffer, fileName);
@@ -2516,7 +2558,7 @@ export default function VideoEditor() {
       setShowExportDialog(keepExportDialogOpen);
       setExportProgress(null);
     }
-  }, [exportFileBase, sourceAudioVolume, fades, ending, endingMs, videoPath, wallpaper, zoomRegions, trimRegions, speedRegions, shadowIntensity, backgroundBlur, zoomMotionBlur, connectZooms, showCursor, effectiveCursorTelemetry, cursorSize, cursorSmoothing, cursorMotionBlur, cursorClickBounce, borderRadius, padding, cropRegion, annotationRegions, blurRegions, audioRegions, isPlaying, aspectRatio, exportQuality, exportResolution, exportFps, exportCustomWidth, exportCustomHeight,showExportSuccessToast]);
+  }, [embedded,clipSession,currentProjectSnapshot,totalSourceMs,sequence, editSequence, cutMap, clipSplits, videoClips, effectiveZoomRegions, exportFileBase, sourceAudioVolume, fades, ending, endingMs, videoPath, wallpaper, zoomRegions, trimRegions, speedRegions, shadowIntensity, backgroundBlur, zoomMotionBlur, connectZooms, showCursor, effectiveCursorTelemetry, cursorSize, cursorSmoothing, cursorMotionBlur, cursorClickBounce, borderRadius, padding, cropRegion, annotationRegions, blurRegions, audioRegions, isPlaying, aspectRatio, exportQuality, exportResolution, exportFps, exportCustomWidth, exportCustomHeight,showExportSuccessToast]);
 
   const handleStartExport = useCallback(() => {
     if (!videoPath) {
@@ -2566,7 +2608,7 @@ export default function VideoEditor() {
   }, [hasPendingExportSave, duration]);
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || document.querySelector('[role="dialog"]') || (event.target as HTMLElement)?.closest('input,textarea,select,[contenteditable="true"]')) return;
+      if (sequenceVisible || event.defaultPrevented || document.querySelector('[role="dialog"]') || (event.target as HTMLElement)?.closest('input,textarea,select,[contenteditable="true"]')) return;
       const mod = isMac ? event.metaKey : event.ctrlKey;
       if (mod && event.key.toLowerCase() === 'e') { event.preventDefault(); handleOpenExportDialog(); }
       else if (mod && event.key === ',') { event.preventDefault(); setAiSettingsOpen(true); }
@@ -2574,7 +2616,7 @@ export default function VideoEditor() {
       else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); const video = videoPlaybackRef.current?.video; if (video) video.currentTime = Math.max(0, Math.min(duration, video.currentTime + (event.key === 'ArrowRight' ? 1 : -1) * (event.shiftKey ? 1 : .1))); }
       else if (event.key === 'Home' || event.key === 'End') { event.preventDefault(); const video = videoPlaybackRef.current?.video; if (video) video.currentTime = event.key === 'Home' ? 0 : duration; }
     }; window.addEventListener('keydown',key); return () => window.removeEventListener('keydown',key);
-  }, [duration,isMac,openConfig,handleOpenExportDialog]);
+  }, [duration,isMac,openConfig,handleOpenExportDialog,sequenceVisible]);
 
   const handleCancelExport = useCallback(() => {
     if (exporterRef.current) {
@@ -2781,6 +2823,23 @@ export default function VideoEditor() {
     }
     handleSeek(span.startMs / 1000);
   };
+  useEffect(() => {
+    const tool = initialClipTool.current;
+    if (!tool || !duration || loading) return;
+    // Wait for the saved source playhead before placing a new timed effect.
+    const expected = Math.min(duration,clipSession?.initial.workspace?.playheadSeconds ?? 0);
+    if (Math.abs(expected-currentTime) > .1 && currentTime === 0) return;
+    initialClipTool.current = undefined;
+    if (tool === 'voiceover') openVoiceover();
+    else if (tool === 'captions' || tool === 'ai') setSettingsFocusRequest({tab:'ai', nonce:Date.now()});
+    else if (tool !== 'appearance') addEditorTool(tool);
+  });
+  function applyClipEdit() {
+    if (isExporting || duration<=0) return;
+    pausePlayback();
+    setShowExportDialog(true);
+    void handleExport({format:'mp4', quality:exportQuality},true);
+  }
   const selectedAudio = selectedAudioId ? audioRegions.find((r) => r.id === selectedAudioId) ?? null : null;
   const selectedBlur = selectedBlurId ? blurRegions.find((r) => r.id === selectedBlurId) ?? null : null;
   // Audio clips are edited in edited-timeline time, as the timeline shows them.
@@ -2836,11 +2895,14 @@ export default function VideoEditor() {
       </div>
     );
   }
-  if (error) {
+  if (error && embedded) return <div className="p-4"><p role="alert">{error}</p>
+    <button onClick={()=>clipSession?.onCancel()}>{locale==='tr'?'Zaman çizelgesine dön':'Return to timeline'}</button></div>;
+  if (error && !sequenceVisible) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
         <div className="flex flex-col items-center gap-3">
           <div className="text-destructive">{error}</div>
+          {sequence && <button onClick={()=>setSequenceVisible(true)}>{locale==='tr'?'Çok kanallı kurguya dön':'Return to multitrack editor'}</button>}
           <button type="button" onClick={() => void window.electronAPI.showHome()} className="px-3 py-1.5 rounded-md bg-white/10 text-sm">← Ana ekran</button>
           <button
             type="button"
@@ -2857,7 +2919,7 @@ export default function VideoEditor() {
 
   return (
     <div className="editor-workspace flex flex-col h-screen text-slate-200 overflow-hidden" data-focus={focusMode}>
-      <div 
+      {!embedded && <div
         className="workspace-titlebar relative h-10 flex-shrink-0 flex items-center justify-center px-6 z-50"
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       >
@@ -2883,11 +2945,28 @@ export default function VideoEditor() {
             <span className="text-xs font-normal">{t("common.app.manageRecordings", "Manage recordings")}</span>
           </button>
         </div>
-      </div>
+      </div>}
 
+      {sequenceVisible && sequence ? <SequenceWorkspace key={projectGeneration} sequence={sequence} tr={locale==='tr'}
+        name={(currentProjectPath || videoSourcePath || '').split(/[\\/]/).pop() || 'Kurgu'} dirty={hasUnsavedChanges}
+        initialTime={sequenceTime.current} onTime={rememberSequenceTime} onChange={editSequence}
+        onRecord={recordAndAppend} onVoiceover={insert=>{voiceInsert.current=insert;openVoiceover();}} renderEditor={session=><VideoEditor key={session.clip.id} clipSession={session}/>} onSave={handleSaveProject} onOpen={handleLoadProject}/> : <>
+      {clipSession ? <div className="seq-edit-heading">
+        <strong>{locale==='tr'?'Klip düzenleme':'Clip editing'}</strong><span>{clipSession.clip.name}</span>
+        <button disabled={isExporting} onClick={clipSession.onCancel}>{locale==='tr'?'Vazgeç':'Cancel'}</button>
+        <button data-testid="apply-clip-edits" disabled={isExporting || !duration} onClick={applyClipEdit}>{locale==='tr'?'Klibe uygula':'Apply to clip'}</button>
+      </div> : <div className="flex items-center gap-3 border-b border-white/10 px-3 py-1 text-xs">
+        <button disabled={isExporting || !duration} className="rounded bg-blue-700 px-3 py-1.5 text-white disabled:opacity-40" onClick={()=>{
+          pausePlayback();
+          if(sequence) setSequenceVisible(true);
+          else { setShowExportDialog(true); void handleExport({format:'mp4',quality:exportQuality},true); }
+        }}>{locale==='tr'?'Video düzenleme':'Video editing'}</button>
+        {sequence && <button disabled={isExporting || !duration} onClick={()=>{pausePlayback();setShowExportDialog(true);void handleExport({format:'mp4',quality:exportQuality},true);}}>
+          {locale==='tr'?'Düzenlenmiş kaynağı kurguya ekle':'Add edited source to sequence'}</button>}
+      </div>}
       <EditorToolbar onVoiceover={() => openVoiceover()} onShortcuts={openConfig} onAdd={addEditorTool} onAiCaptions={() => setAiCaptionsOpen(true)} onUndo={handleUndo} onRedo={handleRedo}
         canUndo={historyAvailability.canUndo} canRedo={historyAvailability.canRedo}
-        onSave={handleSaveProject} onExport={handleOpenExportDialog} disabled={isExporting || !duration}
+        onSave={clipSession?.onSave ?? handleSaveProject} onExport={handleOpenExportDialog} disabled={isExporting || !duration}
         draftState={autoDraft.state} onRetryDraft={() => void autoDraft.retry()} name={(currentProjectPath || videoSourcePath || '').split(/[\\/]/).pop() || 'Pro Screen AI'} dirty={hasUnsavedChanges} />
       <div className="workspace-body flex-1 flex min-h-0 relative">
         {/* Left Column - Video & Timeline */}
@@ -2918,7 +2997,7 @@ export default function VideoEditor() {
                       currentTime={currentTime}
                       onPlayStateChange={handleVideoPlayState}
                       hideVideo={ending.mode === 'background' && endingMs > 0 && currentTime * 1000 > totalSourceMs + 1}
-                      onError={setError}
+                      onError={handlePreviewError}
                       wallpaper={wallpaper}
                       zoomRegions={effectiveZoomRegions}
                       selectedZoomId={selectedZoomId}
@@ -3002,7 +3081,7 @@ export default function VideoEditor() {
               selectedSpeedId={selectedSpeedId}
               onSelectSpeed={handleSelectSpeed}
               audioRegions={timelineAudio}
-              onAddVideo={handleAddVideo}
+              onAddVideo={embedded ? undefined : handleAddVideo}
               addingVideo={addingVideo}
               onAudioAdded={(span, audioPath, sourceDurationMs) => { const start = toSourceMs(cutMap, span.start); handleAudioAdded({ start, end: start + (span.end - span.start) }, audioPath, sourceDurationMs); }}
               onAudioSpanChange={handleAudioTimelineChange}
@@ -3040,7 +3119,7 @@ export default function VideoEditor() {
                 },
                 onSplit: handleSplitClip,
                 onDeleteSegment: handleDeleteClipPart,
-                move: clipPieceEdges.length > 2 ? { edges: clipPieceEdges, busy: addingVideo !== null, onMove: dropClipPart } : undefined,
+                move: !embedded && clipPieceEdges.length > 2 ? { edges: clipPieceEdges, busy: addingVideo !== null, onMove: dropClipPart } : undefined,
                 ending: endingMs > 0 ? { durationMs: endingMs, mode: ending.mode, onSelect: showEndingSettings } : undefined,
               }}
               onExtendEnding={extendEnding}
@@ -3165,8 +3244,8 @@ export default function VideoEditor() {
           onAnnotationAnimationChange={handleAnnotationAnimationChange}
           onAnnotationFigureDataChange={handleAnnotationFigureDataChange}
           onAnnotationDelete={handleAnnotationDelete}
-          onSaveProject={handleSaveProject}
-          onLoadProject={handleLoadProject}
+          onSaveProject={embedded ? undefined : handleSaveProject}
+          onLoadProject={embedded ? undefined : handleLoadProject}
           selectedSpeedId={selectedSpeedId}
           selectedSpeedValue={selectedSpeedId ? speedRegions.find(r => r.id === selectedSpeedId)?.speed ?? null : null}
           onSpeedChange={handleSpeedChange}
@@ -3175,7 +3254,8 @@ export default function VideoEditor() {
           </div>
       </div>
 
-      <Toaster theme="dark" className="pointer-events-auto" />
+      </>}
+      {!embedded && <Toaster theme="dark" className="pointer-events-auto" />}
       <AiCaptionsPanel onSettings={() => { setAiCaptionsOpen(false); setAiSettingsOpen(true); }} onNarrate={text => { setAiCaptionsOpen(false); openVoiceover(text); }} open={aiCaptionsOpen} onOpenChange={setAiCaptionsOpen}
         durationMs={Math.round(duration * 1000)} trims={trimRegions} onApply={handleAiCaptionsApply} />
       
@@ -3192,9 +3272,9 @@ export default function VideoEditor() {
         </DialogContent>
       </Dialog>
       <VoiceoverPanel open={voiceoverOpen} onOpenChange={setVoiceoverOpen} initialText={voiceoverText}
-        onSettings={() => { setVoiceoverOpen(false); setAiSettingsOpen(true); }} remainingSeconds={Math.max(0, duration-currentTime)}
+        onSettings={() => { setVoiceoverOpen(false); setAiSettingsOpen(true); }} remainingSeconds={Math.max(0, sequenceVisible && sequence ? (sequenceEnd(sequence.clips)-sequenceTime.current)/1000 : duration-currentTime)}
         takes={voiceoverTakes} onTakeCreated={take => setVoiceoverTakes(previous => addVoiceoverTake(previous, take))} onTakeRemove={id => setVoiceoverTakes(previous => previous.filter(take => take.id !== id))}
-        onAdd={(path, seconds, at) => { const start = at === 'start' ? 0 : Math.min(currentTime, Math.max(0,duration-.1)); handleAudioAdded({start:Math.round(start*1000),end:Math.round((start+seconds)*1000)},path,seconds*1000); }} />
+        onAdd={(path, seconds, at) => { if(sequenceVisible && voiceInsert.current){void voiceInsert.current(path,at);return;} const start = at === 'start' ? 0 : Math.min(currentTime, Math.max(0,duration-.1)); handleAudioAdded({start:Math.round(start*1000),end:Math.round((start+seconds)*1000)},path,seconds*1000); }} />
       <ExportSetupDialog open={exportSetupOpen} onOpenChange={setExportSetupOpen} onStart={() => { setExportSetupOpen(false); handleStartExport(); }}
         selected={wallpaper} onWallpaperChange={setWallpaper} aspectRatio={aspectRatio} videoElement={videoPlaybackRef.current?.video}
         exportFormat={exportFormat} onExportFormatChange={setExportFormat} exportQuality={exportQuality} onExportQualityChange={value => { setExportQuality(value); if (exportResolution === 'legacy') setExportResolution('source'); }}

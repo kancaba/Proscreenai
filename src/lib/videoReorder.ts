@@ -26,6 +26,17 @@ export function movePiece(pieces: SourcePiece[], from: number, to: number): Sour
   return next;
 }
 
+/** Adjacent source ranges that stay together can be copied or encoded as one media input. */
+export function mergeContiguousPieces(pieces: SourcePiece[]): SourcePiece[] {
+  const ranges: SourcePiece[] = [];
+  for (const piece of pieces) {
+    const last = ranges[ranges.length - 1];
+    if (last && last.endMs === piece.startMs) last.endMs = piece.endMs;
+    else ranges.push({ ...piece });
+  }
+  return ranges;
+}
+
 /** The pieces of a joined video with the added one (from `addedStartMs` to the end) put at `atMs`. */
 export function insertAddedAt(totalMs: number, addedStartMs: number, atMs: number): SourcePiece[] {
   const at = Math.max(0, Math.min(addedStartMs, Math.round(atMs)));

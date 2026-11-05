@@ -1,8 +1,8 @@
-import { type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { type PointerEvent as ReactPointerEvent, useMemo, useRef, useState } from 'react'
 import { useItem } from 'dnd-timeline'
 import { Film, GripVertical, Hourglass, Keyboard, Scissors } from 'lucide-react'
 import { useScopedT } from '@/contexts/I18nContext'
-import { toFileUrl } from '../projectPersistence'
+import { useVideoFrames } from './useVideoFrames'
 import type { TrimRegion } from '../types'
 import type { ClipTrackProps } from './TimelineEditor'
 
@@ -28,36 +28,13 @@ function sourceAt(clip: ClipTrackProps | undefined, outMs: number) {
 export function SourceVideoTrack({ path, durationMs, trims, clip, selectedCutId = null, onSelectCut }: SourceVideoTrackProps) {
   const t = useScopedT('timeline')
   const { setNodeRef, itemStyle, itemContentStyle } = useItem({ id: 'source-video', span: { start: 0, end: durationMs }, disabled: true, data: { rowId: 'source-video-row' } })
-  const [frames, setFrames] = useState<string[]>([])
   // Thumbnails follow the edited video: cut parts are not shown.
   const frameTimes = useMemo(
     () => Array.from({ length: FRAME_COUNT }, (_, index) => sourceAt(clip, ((index + 0.5) * durationMs) / FRAME_COUNT) / 1000),
     [clip, durationMs],
   )
   const frameKey = frameTimes.map((time) => time.toFixed(2)).join(',')
-  useEffect(() => {
-    let cancelled = false
-    if (!path) return
-    const video = document.createElement('video'); video.muted = true; video.preload = 'auto'; video.src = toFileUrl(path)
-    const canvas = document.createElement('canvas'); canvas.width = 144; canvas.height = 80
-    const context = canvas.getContext('2d')
-    const times = frameKey.split(',').map(Number)
-    const ready = () => {
-      if (!context || !Number.isFinite(video.duration) || video.duration <= 0) return
-      void (async () => {
-        const next: string[] = []
-        for (const time of times) {
-          if (cancelled) break
-          await new Promise<void>(resolve => { const timer = setTimeout(resolve, 2500); video.onseeked = () => { clearTimeout(timer); resolve() }; video.currentTime = Math.min(video.duration - .01, Number.isFinite(time) ? time : 0) })
-          if (cancelled) break
-          try { context.drawImage(video, 0, 0, 144, 80); next.push(canvas.toDataURL('image/jpeg', .6)) } catch { break }
-        }
-        if (!cancelled) setFrames(next)
-      })()
-    }
-    video.addEventListener('loadedmetadata', ready, { once: true })
-    return () => { cancelled = true; video.pause(); video.removeEventListener('loadedmetadata', ready); video.removeAttribute('src'); video.load() }
-  }, [path, frameKey])
+  const frames = useVideoFrames(path, frameKey)
   const name = path.split(/[\\/]/).pop() || 'Video'
   const videos = clip?.videos ?? []
   const percent = (ms: number) => `${(ms / Math.max(1, durationMs)) * 100}%`

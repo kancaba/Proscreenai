@@ -3,16 +3,17 @@ import { RESOLUTIONS, fitCustomSizeToRatio, outputDimensions, validDimensions, t
 import { getAspectRatioValue, type AspectRatio } from '@/utils/aspectRatioUtils'
 import { useI18n } from '@/contexts/I18nContext'
 export interface OutputSizeProps {
+  sourceSize?: {width:number;height:number};
   exportResolution?: ResolutionPreset; onExportResolutionChange?: (value: ResolutionPreset) => void
   exportFps?: VideoFps; onExportFpsChange?: (value: VideoFps) => void
   exportCustomWidth?: number; exportCustomHeight?: number
   onExportCustomSizeChange?: (width: number, height: number) => void
 }
-export function OutputSizeControls({ exportResolution = 'source', onExportResolutionChange, exportFps = 60, onExportFpsChange, exportCustomWidth = 1920, exportCustomHeight = 1080, onExportCustomSizeChange, video, aspectRatio, quality }: OutputSizeProps & { video?: HTMLVideoElement | null; aspectRatio: AspectRatio; quality: string }) {
+export function OutputSizeControls({ exportResolution = 'source', onExportResolutionChange, exportFps = 60, onExportFpsChange, exportCustomWidth = 1920, exportCustomHeight = 1080, onExportCustomSizeChange, video, sourceSize, aspectRatio, quality }: OutputSizeProps & { video?: HTMLVideoElement | null; aspectRatio: AspectRatio; quality: string }) {
   const { locale } = useI18n(); const tr = locale === 'tr'
   const [width, setWidth] = useState(String(exportCustomWidth)); const [height, setHeight] = useState(String(exportCustomHeight)); const [invalid, setInvalid] = useState(false)
   useEffect(() => { setWidth(String(exportCustomWidth)); setHeight(String(exportCustomHeight)); setInvalid(false) }, [exportCustomWidth, exportCustomHeight]);
-  const sw = video?.videoWidth || 1920, sh = video?.videoHeight || 1080
+  const sw = sourceSize?.width || video?.videoWidth || 1920, sh = sourceSize?.height || video?.videoHeight || 1080
   const ratio = getAspectRatioValue(aspectRatio, sw / sh)
   const dimensions = outputDimensions(sw, sh, ratio, exportResolution, exportCustomWidth, exportCustomHeight, quality)
   // Switching to a custom size starts from the current output, unless it is outside the custom limits.

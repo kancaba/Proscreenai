@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 contextBridge.exposeInMainWorld('electronAPI', {
   byteplusKeyStatus: () => ipcRenderer.invoke('byteplus-key-status'),
@@ -211,8 +211,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openAudioFilePicker: () => {
     return ipcRenderer.invoke('open-audio-file-picker')
   },
-  setCurrentVideoPath: (path: string) => {
-    return ipcRenderer.invoke('set-current-video-path', path)
+  pathForDroppedFile: (file: File) => webUtils.getPathForFile(file),
+  pickSequenceMedia: () => ipcRenderer.invoke('pick-sequence-media'),
+  inspectSequenceMedia: (path: string) => ipcRenderer.invoke('inspect-sequence-media', path),
+  sequencePreviewCopy: (path: string) => ipcRenderer.invoke('sequence-preview-copy', path),
+  storeSequenceGraphic: (data: ArrayBuffer) => ipcRenderer.invoke('store-sequence-graphic', data),
+  storeSequenceSource: (data: ArrayBuffer) => ipcRenderer.invoke('store-sequence-source', data),
+  exportSequence: (sequence: unknown) => ipcRenderer.invoke('export-sequence', sequence),
+  cancelSequenceExport: () => ipcRenderer.invoke('cancel-sequence-export'),
+  onSequenceExportProgress: (cb: (fraction: number) => void) => {
+    const listener = (_: unknown, fraction: number) => cb(fraction)
+    ipcRenderer.on('sequence-export-progress', listener)
+    return () => ipcRenderer.removeListener('sequence-export-progress', listener)
+  },
+  setCurrentVideoPath: (path: string, sequence?: boolean) => {
+    return ipcRenderer.invoke('set-current-video-path', path, sequence)
   },
   getCurrentVideoPath: () => {
     return ipcRenderer.invoke('get-current-video-path')

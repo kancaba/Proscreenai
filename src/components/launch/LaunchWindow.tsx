@@ -123,7 +123,7 @@ export function LaunchWindow() {
     }
 
     if (result.success && result.path) {
-      await window.electronAPI.setCurrentVideoPath(result.path);
+      await window.electronAPI.setCurrentVideoPath(result.path, true);
       await window.electronAPI.switchToEditor();
     }
   };

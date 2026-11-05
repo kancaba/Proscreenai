@@ -50,7 +50,7 @@ const GRADIENTS = [
 ];
 
 /** A settings section to switch to and scroll into view. */
-export type SettingsFocusRequest = { tab: "motion"; target: "auto-zoom"; nonce: number } | { tab: "appearance"; target: "ending"; nonce: number };
+export type SettingsFocusRequest = {tab:"ai";nonce:number} | { tab: "motion"; target: "auto-zoom"; nonce: number } | { tab: "appearance"; target: "ending"; nonce: number };
 
 export interface SettingsPanelProps extends OutputSizeProps {
   header?: React.ReactNode;
@@ -209,6 +209,7 @@ export function SettingsPanel({
   useEffect(() => {
     if (!focusRequest) return;
     setActiveTab(focusRequest.tab);
+    if (focusRequest.tab === "ai") return;
     const target = focusRequest.target === "ending" ? endingRef : autoZoomRef;
     requestAnimationFrame(() => target.current?.scrollIntoView({ block: "center", behavior: "smooth" }));
   }, [focusRequest]);
@@ -955,7 +956,7 @@ export function SettingsPanel({
       )}
 
       <div className="flex-shrink-0 p-4 pt-3 border-t border-white/5 bg-[#09090b]">
-        <div className="grid grid-cols-2 gap-2 mb-2">
+        {(onLoadProject || onSaveProject) && <div className="grid grid-cols-2 gap-2 mb-2">
           <Button
             type="button"
             variant="outline"
@@ -974,7 +975,7 @@ export function SettingsPanel({
             <Save className="w-3.5 h-3.5" />
             {tSettings('export.saveProject')}
           </Button>
-        </div>
+        </div>}
 
         <div className="flex gap-2 mt-3">
           <button

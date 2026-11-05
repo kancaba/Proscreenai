@@ -37,7 +37,7 @@ export function ExportSetupDialog({ open, onOpenChange, onStart, ...props }: Set
           </button>
         </div>
 
-        {exportFormat === 'mp4' && <OutputSizeControls exportResolution={exportResolution} onExportResolutionChange={onExportResolutionChange} exportFps={exportFps} onExportFpsChange={onExportFpsChange} exportCustomWidth={exportCustomWidth} exportCustomHeight={exportCustomHeight} onExportCustomSizeChange={onExportCustomSizeChange} video={videoElement} aspectRatio={aspectRatio} quality={exportQuality} />}
+        {exportFormat === 'mp4' && <OutputSizeControls sourceSize={props.sourceSize} exportResolution={exportResolution} onExportResolutionChange={onExportResolutionChange} exportFps={exportFps} onExportFpsChange={onExportFpsChange} exportCustomWidth={exportCustomWidth} exportCustomHeight={exportCustomHeight} onExportCustomSizeChange={onExportCustomSizeChange} video={videoElement} aspectRatio={aspectRatio} quality={exportQuality} />}
         {exportFormat === 'mp4' && <p className="mb-1 text-[10px] text-slate-400">{locale === 'tr' ? 'Sıkıştırma kalitesi' : 'Compression quality'}</p>}
         {exportFormat === 'mp4' && (
           <div className="mb-3 bg-white/5 border border-white/5 p-0.5 w-full grid grid-cols-4 h-7 rounded-lg">

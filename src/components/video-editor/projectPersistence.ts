@@ -1,3 +1,4 @@
+import { validSequence, type Sequence } from "@/lib/sequence";
 import { normalizeSplits } from "./timeline/editedTime";
 import type { ResolutionPreset, VideoFps } from '@/lib/video/outputSettings';
 import { type Fades, normalizeFades } from "@/lib/fades";
@@ -35,6 +36,7 @@ import {
 export const PROJECT_VERSION = 1;
 
 export interface ProjectEditorState {
+  sequence?: Sequence;
   wallpaper: string;
   shadowIntensity: number;
   backgroundBlur: number;
@@ -202,6 +204,7 @@ export function validateProjectData(candidate: unknown): candidate is EditorProj
   if (typeof project.version !== "number") return false;
   if (typeof project.videoPath !== "string" || !project.videoPath) return false;
   if (!project.editor || typeof project.editor !== "object") return false;
+  if (project.editor.sequence !== undefined && !validSequence(project.editor.sequence)) return false;
   return true;
 }
 
@@ -383,6 +386,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
   const cropHeight = clamp(rawCropHeight, 0.01, 1 - cropY);
 
   return {
+    ...(validSequence(editor.sequence) ? { sequence: editor.sequence } : {}),
     wallpaper: typeof editor.wallpaper === "string" ? editor.wallpaper : WALLPAPER_PATHS[0],
     shadowIntensity: typeof editor.shadowIntensity === "number" ? editor.shadowIntensity : 0.67,
     backgroundBlur: normalizedBackgroundBlur,
@@ -456,7 +460,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 
 export function createProjectData(videoPath: string, editor: ProjectEditorState): EditorProjectData {
   return {
-    version: PROJECT_VERSION,
+    version: editor.sequence ? 2 : PROJECT_VERSION,
     videoPath,
     editor,
   };

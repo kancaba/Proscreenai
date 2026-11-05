@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { mergeContiguousPieces } from "./videoReorder";
 import { canCopyPieces, canJoinWithoutEncoding, concatListFile, concatPiecesList, copyJoinArgs, encodeJoinArgs, ffmpegProgressMs, joinedBaseName, joinTelemetry, keyframeCuts, parseFfmpegProbe, parseKeyframeTimes, type ProbedVideo } from "./videoConcat";
 
 // What ffmpeg prints for a screen recording made by the app and for a test clip with sound.
@@ -103,7 +104,15 @@ describe("putting pieces of one video in a new order", () => {
 
 describe("moving parts without re-encoding", () => {
   // A recording's key frames, the added video starting on one at 75.4733 s.
-  const keyframes = parseKeyframeTimes("[Parsed_showinfo_0 @ 0x1] n:   0 pts:      0 pts_time:0       duration:1\n[Parsed_showinfo_0 @ 0x1] n:   1 pts:1449088 pts_time:75.4733 duration:1\n");
+  const keyframes = parseKeyframeTimes("#tb 0: 1/30000\n0, -500, 0, 500, 1234, 0xabcd\n0, 2263700, 2264200, 500, 456, 0xefab\n");
+
+  it("copies an appended clip moved ahead of an earlier edit that stays together", () => {
+    const pieces = [{ startMs: 51700, endMs: 93117 }, { startMs: 0, endMs: 34774 }, { startMs: 34774, endMs: 51700 }];
+    const ranges = mergeContiguousPieces(pieces);
+    expect(ranges).toEqual([pieces[0], { startMs: 0, endMs: 51700 }]);
+    expect(keyframeCuts(ranges, [0, 51700], 93117)).not.toBeNull();
+    expect(pieces[1].endMs).toBe(34774);
+  });
 
   it("cuts just inside the key frames where the parts meet", () => {
     expect(keyframes.map((ms) => Math.round(ms * 10) / 10)).toEqual([0, 75473.3]);

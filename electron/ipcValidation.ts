@@ -3,7 +3,7 @@ import path from 'node:path'
 
 const READABLE_MEDIA_EXTENSIONS = new Set([
   '.mp4', '.mov', '.m4v', '.webm', '.mkv', '.avi',
-  '.wav', '.m4a', '.mp3', '.aac', '.ogg', '.opus',
+  '.wav', '.flac', '.m4a', '.mp3', '.aac', '.ogg', '.opus',
   '.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.svg', '.avif',
 ])
 

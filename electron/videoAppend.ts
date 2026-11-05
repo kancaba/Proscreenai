@@ -17,7 +17,7 @@ import {
   parseKeyframeTimes,
   type ProbedVideo,
 } from '../src/lib/videoConcat'
-import { createReorder, reorderTelemetry, validPieces } from '../src/lib/videoReorder'
+import { createReorder, mergeContiguousPieces, reorderTelemetry, validPieces } from '../src/lib/videoReorder'
 import { resolveReadableMediaPath } from './ipcValidation'
 
 // Adding a video to the end of the edit: the current video and the added one are joined into a
@@ -39,7 +39,7 @@ type Deps = {
   onJoined: (videoPath: string) => void
 }
 
-function probe(ffmpegPath: string, filePath: string): Promise<ProbedVideo> {
+export function probe(ffmpegPath: string, filePath: string, allowAudio = false): Promise<ProbedVideo> {
   return new Promise((resolve, reject) => {
     const child = spawn(ffmpegPath, ['-hide_banner', '-nostdin', '-i', filePath])
     let output = ''
@@ -48,7 +48,7 @@ function probe(ffmpegPath: string, filePath: string): Promise<ProbedVideo> {
     // Without an output file ffmpeg exits with an error after describing the input.
     child.on('close', () => {
       const probed = parseFfmpegProbe(output)
-      if (!probed.video || probed.durationMs <= 0) reject(new Error(`Not a playable video: ${path.basename(filePath)}`))
+      if ((!probed.video && !(allowAudio && probed.audio)) || probed.durationMs <= 0) reject(new Error(`Not a playable video: ${path.basename(filePath)}`))
       else resolve(probed)
     })
   })
@@ -72,14 +72,18 @@ function runFfmpeg(ffmpegPath: string, args: string[], totalMs: number, onProgre
   })
 }
 
-/** Key frame times (ms); only key frames are decoded, so this takes a moment even for long videos. */
+/** Read timestamps from compressed key packets without decoding the video frames. */
 function keyframeTimes(ffmpegPath: string, filePath: string): Promise<number[]> {
   return new Promise((resolve) => {
-    const child = spawn(ffmpegPath, ['-hide_banner', '-nostdin', '-skip_frame', 'nokey', '-i', filePath, '-map', '0:v:0', '-vf', 'showinfo', '-f', 'null', '-'])
+    const child = spawn(ffmpegPath, [
+      '-v', 'error', '-nostdin', '-discard', 'nokey', '-i', filePath,
+      '-map', '0:v:0', '-c:v', 'copy', '-bsf:v', 'noise=drop=not(key)', '-f', 'framecrc', '-',
+    ])
     let output = ''
-    child.stderr.on('data', (chunk) => { output += String(chunk) })
+    child.stdout.on('data', (chunk) => { output += String(chunk) })
+    child.stderr.resume()
     child.on('error', () => resolve([]))
-    child.on('close', () => resolve(parseKeyframeTimes(output)))
+    child.on('close', (code) => resolve(code === 0 ? parseKeyframeTimes(output) : []))
   })
 }
 
@@ -213,7 +217,8 @@ export function registerVideoAppendHandlers(deps: Deps) {
       const probed = await probe(ffmpegPath, currentPath)
       const editMs = Math.max(...pieces.map((piece) => piece.endMs))
       // The piece that ends the video takes it to the file's real end (the editor rounds its length).
-      const files = pieces.map((piece) => ({
+      const ranges = mergeContiguousPieces(pieces)
+      const files = ranges.map((piece) => ({
         path: currentPath,
         probe: probed,
         range: piece.endMs === editMs ? { startMs: piece.startMs } : { startMs: piece.startMs, endMs: piece.endMs },
@@ -226,7 +231,7 @@ export function registerVideoAppendHandlers(deps: Deps) {
       }
       // Parts that start on key frames (a joined video's own edges, or edges this app encoded)
       // are copied in the new order in seconds; anything else is re-encoded.
-      const cuts = canCopyPieces(currentPath, probed) ? keyframeCuts(pieces, await keyframeTimes(ffmpegPath, currentPath), editMs) : null
+      const cuts = canCopyPieces(currentPath, probed) ? keyframeCuts(ranges, await keyframeTimes(ffmpegPath, currentPath), editMs) : null
       if (cuts) {
         const listPath = path.join(recordingsDir, `.montaj-${stamp(new Date())}-${process.pid}.txt`)
         try {

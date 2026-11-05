@@ -155,8 +155,17 @@ interface Window {
       warning?: 'audio-conversion-failed'
     }>
     openVideoFilePicker: () => Promise<{ success: boolean; path?: string; canceled?: boolean }>
-    setCurrentVideoPath: (path: string) => Promise<{ success: boolean }>
-    getCurrentVideoPath: () => Promise<{ success: boolean; path?: string }>
+    pathForDroppedFile: (file: File) => string
+    pickSequenceMedia: () => Promise<string[]>
+    inspectSequenceMedia: (path: string) => Promise<{duration:number;width:number;height:number;fps:number;hasAudio:boolean}>
+    sequencePreviewCopy: (path: string) => Promise<string>
+    storeSequenceGraphic: (data:ArrayBuffer) => Promise<string>
+    storeSequenceSource: (data: ArrayBuffer) => Promise<string>
+    exportSequence: (sequence: import('../src/lib/sequence').Sequence) => Promise<string | null>
+    cancelSequenceExport: () => Promise<void>
+    onSequenceExportProgress: (callback: (fraction: number) => void) => () => void
+    setCurrentVideoPath: (path: string, sequence?: boolean) => Promise<{ success: boolean }>
+    getCurrentVideoPath: () => Promise<{ success: boolean; path?: string; sequence?: boolean }>
     clearCurrentVideoPath: () => Promise<{ success: boolean }>
     saveProjectFile: (projectData: unknown, suggestedName?: string, existingProjectPath?: string) => Promise<{
       success: boolean

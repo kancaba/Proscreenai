@@ -6,7 +6,7 @@
 
 export interface ProbedVideo {
   durationMs: number;
-  video: { codec: string; width: number; height: number; fps: number; pixelFormat?: string } | null;
+  video: { codec: string; width: number; height: number; fps: number; pixelFormat?: string; rotation?: number } | null;
   audio: { codec: string; sampleRate: number; channels: string } | null;
 }
 
@@ -22,11 +22,13 @@ export function parseFfmpegProbe(output: string): ProbedVideo {
     const size = videoLine.match(/,\s*(\d{2,5})x(\d{2,5})[\s,]/);
     const fps = videoLine.match(/([\d.]+) fps/) ?? videoLine.match(/([\d.]+) tbr/);
     const pixelFormat = videoLine.match(/,\s*(yuv\w+|nv12|p010\w*|rgb\w+|bgr\w+)\b/)?.[1];
+    const rotation = Number(output.match(/displaymatrix: rotation of (-?[\d.]+) degrees/)?.[1] ?? 0);
     video = {
       codec,
       width: size ? Number(size[1]) : 0,
       height: size ? Number(size[2]) : 0,
       fps: fps ? Number(fps[1]) : 0,
+      ...(rotation ? { rotation } : {}),
       ...(pixelFormat ? { pixelFormat } : {}),
     };
   }
@@ -63,9 +65,15 @@ export function canJoinWithoutEncoding(files: Array<{ path: string; probe: Probe
 
 const even = (value: number) => Math.max(2, Math.round(value / 2) * 2);
 
-/** Times (ms) of the key frames, from `ffmpeg -skip_frame nokey -i file -vf showinfo` (stderr). */
+/** Presentation timestamps in ffmpeg framecrc output for a single stream of key packets. */
 export function parseKeyframeTimes(output: string): number[] {
-  return [...output.matchAll(/pts_time:\s*(-?\d+(?:\.\d+)?)/g)].map((match) => Number(match[1]) * 1000).filter((ms) => ms >= 0);
+  const timeBase = output.match(/^#tb 0:\s*(\d+)\/(\d+)/m);
+  if (!timeBase || Number(timeBase[2]) === 0) return [];
+  const msPerTick = 1000 * Number(timeBase[1]) / Number(timeBase[2]);
+  // Each packet row starts with stream index, decoding timestamp, presentation timestamp.
+  return [...output.matchAll(/^0,\s*-?\d+,\s*(-?\d+),/gm)]
+    .map((match) => Number(match[1]) * msPerTick)
+    .filter((ms) => ms >= 0);
 }
 
 /** A key frame within this of a part edge counts as on it (about a frame at 60 fps). */
