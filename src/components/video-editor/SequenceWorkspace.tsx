@@ -82,6 +82,8 @@ interface Props {
 	onVoiceover: (insert: (path: string, at: "start" | "playhead") => Promise<void>) => void;
 	onSave: () => Promise<void>;
 	onOpen: () => Promise<void>;
+	/** Back to the screen editor; given while the sequence is just the project's own video. */
+	onScreenEditor?: () => void;
 }
 export default function SequenceWorkspace({
 	sequence,
@@ -96,6 +98,7 @@ export default function SequenceWorkspace({
 	onVoiceover,
 	onSave,
 	onOpen,
+	onScreenEditor,
 }: Props) {
 	const label = (turkish: string, english: string) => (tr ? turkish : english);
 	const [selectedId, setSelected] = useState<string | null>(null);
@@ -534,6 +537,18 @@ export default function SequenceWorkspace({
 						}}
 					>
 						{label("Ekran kaydı ekle", "Add screen recording")}
+					</button>
+				)}
+				{onScreenEditor && !session && (
+					<button
+						data-testid="back-to-screen-editor"
+						disabled={!!busy}
+						onClick={() => {
+							setPlaying(false);
+							onScreenEditor();
+						}}
+					>
+						{label("Ekran editörüne dön", "Back to screen editor")}
 					</button>
 				)}
 				<button disabled={!!busy || !!session} onClick={onOpen}>

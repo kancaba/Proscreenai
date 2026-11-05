@@ -872,11 +872,14 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
         if (!active) return;
         if (result.success && result.path) {
           const sourcePath = fromFileUrl(result.path);
-          const {clip,width,height,fps} = await inspectClip(sourcePath,0,0);
-          if (!active) return;
-          const even = (n: number) => Math.max(2,Math.min(8192,Math.round(n/2)*2));
-          setSequence({width:even(width||1920),height:even(height||1080),fps,clips:[clip]});
-          setSequenceVisible(true);
+          // A video chosen for the multitrack editor starts as a sequence; a screen recording opens in the screen editor.
+          if (result.sequence) {
+            const {clip,width,height,fps} = await inspectClip(sourcePath,0,0);
+            if (!active) return;
+            const even = (n: number) => Math.max(2,Math.min(8192,Math.round(n/2)*2));
+            setSequence({width:even(width||1920),height:even(height||1080),fps,clips:[clip]});
+            setSequenceVisible(true);
+          }
           setVideoSourcePath(sourcePath);
           setVideoPath(toFileUrl(sourcePath));
           setCurrentProjectPath(null);
@@ -2950,7 +2953,8 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
       {sequenceVisible && sequence ? <SequenceWorkspace key={projectGeneration} sequence={sequence} tr={locale==='tr'}
         name={(currentProjectPath || videoSourcePath || '').split(/[\\/]/).pop() || 'Kurgu'} dirty={hasUnsavedChanges}
         initialTime={sequenceTime.current} onTime={rememberSequenceTime} onChange={editSequence}
-        onRecord={recordAndAppend} onVoiceover={insert=>{voiceInsert.current=insert;openVoiceover();}} renderEditor={session=><VideoEditor key={session.clip.id} clipSession={session}/>} onSave={handleSaveProject} onOpen={handleLoadProject}/> : <>
+        onRecord={recordAndAppend} onVoiceover={insert=>{voiceInsert.current=insert;openVoiceover();}} renderEditor={session=><VideoEditor key={session.clip.id} clipSession={session}/>} onSave={handleSaveProject} onOpen={handleLoadProject}
+        onScreenEditor={sequence.clips.length===1 && !sequence.clips[0].edit && sequence.clips[0].path===videoSourcePath ? ()=>setSequenceVisible(false) : undefined}/> : <>
       {clipSession ? <div className="seq-edit-heading">
         <strong>{locale==='tr'?'Klip düzenleme':'Clip editing'}</strong><span>{clipSession.clip.name}</span>
         <button disabled={isExporting} onClick={clipSession.onCancel}>{locale==='tr'?'Vazgeç':'Cancel'}</button>
