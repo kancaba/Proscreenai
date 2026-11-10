@@ -1,3 +1,4 @@
+import type { KeystrokeSettings, RecordedShortcut } from '@/lib/keystrokes';
 import GIF from 'gif.js';
 import type { ExportProgress, ExportResult, GifFrameRate, GifSizePreset, GIF_SIZE_PRESETS } from './types';
 import { StreamingVideoDecoder } from './streamingDecoder';
@@ -38,6 +39,9 @@ interface GifExporterConfig {
   annotationRegions?: AnnotationRegion[];
   blurRegions?: BlurRegion[];
   cursorTelemetry?: CursorTelemetryPoint[];
+  /** Shortcuts pressed while recording, drawn as a badge when given. */
+  shortcuts?: RecordedShortcut[];
+  keystrokes?: KeystrokeSettings;
   showCursor?: boolean;
   cursorSize?: number;
   cursorSmoothing?: number;
@@ -124,6 +128,8 @@ export class GifExporter {
         previewWidth: this.config.previewWidth,
         previewHeight: this.config.previewHeight,
         cursorTelemetry: this.config.cursorTelemetry,
+        shortcuts: this.config.shortcuts,
+        keystrokes: this.config.keystrokes,
         showCursor: this.config.showCursor,
         cursorSize: this.config.cursorSize,
         cursorSmoothing: this.config.cursorSmoothing,

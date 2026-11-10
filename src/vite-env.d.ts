@@ -127,6 +127,8 @@ interface Window {
     getCursorTelemetry: (videoPath?: string) => Promise<{
       success: boolean
       samples: CursorTelemetryPoint[]
+      keys?: number[]
+      shortcuts?: { timeMs: number; key: string; meta: boolean; ctrl: boolean; alt: boolean; shift: boolean }[]
       message?: string
       error?: string
     }>

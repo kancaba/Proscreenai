@@ -8,6 +8,7 @@ import { findDominantRegion } from '@/components/video-editor/videoPlayback/zoom
 import { applyZoomTransform, computeFocusFromTransform, computeZoomTransform, createMotionBlurState, type MotionBlurState } from '@/components/video-editor/videoPlayback/zoomTransform';
 import { DEFAULT_FOCUS, ZOOM_SCALE_DEADZONE, ZOOM_TRANSLATION_DEADZONE_PX } from '@/components/video-editor/videoPlayback/constants';
 import { renderAnnotations } from './annotationRenderer';
+import { drawKeystrokeBadge, isMacPlatform, type KeystrokeSettings, type RecordedShortcut, shownShortcut } from '@/lib/keystrokes';
 import { PixiCursorOverlay, DEFAULT_CURSOR_CONFIG, preloadCursorAssets } from '@/components/video-editor/videoPlayback/cursorRenderer';
 import { BlurAreaLayer } from '@/components/video-editor/videoPlayback/blurLayer';
 import { activeBlurRegions, type BlurRegion } from '@/components/video-editor/blurRegions';
@@ -34,6 +35,9 @@ interface FrameRenderConfig {
   previewWidth?: number;
   previewHeight?: number;
   cursorTelemetry?: CursorTelemetryPoint[];
+  /** Shortcuts pressed while recording, drawn as a badge when given. */
+  shortcuts?: RecordedShortcut[];
+  keystrokes?: KeystrokeSettings;
   showCursor?: boolean;
   cursorSize?: number;
   cursorSmoothing?: number;
@@ -452,6 +456,12 @@ export class FrameRenderer {
       );
     }
 
+    // The shortcut badge sits on top of everything, like the preview draws it.
+    const { shortcuts, keystrokes } = this.config;
+    if (keystrokes?.enabled && shortcuts?.length && this.compositeCtx) {
+      const shown = shownShortcut(shortcuts, timeMs);
+      if (shown) drawKeystrokeBadge(this.compositeCtx, shown, keystrokes, this.config.width, this.config.height, isMacPlatform());
+    }
   }
 
   private updateLayout(): void {

@@ -21,6 +21,8 @@ import { AnnotationOverlay } from "./AnnotationOverlay";
 import { BlurAreaEditor } from "./BlurAreaEditor";
 import { activeBlurRegions, type BlurRect, type BlurRegion } from "./blurRegions";
 import { BlurAreaLayer } from "./videoPlayback/blurLayer";
+import { KeystrokeOverlay } from "./KeystrokeOverlay";
+import type { KeystrokeSettings, RecordedShortcut } from "@/lib/keystrokes";
 import {
   DEFAULT_CURSOR_CLICK_BOUNCE,
   DEFAULT_CURSOR_MOTION_BLUR,
@@ -91,6 +93,9 @@ interface VideoPlaybackProps {
   onAnnotationContentChange?: (id: string, content: string) => void;
   cursorTelemetry?: CursorTelemetryPoint[];
   showCursor?: boolean;
+  /** Shortcuts to show as a badge (given while the badge is on). */
+  shortcuts?: RecordedShortcut[];
+  keystrokes?: KeystrokeSettings;
   cursorSize?: number;
   cursorSmoothing?: number;
   cursorMotionBlur?: number;
@@ -145,6 +150,8 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
   onAnnotationContentChange,
   cursorTelemetry = [],
   showCursor = false,
+  shortcuts,
+  keystrokes,
   cursorSize = DEFAULT_CURSOR_SIZE,
   cursorSmoothing = DEFAULT_CURSOR_SMOOTHING,
   cursorMotionBlur = DEFAULT_CURSOR_MOTION_BLUR,
@@ -1267,6 +1274,15 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
               />
             ));
           })()}
+          {shortcuts && shortcuts.length > 0 && keystrokes?.enabled && (
+            <KeystrokeOverlay
+              shortcuts={shortcuts}
+              settings={keystrokes}
+              timeMs={Math.round(currentTime * 1000)}
+              width={overlayRef.current?.clientWidth || 800}
+              height={overlayRef.current?.clientHeight || 600}
+            />
+          )}
         </div>
       )}
       <video

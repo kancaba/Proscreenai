@@ -22,6 +22,8 @@ import type { ExportQuality, ExportFormat, GifFrameRate, GifSizePreset } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { FADE_CHOICES_MS, type Fades } from "@/lib/fades";
 import { ENDING_CHOICES_MS, type EndingHold, MAX_ENDING_MS } from "@/lib/endingHold";
+import type { KeystrokeSettings } from "@/lib/keystrokes";
+import { KeystrokeSettingsPanel } from "./KeystrokeSettingsPanel";
 const GRADIENTS = [
   "linear-gradient( 111.6deg,  rgba(114,167,232,1) 9.4%, rgba(253,129,82,1) 43.9%, rgba(253,129,82,1) 54.8%, rgba(249,202,86,1) 86.3% )",
   "linear-gradient(120deg, #d4fc79 0%, #96e6a1 100%)",
@@ -89,6 +91,10 @@ export interface SettingsPanelProps extends OutputSizeProps {
   onConnectZoomsChange?: (enabled: boolean) => void;
   showCursor?: boolean;
   onShowCursorChange?: (enabled: boolean) => void;
+  /** The shortcut badge, and how many shortcuts the recording has. */
+  keystrokes?: KeystrokeSettings;
+  onKeystrokesChange?: (settings: KeystrokeSettings) => void;
+  shortcutCount?: number;
   loopCursor?: boolean;
   onLoopCursorChange?: (enabled: boolean) => void;
   cursorSize?: number;
@@ -167,6 +173,9 @@ export function SettingsPanel({
   onConnectZoomsChange,
   showCursor = false,
   onShowCursorChange,
+  keystrokes,
+  onKeystrokesChange,
+  shortcutCount = 0,
   loopCursor = false,
   onLoopCursorChange,
   cursorSize = 5,
@@ -427,6 +436,9 @@ export function SettingsPanel({
             )}
             <p className="mt-2 text-[9px] leading-snug text-slate-500">{tSettings('ending.hint')}</p>
           </div>
+        )}
+        {activeTab === 'appearance' && keystrokes && onKeystrokesChange && (
+          <KeystrokeSettingsPanel settings={keystrokes} onChange={onKeystrokesChange} shortcutCount={shortcutCount} tr={locale === 'tr'} />
         )}
         {activeTab === 'item' && annotationPanel}
         {activeTab === 'ai' && aiPanel}

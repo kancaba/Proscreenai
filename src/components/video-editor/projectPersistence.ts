@@ -11,6 +11,7 @@ import type { ExportFormat, ExportQuality, GifFrameRate, GifSizePreset } from "@
 import { WALLPAPER_PATHS } from "@/lib/wallpapers";
 import { type BlurRegion, normalizeBlurRegions } from "./blurRegions";
 import { normalizeVoiceoverTakes, type VoiceoverTake } from "./voiceoverTakes";
+import { type KeystrokeSettings, normalizeKeystrokeSettings } from "@/lib/keystrokes";
 import {
   DEFAULT_CURSOR_CLICK_BOUNCE,
   DEFAULT_CURSOR_MOTION_BLUR,
@@ -60,6 +61,8 @@ export interface ProjectEditorState {
   blurRegions?: BlurRegion[];
   /** Voiceovers generated for this project, newest first, whether or not they are on the timeline. */
   voiceoverTakes?: VoiceoverTake[];
+  /** The shortcut badge (absent while it is off). */
+  keystrokes?: KeystrokeSettings;
   /** Volume of the recording's own sound, 0 (muted) to 1. */
   sourceAudioVolume: number;
   /** Fade from/to black at the start and end of the video. */
@@ -89,6 +92,11 @@ function normalizedBlurs(value: unknown): { blurRegions?: BlurRegion[] } {
 }
 
 /** Generated voiceovers of a saved project; nothing when there are none. */
+function normalizedKeystrokes(value: unknown): { keystrokes?: KeystrokeSettings } {
+  const keystrokes = normalizeKeystrokeSettings(value);
+  return keystrokes.enabled ? { keystrokes } : {};
+}
+
 function normalizedTakes(value: unknown): { voiceoverTakes?: VoiceoverTake[] } {
   const voiceoverTakes = normalizeVoiceoverTakes(value);
   return voiceoverTakes.length > 0 ? { voiceoverTakes } : {};
@@ -419,6 +427,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
     audioRegions: normalizedAudioRegions,
     ...normalizedBlurs((editor as Partial<ProjectEditorState>).blurRegions),
     ...normalizedTakes((editor as Partial<ProjectEditorState>).voiceoverTakes),
+    ...normalizedKeystrokes((editor as Partial<ProjectEditorState>).keystrokes),
     sourceAudioVolume: isFiniteNumber((editor as Partial<ProjectEditorState>).sourceAudioVolume)
       ? clamp((editor as Partial<ProjectEditorState>).sourceAudioVolume as number, 0, 1)
       : 1,

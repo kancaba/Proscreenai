@@ -1,3 +1,4 @@
+import type { KeystrokeSettings, RecordedShortcut } from '@/lib/keystrokes';
 import type { ExportConfig, ExportProgress, ExportResult } from './types';
 import { fadeAmount, type Fades, NO_FADES } from '@/lib/fades';
 import type { EndingHold } from '@/lib/endingHold';
@@ -28,6 +29,9 @@ interface VideoExporterConfig extends ExportConfig {
   annotationRegions?: AnnotationRegion[];
   blurRegions?: BlurRegion[];
   cursorTelemetry?: CursorTelemetryPoint[];
+  /** Shortcuts pressed while recording, drawn as a badge when given. */
+  shortcuts?: RecordedShortcut[];
+  keystrokes?: KeystrokeSettings;
   showCursor?: boolean;
   cursorSize?: number;
   cursorSmoothing?: number;
@@ -97,6 +101,8 @@ export class VideoExporter {
         previewWidth: this.config.previewWidth,
         previewHeight: this.config.previewHeight,
         cursorTelemetry: this.config.cursorTelemetry,
+        shortcuts: this.config.shortcuts,
+        keystrokes: this.config.keystrokes,
         showCursor: this.config.showCursor,
         cursorSize: this.config.cursorSize,
         cursorSmoothing: this.config.cursorSmoothing,

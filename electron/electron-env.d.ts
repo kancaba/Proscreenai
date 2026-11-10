@@ -128,7 +128,7 @@ interface Window {
     readLocalFile: (filePath: string) => Promise<{ success: boolean; data?: Uint8Array; error?: string }>
     setRecordingState: (recording: boolean) => Promise<void>
     /** `keys`: times (ms) when a key was pressed while recording; which key is never stored. */
-    getCursorTelemetry: (videoPath?: string) => Promise<{ success: boolean; samples: CursorTelemetryPoint[]; keys?: number[]; message?: string; error?: string }>
+    getCursorTelemetry: (videoPath?: string) => Promise<{ success: boolean; samples: CursorTelemetryPoint[]; keys?: number[]; shortcuts?: { timeMs: number; key: string; meta: boolean; ctrl: boolean; alt: boolean; shift: boolean }[]; message?: string; error?: string }>
     getSystemCursorAssets: () => Promise<{ success: boolean; cursors: Record<string, SystemCursorAsset>; error?: string }>
     onStopRecordingFromTray: (callback: () => void) => () => void
     onRecordingStateChanged: (callback: (state: { recording: boolean; sourceName: string }) => void) => () => void

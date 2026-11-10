@@ -26,6 +26,7 @@ import { isAllowedExternalUrl, resolveReadableMediaPath, resolveRecordingFilePat
 import { createCountdownWindow, getCountdownWindow, closeCountdownWindow, setHudRecordingState, createRegionSelectorWindow } from '../windows'
 
 import { validateCaptureRegion, regionCropFilter, type CaptureRegion } from '../../src/utils/captureRegion'
+import { normalizeShortcuts, shortcutFromKeyEvent, type RecordedShortcut } from '../../src/lib/keystrokes'
 
 const execFileAsync = promisify(execFile)
 const nodeRequire = createRequire(import.meta.url)
@@ -1200,6 +1201,10 @@ let pendingCursorSamples: CursorTelemetryPoint[] = []
 let activeKeyTimes: number[] = []
 let pendingKeyTimes: number[] = []
 const MAX_KEY_TIMES = 200_000
+// Shortcuts pressed with Cmd or Ctrl (⌘K, Ctrl+S), to show in the video. Plain typing is never kept.
+let activeShortcuts: RecordedShortcut[] = []
+let pendingShortcuts: RecordedShortcut[] = []
+const MAX_SHORTCUTS = 20_000
 let isCursorCaptureActive = false
 let interactionCaptureCleanup: (() => void) | null = null
 let hasLoggedInteractionHookFailure = false
@@ -1407,20 +1412,23 @@ function sampleCursorPoint() {
 
 async function persistPendingCursorTelemetry(videoPath: string) {
   const telemetryPath = getTelemetryPathForVideo(videoPath)
-  if (pendingCursorSamples.length > 0 || pendingKeyTimes.length > 0) {
+  if (pendingCursorSamples.length > 0 || pendingKeyTimes.length > 0 || pendingShortcuts.length > 0) {
     await fs.writeFile(
       telemetryPath,
-      JSON.stringify({ version: CURSOR_TELEMETRY_VERSION, samples: pendingCursorSamples, keys: pendingKeyTimes }, null, 2),
+      JSON.stringify({ version: CURSOR_TELEMETRY_VERSION, samples: pendingCursorSamples, keys: pendingKeyTimes, shortcuts: pendingShortcuts }, null, 2),
       'utf-8'
     )
   }
   pendingCursorSamples = []
   pendingKeyTimes = []
+  pendingShortcuts = []
 }
 
 function snapshotCursorTelemetryForPersistence() {
   const lastPendingKeyMs = pendingKeyTimes[pendingKeyTimes.length - 1] ?? -1
   pendingKeyTimes = [...pendingKeyTimes, ...activeKeyTimes.filter((timeMs) => timeMs > lastPendingKeyMs)]
+  const lastShortcutMs = pendingShortcuts[pendingShortcuts.length - 1]?.timeMs ?? -1
+  pendingShortcuts = [...pendingShortcuts, ...activeShortcuts.filter((shortcut) => shortcut.timeMs > lastShortcutMs)]
 
   if (activeCursorSamples.length === 0) {
     return
@@ -1548,9 +1556,16 @@ async function startInteractionCapture() {
     }
 
     // Typing: only when a key went down, never which key. Shortcuts with Cmd or Ctrl are not typing.
-    const onKeyDown = (event: { metaKey?: boolean; ctrlKey?: boolean } | undefined) => {
+    const onKeyDown = (event: { keycode?: number; metaKey?: boolean; ctrlKey?: boolean; altKey?: boolean; shiftKey?: boolean } | undefined) => {
       if (!isCursorCaptureActive || !recordingClock.recording || recordingClock.paused) return
-      if (event?.metaKey || event?.ctrlKey) return
+      if (event?.metaKey || event?.ctrlKey) {
+        const shortcut = shortcutFromKeyEvent(event, recordingClock.elapsed())
+        if (shortcut) {
+          activeShortcuts.push(shortcut)
+          if (activeShortcuts.length > MAX_SHORTCUTS) activeShortcuts.shift()
+        }
+        return
+      }
       activeKeyTimes.push(Math.max(0, Math.round(recordingClock.elapsed())))
       if (activeKeyTimes.length > MAX_KEY_TIMES) activeKeyTimes.shift()
     }
@@ -2485,13 +2500,15 @@ export function registerIpcHandlers(
       pendingCursorSamples = []
       activeKeyTimes = []
       pendingKeyTimes = []
+      activeShortcuts = []
+      pendingShortcuts = []
       linuxCursorScreenPoint = null
       lastLeftClick = null
       sampleCursorPoint()
       cursorCaptureInterval = setInterval(sampleCursorPoint, CURSOR_SAMPLE_INTERVAL_MS)
       void startInteractionCapture()
     } else {
-      if (recording) { activeCursorSamples = []; pendingCursorSamples = []; activeKeyTimes = []; pendingKeyTimes = [] }
+      if (recording) { activeCursorSamples = []; pendingCursorSamples = []; activeKeyTimes = []; pendingKeyTimes = []; activeShortcuts = []; pendingShortcuts = [] }
       isCursorCaptureActive = false
       stopCursorCapture()
       stopInteractionCapture()
@@ -2501,6 +2518,7 @@ export function registerIpcHandlers(
       snapshotCursorTelemetryForPersistence()
       activeCursorSamples = []
       activeKeyTimes = []
+      activeShortcuts = []
     }
 
     const source = selectedSource || { name: 'Screen' }
@@ -2566,7 +2584,7 @@ export function registerIpcHandlers(
         .filter((timeMs: unknown): timeMs is number => typeof timeMs === 'number' && Number.isFinite(timeMs) && timeMs >= 0)
         .sort((a: number, b: number) => a - b)
 
-      return { success: true, samples, keys }
+      return { success: true, samples, keys, shortcuts: normalizeShortcuts(parsed?.shortcuts) }
     } catch (error) {
       const nodeError = error as NodeJS.ErrnoException
       if (nodeError.code === 'ENOENT') {

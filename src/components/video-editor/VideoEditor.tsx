@@ -108,6 +108,7 @@ import { applyAudioTimelineChange, audioFileOffsetSeconds, audioTimelineSpan, fi
 import type { EditorAppearance } from './appearancePresets';
 import { type BlurRect, type BlurRegion, clampBlurRect, DEFAULT_BLUR_RECT, DEFAULT_BLUR_SPAN_MS, DEFAULT_BLUR_STRENGTH } from './blurRegions';
 import { BlurControls } from './BlurControls';
+import { DEFAULT_KEYSTROKE_SETTINGS, type KeystrokeSettings, type RecordedShortcut } from '@/lib/keystrokes';
 
 const LOOP_CURSOR_END_WINDOW_MS = 670;
 
@@ -216,6 +217,8 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
   const [cursorTelemetry, setCursorTelemetry] = useState<CursorTelemetryPoint[]>([]);
   /** When keys were pressed while recording (source ms); only the time, never the key. */
   const [keyTimes, setKeyTimes] = useState<number[]>([]);
+  const [recordedShortcuts, setRecordedShortcuts] = useState<RecordedShortcut[]>([]);
+  const [keystrokes, setKeystrokes] = useState<KeystrokeSettings>(DEFAULT_KEYSTROKE_SETTINGS);
   // Video whose telemetry has finished loading (empty or not), so "no clicks" can be told apart from "not loaded yet".
   const [cursorTelemetryPath, setCursorTelemetryPath] = useState<string | null>(null);
   const [autoZoomSettings, setAutoZoomSettingsState] = useState<AutoZoomSettings>(loadAutoZoomSettings);
@@ -615,6 +618,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
     setAudioRegions(normalizedEditor.audioRegions);
     setBlurRegions(normalizedEditor.blurRegions ?? []);
     setVoiceoverTakes(normalizedEditor.voiceoverTakes ?? []);
+    setKeystrokes(normalizedEditor.keystrokes ?? DEFAULT_KEYSTROKE_SETTINGS);
     setSourceAudioVolume(normalizedEditor.sourceAudioVolume);
     setFades(normalizedEditor.fades);
     setEnding(normalizedEditor.ending ?? NO_ENDING);
@@ -684,6 +688,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
         audioRegions,
         ...(blurRegions.length > 0 ? { blurRegions } : {}),
         ...(voiceoverTakes.length > 0 ? { voiceoverTakes } : {}),
+        ...(keystrokes.enabled ? { keystrokes } : {}),
         sourceAudioVolume,
         fades,
         ...(ending.durationMs > 0 ? { ending } : {}),
@@ -721,6 +726,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
     audioRegions,
     blurRegions,
     voiceoverTakes,
+    keystrokes,
     sourceAudioVolume,
     fades,
     ending,
@@ -1005,6 +1011,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
         if (mounted) {
           setCursorTelemetry([]);
           setKeyTimes([]);
+          setRecordedShortcuts([]);
           setCursorTelemetryPath(null);
         }
         return;
@@ -1015,6 +1022,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
         if (mounted) {
           setCursorTelemetry(result.success ? result.samples : []);
           setKeyTimes(result.success ? result.keys ?? [] : []);
+          setRecordedShortcuts(result.success ? result.shortcuts ?? [] : []);
           setCursorTelemetryPath(videoPath);
         }
       } catch (telemetryError) {
@@ -1022,6 +1030,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
         if (mounted) {
           setCursorTelemetry([]);
           setKeyTimes([]);
+          setRecordedShortcuts([]);
           setCursorTelemetryPath(videoPath);
         }
       }
@@ -2382,6 +2391,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
           blurRegions,
           zoomRegions: effectiveZoomRegions,
           cursorTelemetry: effectiveCursorTelemetry,
+          ...(keystrokes.enabled && recordedShortcuts.length > 0 ? { shortcuts: recordedShortcuts, keystrokes } : {}),
           showCursor,
           cursorSize,
           cursorSmoothing,
@@ -2449,6 +2459,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
           blurRegions,
           zoomRegions: effectiveZoomRegions,
           cursorTelemetry: effectiveCursorTelemetry,
+          ...(keystrokes.enabled && recordedShortcuts.length > 0 ? { shortcuts: recordedShortcuts, keystrokes } : {}),
           showCursor,
           cursorSize,
           cursorSmoothing,
@@ -2561,7 +2572,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
       setShowExportDialog(keepExportDialogOpen);
       setExportProgress(null);
     }
-  }, [embedded,clipSession,currentProjectSnapshot,totalSourceMs,sequence, editSequence, cutMap, clipSplits, videoClips, effectiveZoomRegions, exportFileBase, sourceAudioVolume, fades, ending, endingMs, videoPath, wallpaper, zoomRegions, trimRegions, speedRegions, shadowIntensity, backgroundBlur, zoomMotionBlur, connectZooms, showCursor, effectiveCursorTelemetry, cursorSize, cursorSmoothing, cursorMotionBlur, cursorClickBounce, borderRadius, padding, cropRegion, annotationRegions, blurRegions, audioRegions, isPlaying, aspectRatio, exportQuality, exportResolution, exportFps, exportCustomWidth, exportCustomHeight,showExportSuccessToast]);
+  }, [embedded,clipSession,currentProjectSnapshot,totalSourceMs,sequence, editSequence, cutMap, clipSplits, videoClips, effectiveZoomRegions, exportFileBase, sourceAudioVolume, fades, ending, endingMs, videoPath, wallpaper, zoomRegions, trimRegions, speedRegions, shadowIntensity, backgroundBlur, zoomMotionBlur, connectZooms, showCursor, effectiveCursorTelemetry, recordedShortcuts, keystrokes, cursorSize, cursorSmoothing, cursorMotionBlur, cursorClickBounce, borderRadius, padding, cropRegion, annotationRegions, blurRegions, audioRegions, isPlaying, aspectRatio, exportQuality, exportResolution, exportFps, exportCustomWidth, exportCustomHeight,showExportSuccessToast]);
 
   const handleStartExport = useCallback(() => {
     if (!videoPath) {
@@ -3029,6 +3040,8 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
                       onAnnotationContentChange={handleAnnotationContentChange}
                       cursorTelemetry={effectiveCursorTelemetry}
                       showCursor={showCursor}
+                      shortcuts={keystrokes.enabled ? recordedShortcuts : undefined}
+                      keystrokes={keystrokes}
                       cursorSize={cursorSize}
                       cursorSmoothing={cursorSmoothing}
                       cursorMotionBlur={cursorMotionBlur}
@@ -3197,6 +3210,9 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
           onConnectZoomsChange={setConnectZooms}
           showCursor={showCursor}
           onShowCursorChange={setShowCursor}
+          keystrokes={keystrokes}
+          onKeystrokesChange={setKeystrokes}
+          shortcutCount={recordedShortcuts.length}
           loopCursor={loopCursor}
           onLoopCursorChange={setLoopCursor}
           cursorSize={cursorSize}
