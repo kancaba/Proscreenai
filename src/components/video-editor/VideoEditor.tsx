@@ -164,6 +164,11 @@ function getGifOutputDimensions(width: number, height: number, aspect: AspectRat
   return calculateOutputDimensions(canvas.width, canvas.height, preset, GIF_SIZE_PRESETS);
 }
 
+const INSPECTOR_WIDTH_KEY = 'screenmovie.inspectorWidth';
+const INSPECTOR_MIN_WIDTH = 280;
+const INSPECTOR_MAX_WIDTH = 560;
+const INSPECTOR_DEFAULT_WIDTH = 340;
+
 export default function VideoEditor({ clipSession }: { clipSession?: ClipSession } = {}) {
   const sessionRef = useRef(clipSession);
   sessionRef.current = clipSession;
@@ -274,6 +279,37 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
   const [compositionGuides, setCompositionGuides] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [inspectorVisible, setInspectorVisible] = useState(true);
+  // The inspector's width, set by dragging its left edge and remembered on this computer.
+  const [inspectorWidth, setInspectorWidth] = useState(() => {
+    try {
+      const saved = Number(localStorage.getItem(INSPECTOR_WIDTH_KEY));
+      return saved >= INSPECTOR_MIN_WIDTH && saved <= INSPECTOR_MAX_WIDTH ? saved : INSPECTOR_DEFAULT_WIDTH;
+    } catch { return INSPECTOR_DEFAULT_WIDTH; }
+  });
+  const [resizingInspector, setResizingInspector] = useState(false);
+  const saveInspectorWidth = useCallback((width: number) => {
+    try { localStorage.setItem(INSPECTOR_WIDTH_KEY, String(Math.round(width))); } catch { /* per-viewer convenience only */ }
+  }, []);
+  const clampInspectorWidth = (width: number) => Math.round(Math.min(INSPECTOR_MAX_WIDTH, window.innerWidth * 0.45, Math.max(INSPECTOR_MIN_WIDTH, width)));
+  const startInspectorResize = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = inspectorWidth;
+    let width = startWidth;
+    setResizingInspector(true);
+    const move = (moveEvent: PointerEvent) => {
+      width = clampInspectorWidth(startWidth + startX - moveEvent.clientX);
+      setInspectorWidth(width);
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      setResizingInspector(false);
+      saveInspectorWidth(width);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
   useEffect(() => {
     if (!focusMode) return;
     const exitFocus = (event: KeyboardEvent) => {
@@ -2998,7 +3034,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
 
 
   return (
-    <div className="editor-workspace flex flex-col h-screen text-slate-200 overflow-hidden" data-focus={focusMode}>
+    <div className="editor-workspace flex flex-col h-screen text-slate-200 overflow-hidden" data-focus={focusMode} data-resizing={resizingInspector ? 'inspector' : undefined}>
       {!embedded && <div
         className="workspace-titlebar relative h-10 flex-shrink-0 flex items-center justify-center px-6 z-50"
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
@@ -3218,7 +3254,30 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
         </div>
 
           {/* Right section: settings panel */}
-          <div className="workspace-inspector" hidden={!inspectorVisible || focusMode}>
+          <div className="workspace-inspector" hidden={!inspectorVisible || focusMode} style={{ flexBasis: `min(${inspectorWidth}px, 45vw)` }}>
+          <div
+            className="workspace-inspector-resizer"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label={locale === 'tr' ? 'Sağ paneli boyutlandır' : 'Resize the side panel'}
+            aria-valuemin={INSPECTOR_MIN_WIDTH}
+            aria-valuemax={INSPECTOR_MAX_WIDTH}
+            aria-valuenow={inspectorWidth}
+            tabIndex={0}
+            title={locale === 'tr' ? 'Sürükle: genişlet / daralt · Çift tık: varsayılan' : 'Drag to resize · Double-click: default'}
+            data-testid="inspector-resizer"
+            data-dragging={resizingInspector}
+            onPointerDown={startInspectorResize}
+            onDoubleClick={() => { setInspectorWidth(INSPECTOR_DEFAULT_WIDTH); saveInspectorWidth(INSPECTOR_DEFAULT_WIDTH); }}
+            onKeyDown={(event) => {
+              if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+              event.preventDefault();
+              event.stopPropagation();
+              const next = clampInspectorWidth(inspectorWidth + (event.key === 'ArrowLeft' ? 20 : -20));
+              setInspectorWidth(next);
+              saveInspectorWidth(next);
+            }}
+          ><i /></div>
           <SettingsPanel
           focusRequest={settingsFocusRequest}
           hasSelectedClipPart={selectedPart !== null || selectedTyping !== null}
