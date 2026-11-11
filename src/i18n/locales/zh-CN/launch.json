@@ -21,7 +21,9 @@
 		"pauseUnavailable": "此录制引擎暂不支持暂停",
 		"finalizing": "正在处理录制",
 		"keepOpen": "正在保存视频和音频，请保持窗口开启。",
-		"starting": "正在准备…"
+		"starting": "正在准备…",
+		"more": "更多",
+		"chooseSource": "选择录制内容"
 	},
 	"sourceSelector": {
 		"loadingSources": "正在加载源...",
@@ -30,7 +32,18 @@
 		"windowsNote": "仅可录制可见（非最小化）窗口。",
 		"windowPlaceholder": "窗口",
 		"cancel": "取消",
-		"share": "共享"
+		"share": "共享",
+		"title": "选择屏幕或窗口",
+		"close": "关闭来源选择",
+		"refresh": "刷新来源",
+		"permissionGranted": "已允许屏幕录制",
+		"permissionCheck": "请检查此应用的屏幕录制权限",
+		"openSettings": "打开系统设置",
+		"loadError": "无法加载来源列表。请刷新；如果问题仍然存在，请完全退出应用后重新打开。",
+		"noSources": "未找到来源。如果刚刚授予权限，请完全退出 Pro Screen AI 后重新打开。",
+		"noScreens": "没有可用的屏幕",
+		"noWindows": "没有可用的窗口",
+		"noPreview": "无法预览 · 仍可选择此屏幕"
 	},
 	"permissions": {
 		"screenRecordingNeeded": "Pro Screen AI 需要屏幕录制权限才能开始。系统设置已打开。启用后请退出并重新打开 Pro Screen AI。",
@@ -109,5 +122,40 @@
 		"allow": "允许",
 		"granted": "已允许",
 		"restartNote": "请在“系统设置”中开启 Pro Screen AI。允许屏幕录制后，macOS 可能会要求重新启动应用。"
+	},
+	"launchWindow": {
+		"selectScreen": "选择屏幕",
+		"qualityHint": "保持比例 · 不放大",
+		"language": "语言",
+		"quality": "画质",
+		"captureResolution": "录制分辨率",
+		"source": "原始",
+		"captureFps": "录制帧率",
+		"microphone": "麦克风",
+		"off": "关"
+	},
+	"projectRecoveryPanel": {
+		"listError": "无法读取恢复列表。",
+		"openError": "无法打开恢复内容。",
+		"ariaLabel": "项目恢复",
+		"title": "草稿和备份",
+		"draftCount": "{{count}} 个草稿",
+		"backupCount": "{{count}} 个备份",
+		"hint": "恢复时会打开副本，原始项目保持不变。",
+		"refresh": "刷新恢复列表",
+		"automaticDraft": "自动草稿",
+		"previousSave": "上一次保存",
+		"opening": "正在打开…",
+		"recoverCopy": "恢复副本"
+	},
+	"recordingRecoveryPanel": {
+		"listError": "无法读取中断的录制。",
+		"recoverFailed": "恢复失败",
+		"ariaLabel": "录制恢复",
+		"title": "中断的录制",
+		"hint": "已保存的视频和音频会恢复到新文件中。未完成的结尾部分可能缺失；原始文件会保留。",
+		"refresh": "刷新列表",
+		"recovering": "正在处理…",
+		"recover": "恢复录制"
 	}
 }

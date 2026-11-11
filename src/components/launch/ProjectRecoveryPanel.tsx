@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { ArchiveRestore, FileClock, RefreshCw } from "lucide-react";
-import { useI18n } from "@/contexts/I18nContext";
+import { useI18n, useScopedT } from "@/contexts/I18nContext";
 type Entry = Awaited<ReturnType<Window["electronAPI"]["listProjectRecovery"]>>[number];
 export function ProjectRecoveryPanel({ onOpen, initiallyExpanded = true }: { onOpen: () => Promise<void>; initiallyExpanded?: boolean }) {
 	const { locale } = useI18n();
-	const tr = locale === "tr";
+	const t = useScopedT("launch");
 	const [entries, setEntries] = useState<Entry[]>([]);
 	const [error, setError] = useState("");
 	const [busy, setBusy] = useState<string | null>(null);
@@ -21,7 +21,7 @@ export function ProjectRecoveryPanel({ onOpen, initiallyExpanded = true }: { onO
 			})
 			.catch(() => {
 				if (active)
-					setError(tr ? "Kurtarma listesi okunamadı." : "Could not read recovery entries.");
+					setError(t("projectRecoveryPanel.listError", "Could not read recovery entries."));
 			});
 		const focus = () => setRefresh((n) => n + 1);
 		window.addEventListener("focus", focus);
@@ -29,7 +29,7 @@ export function ProjectRecoveryPanel({ onOpen, initiallyExpanded = true }: { onO
 			active = false;
 			window.removeEventListener("focus", focus);
 		};
-	}, [refresh, tr]);
+	}, [refresh, t]);
 	async function open(entry: Entry) {
 		if (busy) return;
 		setBusy(entry.id);
@@ -40,7 +40,9 @@ export function ProjectRecoveryPanel({ onOpen, initiallyExpanded = true }: { onO
 			await onOpen();
 		} catch (e) {
 			setError(
-				e instanceof Error ? e.message : tr ? "Kurtarma açılamadı." : "Could not open recovery.",
+				e instanceof Error
+					? e.message
+					: t("projectRecoveryPanel.openError", "Could not open recovery."),
 			);
 		} finally {
 			setBusy(null);
@@ -49,27 +51,28 @@ export function ProjectRecoveryPanel({ onOpen, initiallyExpanded = true }: { onO
 	if (!entries.length && !error) return null;
 	const drafts = entries.filter((e) => e.kind === "draft").length;
 	return (
-		<section className="studio-recovery" aria-label={tr ? "Proje kurtarma" : "Project recovery"}>
+		<section className="studio-recovery" aria-label={t("projectRecoveryPanel.ariaLabel", "Project recovery")}>
 			<details open={(initiallyExpanded && drafts > 0) || !!error}>
 				<summary>
 					<ArchiveRestore size={17} />
-					<strong>{tr ? "Taslaklar ve yedekler" : "Drafts and backups"}</strong>
+					<strong>{t("projectRecoveryPanel.title", "Drafts and backups")}</strong>
 					<span>
 						{drafts
-							? `${drafts} ${tr ? "otomatik taslak" : "drafts"}`
-							: `${entries.length} ${tr ? "yedek" : "backups"}`}
+							? t("projectRecoveryPanel.draftCount", "{{count}} drafts", { count: drafts })
+							: t("projectRecoveryPanel.backupCount", "{{count}} backups", { count: entries.length })}
 					</span>
 				</summary>
 				<p>
-					{tr
-						? "Kurtarılan çalışma yeni bir kopya olarak açılır. Özgün projeniz değişmez."
-						: "Recovery opens a copy and preserves the original project."}
+					{t(
+						"projectRecoveryPanel.hint",
+						"Recovery opens a copy and preserves the original project.",
+					)}
 				</p>
 				{error && (
 					<p role="alert" className="studio-error">
 						{error}
 						<button
-							aria-label={tr ? "Kurtarma listesini yenile" : "Refresh recovery list"}
+							aria-label={t("projectRecoveryPanel.refresh", "Refresh recovery list")}
 							onClick={() => setRefresh((n) => n + 1)}
 						>
 							<RefreshCw size={14} />
@@ -84,23 +87,15 @@ export function ProjectRecoveryPanel({ onOpen, initiallyExpanded = true }: { onO
 								<strong title={entry.projectPath || entry.name}>{entry.name}</strong>
 								<small>
 									{entry.kind === "draft"
-										? tr
-											? "Otomatik taslak"
-											: "Automatic draft"
-										: tr
-											? "Önceki kayıt"
-											: "Previous save"}{" "}
+										? t("projectRecoveryPanel.automaticDraft", "Automatic draft")
+										: t("projectRecoveryPanel.previousSave", "Previous save")}{" "}
 									· {new Date(entry.updatedAt).toLocaleString(locale)}
 								</small>
 							</div>
 							<button disabled={!!busy} onClick={() => void open(entry)}>
 								{busy === entry.id
-									? tr
-										? "Açılıyor…"
-										: "Opening…"
-									: tr
-										? "Kopyayı kurtar"
-										: "Recover copy"}
+									? t("projectRecoveryPanel.opening", "Opening…")
+									: t("projectRecoveryPanel.recoverCopy", "Recover copy")}
 							</button>
 						</div>
 					))}

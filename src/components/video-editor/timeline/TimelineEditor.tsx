@@ -11,7 +11,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Scissors, ZoomIn, MessageSquare, ChevronDown, Check, Gauge, WandSparkles, Music, Film, FolderOpen, Video, LoaderCircle, Hourglass, ChevronsLeft, TextCursorInput, ShieldCheck } from "lucide-react";
+import { Minus, Plus, Scissors, ZoomIn, MessageSquare, ChevronDown, Check, Gauge, WandSparkles, Music, Film, FolderOpen, Video, LoaderCircle, Hourglass, ChevronsLeft, TextCursorInput, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useShortcuts } from "@/contexts/ShortcutsContext";
@@ -796,7 +796,7 @@ export default function TimelineEditor({
   const timelineContainerRef = useRef<HTMLDivElement>(null);
   const { shortcuts: keyShortcuts, isMac } = useShortcuts();
   const tTimeline = useScopedT('timeline');
-  const { locale } = useI18n();
+  const { locale, t: tFull } = useI18n();
   const snapScaleRef = useRef<TimelineSnapScale>({ msPerPx: 0, sidebarWidth: 0, rangeStart: 0 });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; target: RegionTarget } | null>(null);
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
@@ -1498,7 +1498,7 @@ export default function TimelineEditor({
         id: region.id,
         rowId: audioRowId(region.track ?? 0),
         span: { start: region.startMs, end: region.endMs },
-        label: audioClipName(region.audioPath, locale === 'tr'),
+        label: audioClipName(region.audioPath, tFull),
         variant: 'audio',
         waveform: { audioPath: region.audioPath, offsetMs: region.sourceStartMs ?? 0 },
       };
@@ -1654,8 +1654,8 @@ export default function TimelineEditor({
             onClick={handleAddZoom}
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-slate-400 hover:text-[#2563EB] hover:bg-[#2563EB]/10 transition-all"
-            title="Add Zoom (Z)"
+            className="workspace-timeline-redundant h-7 w-7 text-slate-400 hover:text-[#2563EB] hover:bg-[#2563EB]/10 transition-all"
+            title={tTimeline('zoom.addZoom', 'Add Zoom (Z)')} aria-label={tTimeline('zoom.addZoom', 'Add Zoom (Z)')}
           >
             <ZoomIn className="w-4 h-4" />
           </Button>
@@ -1663,10 +1663,10 @@ export default function TimelineEditor({
             onClick={handleSuggestZooms}
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-slate-400 hover:text-[#2563EB] hover:bg-[#2563EB]/10 transition-all"
-            title="İmleç hareketlerine göre zoom öner" aria-label="Otomatik zoom öner"
+            className="workspace-timeline-action workspace-timeline-accent h-7 w-7 text-slate-400 hover:text-[#c2b6ff] hover:bg-[#c2b6ff]/10 transition-all"
+            title={tTimeline('zoom.suggestZooms', 'Suggest Zooms from Cursor')} aria-label={tTimeline('zoom.suggestZooms', 'Suggest Zooms from Cursor')}
           >
-            <WandSparkles className="w-4 h-4" /><span className="workspace-timeline-action-label">Oto zoom</span>
+            <WandSparkles className="w-4 h-4" /><span className="workspace-timeline-action-label">{tTimeline('zoom.auto', 'Auto zoom')}</span>
           </Button>
           {onFindSensitive && (
             <Button
@@ -1674,7 +1674,7 @@ export default function TimelineEditor({
               variant="ghost"
               size="icon"
               data-testid="find-sensitive"
-              className="h-7 w-7 text-slate-400 hover:text-cyan-300 hover:bg-cyan-300/10 transition-all"
+              className="workspace-timeline-action h-7 w-7 text-slate-400 hover:text-cyan-300 hover:bg-cyan-300/10 transition-all"
               title={tTimeline('sensitive.hint', 'Find e-mails, phone and ID numbers, IBANs and keys on screen and suggest blurs')}
               aria-label={tTimeline('sensitive.label', 'Private info')}
             >
@@ -1685,8 +1685,8 @@ export default function TimelineEditor({
             onClick={handleAddTrim}
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-slate-400 hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-all"
-            title="Add Trim (T)"
+            className="workspace-timeline-redundant h-7 w-7 text-slate-400 hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-all"
+            title={tTimeline('trim.addTrim', 'Add Trim (T)')} aria-label={tTimeline('trim.addTrim', 'Add Trim (T)')}
           >
             <Scissors className="w-4 h-4" />
           </Button>
@@ -1694,8 +1694,8 @@ export default function TimelineEditor({
             onClick={handleAddAnnotation}
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-slate-400 hover:text-[#B4A046] hover:bg-[#B4A046]/10 transition-all"
-            title="Add Annotation (A)"
+            className="workspace-timeline-redundant h-7 w-7 text-slate-400 hover:text-[#B4A046] hover:bg-[#B4A046]/10 transition-all"
+            title={tTimeline('annotation.addAnnotation', 'Add Annotation (A)')} aria-label={tTimeline('annotation.addAnnotation', 'Add Annotation (A)')}
           >
             <MessageSquare className="w-4 h-4" />
           </Button>
@@ -1703,8 +1703,8 @@ export default function TimelineEditor({
             onClick={handleAddSpeed}
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-slate-400 hover:text-[#d97706] hover:bg-[#d97706]/10 transition-all"
-            title="Add Speed (S)"
+            className="workspace-timeline-redundant h-7 w-7 text-slate-400 hover:text-[#d97706] hover:bg-[#d97706]/10 transition-all"
+            title={tTimeline('addSpeed', 'Add Speed (S)')} aria-label={tTimeline('addSpeed', 'Add Speed (S)')}
           >
             <Gauge className="w-4 h-4" />
           </Button>
@@ -1735,9 +1735,9 @@ export default function TimelineEditor({
             variant="ghost"
             size="icon"
             className="workspace-timeline-action h-7 w-7 text-slate-400 hover:text-[#a855f7] hover:bg-[#a855f7]/10 transition-all"
-            title="Ses dosyası ekle" aria-label="Ses dosyası ekle"
+            title={tTimeline('audio.addFile', 'Add an audio file')} aria-label={tTimeline('audio.addFile', 'Add an audio file')}
           >
-            <Music className="w-4 h-4" /><span className="workspace-timeline-action-label">Ses ekle</span>
+            <Music className="w-4 h-4" /><span className="workspace-timeline-action-label">{tTimeline('audio.add', 'Add audio')}</span>
           </Button>
         </div>
         <div className="flex items-center gap-2">
@@ -1753,7 +1753,7 @@ export default function TimelineEditor({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-[#1a1a1a] border-white/10 max-h-[70vh] overflow-y-auto">
-              <div className="px-2 py-1 text-xs text-zinc-500">Video boyutu · Sosyal medya</div>
+              <div className="px-2 py-1 text-xs text-zinc-400">{tTimeline('format.heading', 'Video size · Social media')}</div>
               {VIDEO_FORMAT_PRESETS.map(preset => <DropdownMenuItem key={preset.label} onClick={() => onAspectRatioChange(preset.ratio)} className="text-slate-300 cursor-pointer flex justify-between gap-4"><span>{preset.label}</span><span className="text-xs text-zinc-500">{preset.ratio} · {preset.size}</span></DropdownMenuItem>)}
               <div className="mx-1 my-1 h-px bg-white/10"/>
               {ASPECT_RATIOS.map((ratio) => (
@@ -1763,12 +1763,12 @@ export default function TimelineEditor({
                   className="text-slate-300 hover:text-white hover:bg-white/10 cursor-pointer flex items-center justify-between gap-3"
                 >
                   <span>{getAspectRatioLabel(ratio)}</span>
-                  {aspectRatio === ratio && <Check className="w-3 h-3 text-[#2563EB]" />}
+                  {aspectRatio === ratio && <Check className="w-3 h-3 text-[#c2b6ff]" />}
                 </DropdownMenuItem>
               ))}
               <div className="mx-1 my-1 h-px bg-white/10" />
               <div className="px-2 py-1.5 flex items-center gap-2 text-slate-300">
-                <span className="text-sm">Custom</span>
+                <span className="text-sm">{tTimeline('format.custom', 'Custom')}</span>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -1796,7 +1796,7 @@ export default function TimelineEditor({
                 >
                   Set
                 </Button>
-                {isCustomAspectRatio(aspectRatio) && <Check className="w-3 h-3 text-[#2563EB] ml-auto" />}
+                {isCustomAspectRatio(aspectRatio) && <Check className="w-3 h-3 text-[#c2b6ff] ml-auto" />}
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -1805,15 +1805,15 @@ export default function TimelineEditor({
         </div>
         <div className="flex-1" />
         {liveGroup.length > 1 && onRegionGroupCommand && (
-          <div data-testid="timeline-group-bar" className="mr-2 flex items-center gap-1.5 rounded-md bg-[#2563EB]/20 px-2 py-1 text-[11px] text-slate-100" title={tTimeline('group.hint', 'Shift or {{mod}} + click adds or removes an item · {{mod}}+A selects all of a kind · drag or Alt+←/→ moves them together', { mod: isMac ? '⌘' : 'Ctrl' })}>
+          <div data-testid="timeline-group-bar" className="mr-2 flex items-center gap-1.5 rounded-md border border-[#c2b6ff]/25 bg-[#c2b6ff]/15 px-2 py-1 text-[11px] text-slate-100" title={tTimeline('group.hint', 'Shift or {{mod}} + click adds or removes an item · {{mod}}+A selects all of a kind · drag or Alt+←/→ moves them together', { mod: isMac ? '⌘' : 'Ctrl' })}>
             <span>{tTimeline('group.count', '{{count}} items selected', { count: String(liveGroup.length) })}</span>
-            <button type="button" data-testid="timeline-group-delete" onClick={() => { onRegionGroupCommand({ type: 'delete' }, liveGroup); setGroup([]); }} className="rounded bg-white/10 px-1.5 py-0.5 hover:bg-red-500/40">{tTimeline('group.delete', 'Delete')}</button>
+            <button type="button" data-testid="timeline-group-delete" onClick={() => { onRegionGroupCommand({ type: 'delete' }, liveGroup); setGroup([]); }} className="rounded bg-white/10 px-1.5 py-0.5 hover:bg-red-500/40 hover:text-white">{tTimeline('group.delete', 'Delete')}</button>
             <button type="button" data-testid="timeline-group-clear" onClick={clearGroup} className="rounded px-1.5 py-0.5 text-slate-300 hover:bg-white/10">{tTimeline('group.clear', 'Clear')}</button>
           </div>
         )}
         <div className="flex items-center gap-1 text-[11px] text-slate-400" title={`${scrollLabels.pan} · ${scrollLabels.zoom}`}>
-          <button type="button" title="Uzaklaştır (-)" aria-label="Timeline uzaklaştır" onClick={() => zoomTimeline(.7)} className="rounded bg-white/5 px-2 py-1">−</button>
-          <button type="button" title="Videoyu sığdır (Shift+F)" onClick={() => setRange({start:0,end:totalMs})} className="rounded bg-white/5 px-2 py-1">Sığdır</button>
+          <button type="button" title={tTimeline('view.zoomOut', 'Zoom out (-)')} aria-label={tTimeline('view.zoomOut', 'Zoom out (-)')} onClick={() => zoomTimeline(.7)} className="inline-flex h-6 min-w-6 items-center justify-center rounded bg-white/5 px-1.5 hover:bg-white/10 hover:text-slate-100"><Minus className="h-3 w-3" /></button>
+          <button type="button" title={tTimeline('view.fitHint', 'Fit the whole video (Shift+F)')} onClick={() => setRange({start:0,end:totalMs})} className="inline-flex h-6 items-center rounded bg-white/5 px-2 hover:bg-white/10 hover:text-slate-100">{tTimeline('view.fit', 'Fit')}</button>
           <Slider
             min={0}
             max={1000}
@@ -1825,14 +1825,14 @@ export default function TimelineEditor({
             data-testid="timeline-zoom-slider"
             className="w-24 mx-1"
           />
-          <button type="button" title="Yakınlaştır (+)" aria-label="Timeline yakınlaştır" onClick={() => zoomTimeline(1.4)} className="rounded bg-white/5 px-2 py-1">+</button>
+          <button type="button" title={tTimeline('view.zoomIn', 'Zoom in (+)')} aria-label={tTimeline('view.zoomIn', 'Zoom in (+)')} onClick={() => zoomTimeline(1.4)} className="inline-flex h-6 min-w-6 items-center justify-center rounded bg-white/5 px-1.5 hover:bg-white/10 hover:text-slate-100"><Plus className="h-3 w-3" /></button>
           <button
             type="button"
             aria-pressed={followPlayheadEnabled}
             data-testid="timeline-follow-playhead"
             title={tTimeline('view.followPlayheadHint', 'Keep the playhead in view while playing')}
             onClick={toggleFollowPlayhead}
-            className={`ml-1 rounded px-2 py-1 ${followPlayheadEnabled ? 'bg-[#2563EB]/30 text-white' : 'bg-white/5'}`}
+            className={`ml-1 inline-flex h-6 items-center rounded px-2 ${followPlayheadEnabled ? 'bg-[#c2b6ff]/20 text-[#d9ceff] hover:bg-[#c2b6ff]/30' : 'bg-white/5 hover:bg-white/10 hover:text-slate-100'}`}
           >
             {tTimeline('view.followPlayhead', 'Follow')}
           </button>

@@ -4,7 +4,8 @@
     "editorTitle": "Editor de Pro Screen AI",
     "subtitle": "Grabación de pantalla y edición",
     "manageRecordings": "Recordings folder",
-    "language": "Language"
+    "language": "Language",
+    "home": "Inicio"
   },
   "actions": {
     "cancel": "Cancelar",

@@ -1,6 +1,6 @@
 import type React from "react";
 import { useRef } from "react";
-import { useI18n } from "@/contexts/I18nContext";
+import { useScopedT } from "@/contexts/I18nContext";
 import { type BlurHandle, type BlurRect, dragBlurRect, rectBetween } from "./blurRegions";
 
 /** Below this many px a press on the video is a click, not a newly drawn area. */
@@ -29,8 +29,7 @@ export function BlurAreaEditor({ rect, boxRef, framePoint, onChange }: {
   framePoint: (clientX: number, clientY: number) => { x: number; y: number } | null;
   onChange: (rect: BlurRect) => void;
 }) {
-  const { locale } = useI18n();
-  const tr = locale === "tr";
+  const t = useScopedT("editor");
   const dragRef = useRef<{ handle: BlurHandle | "draw"; start: { x: number; y: number }; client: { x: number; y: number }; rect: BlurRect } | null>(null);
 
   const begin = (event: React.PointerEvent<HTMLElement>, handle: BlurHandle | "draw") => {
@@ -66,7 +65,7 @@ export function BlurAreaEditor({ rect, boxRef, framePoint, onChange }: {
   return (
     <div data-testid="blur-area-editor" className="absolute inset-0 cursor-crosshair" style={{ pointerEvents: "auto", zIndex: 1000 }} onPointerDown={(event) => begin(event, "draw")} {...pointer}>
       <div className="pointer-events-none absolute left-1/2 top-2 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/70 px-3 py-1 text-[11px] text-white/90 shadow">
-        {tr ? "Gizlenecek alanı sürükleyerek çiz, kutuyu taşı ya da kenarından boyutlandır" : "Drag to draw the area to hide, move the box or resize it from its edges"}
+        {t("blurAreaEditor.hint", "Drag to draw the area to hide, move the box or resize it from its edges")}
       </div>
       <div
         ref={boxRef}

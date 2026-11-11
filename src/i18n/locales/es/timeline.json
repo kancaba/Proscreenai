@@ -14,7 +14,8 @@
     "addedSuggestions": "Se agregaron {{count}} sugerencia(s) de zoom basadas en interacción",
     "label": "Zoom {{index}}",
     "addZoom": "Agregar Zoom (Z)",
-    "suggestZooms": "Sugerir zooms desde cursor"
+    "suggestZooms": "Sugerir zooms desde cursor",
+    "auto": "Zoom automático"
   },
   "trim": {
     "cannotPlace": "No se puede colocar recorte aquí",
@@ -53,7 +54,11 @@
   "view": {
     "zoomSlider": "Zoom de la línea de tiempo",
     "followPlayhead": "Seguir",
-    "followPlayheadHint": "Mantener visible el cabezal durante la reproducción"
+    "followPlayheadHint": "Mantener visible el cabezal durante la reproducción",
+    "zoomOut": "Alejar (-)",
+    "zoomIn": "Acercar (+)",
+    "fit": "Ajustar",
+    "fitHint": "Ajustar todo el vídeo (Shift+F)"
   },
   "clip": {
     "segment": "Parte del vídeo {{start}}–{{end}} s · selecciónala y pulsa Supr para cortarla",
@@ -100,5 +105,13 @@
   "sensitive": {
     "label": "Datos privados",
     "hint": "Busca correos, teléfonos, números de identidad, IBAN y claves en pantalla y sugiere desenfoques"
+  },
+  "audio": {
+    "add": "Añadir audio",
+    "addFile": "Añadir un archivo de audio"
+  },
+  "format": {
+    "heading": "Tamaño del vídeo · Redes sociales",
+    "custom": "Personalizado"
   }
 }

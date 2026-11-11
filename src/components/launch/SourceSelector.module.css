@@ -16,10 +16,20 @@
   transition: box-shadow 0.2s, border 0.2s, background 0.2s;
 }
 
-.selected {
-  border: 2px solid #2563EB;
-  background: linear-gradient(120deg, rgba(91,33,182,0.18) 0%, rgba(38,38,48,0.98) 100%);
-  box-shadow: 0 0 0 2px #2563EB33;
+.sourceCard:hover {
+  border-color: rgba(194,182,255,0.45);
+}
+
+.sourceCard:focus-visible {
+  outline: 2px solid #c2b6ff;
+  outline-offset: 2px;
+}
+
+.selected,
+.selected:hover {
+  border-color: #c2b6ff;
+  background: linear-gradient(120deg, rgba(194,182,255,0.16) 0%, rgba(38,38,48,0.98) 100%);
+  box-shadow: 0 0 0 2px rgba(194,182,255,0.28);
 }
 
 .icon {
@@ -43,7 +53,7 @@
 /* scrollbar */
 .sourceGridScroll {
   scrollbar-width: thin;
-  scrollbar-color: rgba(37, 99, 235, 0.5) rgba(40, 40, 50, 0.6);
+  scrollbar-color: rgba(194, 182, 255, 0.5) rgba(40, 40, 50, 0.6);
 }
 
 .sourceGridScroll::-webkit-scrollbar {
@@ -62,11 +72,11 @@
 }
 
 .sourceGridScroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(37, 99, 235, 0.6);
+  background: rgba(194, 182, 255, 0.6);
 }
 
 .sourceGridScroll::-webkit-scrollbar-thumb:active {
-  background: rgba(37, 99, 235, 0.8);
+  background: rgba(194, 182, 255, 0.8);
 }
 
 
@@ -92,3 +102,4 @@
   font-size: 21px;
 }
 .closeButton:hover { background: #ffffff18; }
+.closeButton:focus-visible { outline: 2px solid #c2b6ff; outline-offset: 1px; }

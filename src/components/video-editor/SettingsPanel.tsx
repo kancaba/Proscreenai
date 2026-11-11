@@ -220,6 +220,7 @@ export function SettingsPanel({
 }: SettingsPanelProps) {
   const tSettings = useScopedT('settings');
   const { t, locale } = useI18n();
+  const tx = useScopedT('editor');
   const [activeTab, setActiveTab] = useState('appearance');
   useEffect(() => { if (selectedAnnotationId) setActiveTab('item'); else if (selectedAudioId) setActiveTab('audio'); else if (selectedZoomId || selectedSpeedId || selectedTrimId || hasSelectedClipPart) setActiveTab('motion'); }, [selectedAnnotationId, selectedAudioId, selectedZoomId, selectedSpeedId, selectedTrimId, hasSelectedClipPart]);
   const autoZoomRef = useRef<HTMLDivElement>(null);
@@ -351,14 +352,14 @@ export function SettingsPanel({
         onFigureDataChange={onAnnotationFigureDataChange ? (figureData) => onAnnotationFigureDataChange(selectedAnnotation.id, figureData) : undefined}
         onDelete={() => onAnnotationDelete(selectedAnnotation.id)}
       />
-  ) : <p className="p-4 text-xs text-slate-500">{locale === 'tr' ? 'Düzenlemek için zaman çizelgesinden bir yazı, görsel veya ok seçin.' : 'Select an annotation on the timeline.'}</p>;
+  ) : <p className="p-4 text-xs text-slate-500">{tx('settingsPanel.selectAnnotation', 'Select an annotation on the timeline.')}</p>;
 
   return (
     <div className="workspace-settings flex-1 min-w-0 flex flex-col h-full overflow-hidden">
-      <div className="workspace-inspector-heading"><div><strong>{locale === 'tr' ? 'Detayları şekillendir' : 'Make it yours'}</strong><p>{locale === 'tr' ? 'Küçük dokunuşlar. Büyük fark.' : 'Small details. Big difference.'}</p></div><span><SlidersHorizontal size={14}/></span></div>
+      <div className="workspace-inspector-heading"><div><strong>{tx('settingsPanel.heading', 'Make it yours')}</strong><p>{tx('settingsPanel.tagline', 'Small details. Big difference.')}</p></div><span><SlidersHorizontal size={14}/></span></div>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-h-0 flex-1 flex-col">
-      <TabsList aria-label={locale === 'tr' ? 'Düzenleme sekmeleri' : 'Inspector tabs'} className="workspace-tabs grid shrink-0 grid-cols-5">
-        {[['appearance',locale === 'tr' ? 'Görünüm' : 'Style'],['motion',locale === 'tr' ? 'Hareket' : 'Motion'],['item',locale === 'tr' ? 'Öğe' : 'Item'],['audio',locale === 'tr' ? 'Ses' : 'Audio'],['ai','AI']].map(([id,label]) => <TabsTrigger key={id} value={id} className="px-1 text-[11px]">{id === 'appearance' ? <Palette size={15}/> : id === 'motion' ? <MousePointer2 size={15}/> : id === 'item' ? <Layers size={15}/> : id === 'audio' ? <AudioLines size={15}/> : <Sparkles size={15}/>}<span>{label}</span></TabsTrigger>)}
+      <TabsList aria-label={tx('settingsPanel.tabsLabel', 'Inspector tabs')} className="workspace-tabs grid shrink-0 grid-cols-5">
+        {[['appearance',tx('settingsPanel.tabStyle', 'Style')],['motion',tx('settingsPanel.tabMotion', 'Motion')],['item',tx('settingsPanel.tabItem', 'Item')],['audio',tx('settingsPanel.tabAudio', 'Audio')],['ai','AI']].map(([id,label]) => <TabsTrigger key={id} value={id} className="px-1 text-[11px]">{id === 'appearance' ? <Palette size={15}/> : id === 'motion' ? <MousePointer2 size={15}/> : id === 'item' ? <Layers size={15}/> : id === 'audio' ? <AudioLines size={15}/> : <Sparkles size={15}/>}<span>{label}</span></TabsTrigger>)}
       </TabsList>
       <TabsContent value={activeTab} className="mt-0 flex-1 overflow-y-auto custom-scrollbar p-4 pb-0">
         {activeTab === 'appearance' && presets}
@@ -379,7 +380,7 @@ export function SettingsPanel({
                       onClick={() => onFadeChange(key, ms)}
                       className={fades[key] === ms ? 'rounded bg-violet-300/25 px-2 py-1 text-[10px] text-violet-100' : 'rounded px-2 py-1 text-[10px] text-slate-400 hover:bg-white/10'}
                     >
-                      {ms === 0 ? tSettings('fades.off') : `${(ms / 1000).toLocaleString(locale)} ${locale === 'tr' ? 'sn' : 's'}`}
+                      {ms === 0 ? tSettings('fades.off') : `${(ms / 1000).toLocaleString(locale)} ${tx('settingsPanel.secondsShort', 's')}`}
                     </button>
                   ))}
                 </div>
@@ -403,7 +404,7 @@ export function SettingsPanel({
                     onClick={() => onEndingChange({ ...ending, durationMs: ms })}
                     className={ending.durationMs === ms ? 'rounded bg-violet-300/25 px-2 py-1 text-[10px] text-violet-100' : 'rounded px-2 py-1 text-[10px] text-slate-400 hover:bg-white/10'}
                   >
-                    {ms === 0 ? tSettings('ending.off') : `${(ms / 1000).toLocaleString(locale)} ${locale === 'tr' ? 'sn' : 's'}`}
+                    {ms === 0 ? tSettings('ending.off') : `${(ms / 1000).toLocaleString(locale)} ${tx('settingsPanel.secondsShort', 's')}`}
                   </button>
                 ))}
               </div>
@@ -423,7 +424,7 @@ export function SettingsPanel({
                   }}
                   className="w-12 rounded bg-black/30 px-1.5 py-1 text-right text-[10px] text-slate-200 outline-none"
                 />
-                {locale === 'tr' ? 'sn' : 's'}
+                {tx('settingsPanel.secondsShort', 's')}
               </label>
             </div>
             {ending.durationMs > 0 && (
@@ -480,7 +481,7 @@ export function SettingsPanel({
             <p className="mt-1 text-[9px] leading-snug text-slate-500">{tSettings('sourceAudio.hint')}</p>
           </div>
         )}
-        {activeTab === 'audio' && <>{header}{!selectedAudioId && <p className="p-3 text-xs text-slate-500">{locale === 'tr' ? 'Ses düzeyini ve zamanlamayı düzenlemek için bir ses şeridi seçin. + Ses ile dosya ekleyebilirsiniz.' : 'Select an audio track to edit volume and timing.'}</p>}</>}
+        {activeTab === 'audio' && <>{header}{!selectedAudioId && <p className="p-3 text-xs text-slate-500">{tx('settingsPanel.selectAudioTrack', 'Select an audio track to edit volume and timing.')}</p>}</>}
         <div className={activeTab === 'motion' ? '' : 'hidden'}>
 
         {activeTab === 'motion' && header}

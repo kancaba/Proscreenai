@@ -143,7 +143,7 @@ export function SensitiveScanDialog({
 								style={{ width: `${Math.round(scan.fraction * 100)}%` }}
 							/>
 						</div>
-						<p className="text-[10px] text-slate-500">
+						<p className="text-[11px] text-slate-400">
 							{tr
 								? "İlk tarama, Mac'in metin tanıma modelini hazırlarken biraz uzun sürebilir."
 								: "The first scan can take longer while the Mac prepares its text recognition."}
@@ -165,24 +165,36 @@ export function SensitiveScanDialog({
 					</p>
 				)}
 
+				{(scan.status === "error" || (scan.status === "done" && scan.suggestions.length === 0)) && (
+					<div className="flex justify-end pt-1">
+						<button
+							type="button"
+							onClick={() => onOpenChange(false)}
+							className="rounded-md border border-white/10 px-3 py-1.5 text-xs hover:bg-white/10"
+						>
+							{tr ? "Kapat" : "Close"}
+						</button>
+					</div>
+				)}
+
 				{scan.status === "done" && scan.suggestions.length > 0 && (
 					<>
 						<div className="flex items-center justify-between text-[11px] text-slate-400">
 							<span>
 								{tr ? `${scan.suggestions.length} öneri` : `${scan.suggestions.length} suggestions`}
 							</span>
-							<span className="flex gap-2">
+							<span className="flex gap-1">
 								<button
 									type="button"
 									onClick={() => setChosen(new Set(scan.suggestions.map((item) => item.id)))}
-									className="hover:text-slate-200"
+									className="rounded px-1.5 py-0.5 hover:bg-white/10 hover:text-slate-200"
 								>
 									{tr ? "Hepsi" : "All"}
 								</button>
 								<button
 									type="button"
 									onClick={() => setChosen(new Set())}
-									className="hover:text-slate-200"
+									className="rounded px-1.5 py-0.5 hover:bg-white/10 hover:text-slate-200"
 								>
 									{tr ? "Hiçbiri" : "None"}
 								</button>
@@ -233,7 +245,7 @@ export function SensitiveScanDialog({
 							<button
 								type="button"
 								onClick={() => onOpenChange(false)}
-								className="rounded-md border border-white/10 px-3 py-1.5 text-xs"
+								className="rounded-md border border-white/10 px-3 py-1.5 text-xs hover:bg-white/10"
 							>
 								{tr ? "Kapat" : "Close"}
 							</button>

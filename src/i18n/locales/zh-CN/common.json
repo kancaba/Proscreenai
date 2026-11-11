@@ -4,7 +4,8 @@
     "editorTitle": "Pro Screen AI 编辑器",
     "subtitle": "屏幕录制与编辑",
     "manageRecordings": "Recordings folder",
-    "language": "Language"
+    "language": "Language",
+    "home": "主页"
   },
   "actions": {
     "cancel": "取消",

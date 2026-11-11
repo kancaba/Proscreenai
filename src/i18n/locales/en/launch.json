@@ -21,7 +21,9 @@
 		"pauseUnavailable": "Pause is not available for this capture engine yet",
 		"finalizing": "Preparing your recording",
 		"keepOpen": "Saving video and audio. Keep this window open.",
-		"starting": "Preparing…"
+		"starting": "Preparing…",
+		"more": "More",
+		"chooseSource": "Choose what to record"
 	},
 	"sourceSelector": {
 		"loadingSources": "Loading sources...",
@@ -30,7 +32,18 @@
 		"windowsNote": "Only visible (non-minimized) windows can be recorded.",
 		"windowPlaceholder": "Window",
 		"cancel": "Cancel",
-		"share": "Share"
+		"share": "Share",
+		"title": "Choose a screen or window",
+		"close": "Close source selection",
+		"refresh": "Refresh sources",
+		"permissionGranted": "Screen recording is allowed",
+		"permissionCheck": "Check the screen recording permission for this app",
+		"openSettings": "Open System Settings",
+		"loadError": "The source list could not be loaded. Refresh; if it keeps failing, quit the app completely and reopen it.",
+		"noSources": "No sources found. If you just granted the permission, quit Pro Screen AI completely and reopen it.",
+		"noScreens": "No screens available",
+		"noWindows": "No windows available",
+		"noPreview": "No preview · The screen can still be selected"
 	},
 	"permissions": {
 		"screenRecordingNeeded": "Pro Screen AI needs Screen Recording permission before you start. System Settings has been opened. After enabling it, quit and reopen Pro Screen AI.",
@@ -109,5 +122,40 @@
 		"allow": "Allow",
 		"granted": "Allowed",
 		"restartNote": "Turn Pro Screen AI on in System Settings. After allowing screen recording, macOS may ask you to restart the app."
+	},
+	"launchWindow": {
+		"selectScreen": "Select screen",
+		"qualityHint": "Preserve aspect · no upscaling",
+		"language": "Language",
+		"quality": "Quality",
+		"captureResolution": "Capture resolution",
+		"source": "Source",
+		"captureFps": "Capture FPS",
+		"microphone": "Microphone",
+		"off": "Off"
+	},
+	"projectRecoveryPanel": {
+		"listError": "Could not read recovery entries.",
+		"openError": "Could not open recovery.",
+		"ariaLabel": "Project recovery",
+		"title": "Drafts and backups",
+		"draftCount": "{{count}} drafts",
+		"backupCount": "{{count}} backups",
+		"hint": "Recovery opens a copy and preserves the original project.",
+		"refresh": "Refresh recovery list",
+		"automaticDraft": "Automatic draft",
+		"previousSave": "Previous save",
+		"opening": "Opening…",
+		"recoverCopy": "Recover copy"
+	},
+	"recordingRecoveryPanel": {
+		"listError": "Could not read interrupted recordings.",
+		"recoverFailed": "Recovery failed",
+		"ariaLabel": "Recording recovery",
+		"title": "Interrupted recordings",
+		"hint": "Recover saved video and audio into a new file. The unfinished tail may be missing; raw files are preserved.",
+		"refresh": "Refresh list",
+		"recovering": "Processing…",
+		"recover": "Recover recording"
 	}
 }

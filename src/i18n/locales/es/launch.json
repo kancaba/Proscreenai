@@ -21,7 +21,9 @@
 		"pauseUnavailable": "Este motor aún no permite pausar",
 		"finalizing": "Preparando la grabación",
 		"keepOpen": "Guardando vídeo y audio. Mantén la ventana abierta.",
-		"starting": "Preparando…"
+		"starting": "Preparando…",
+		"more": "Más",
+		"chooseSource": "Elige qué grabar"
 	},
 	"sourceSelector": {
 		"loadingSources": "Cargando fuentes...",
@@ -30,7 +32,18 @@
 		"windowsNote": "Solo se pueden grabar las ventanas visibles (no minimizadas).",
 		"windowPlaceholder": "Ventana",
 		"cancel": "Cancelar",
-		"share": "Compartir"
+		"share": "Compartir",
+		"title": "Elige una pantalla o ventana",
+		"close": "Cerrar la selección de fuente",
+		"refresh": "Actualizar fuentes",
+		"permissionGranted": "La grabación de pantalla está permitida",
+		"permissionCheck": "Comprueba el permiso de grabación de pantalla de esta app",
+		"openSettings": "Abrir Ajustes del Sistema",
+		"loadError": "No se pudo cargar la lista de fuentes. Actualiza; si el problema continúa, cierra la app por completo y vuelve a abrirla.",
+		"noSources": "No se encontraron fuentes. Si acabas de conceder el permiso, cierra Pro Screen AI por completo y vuelve a abrirlo.",
+		"noScreens": "No hay pantallas disponibles",
+		"noWindows": "No hay ventanas disponibles",
+		"noPreview": "Sin vista previa · La pantalla se puede seleccionar"
 	},
 	"permissions": {
 		"screenRecordingNeeded": "Pro Screen AI necesita permiso de grabación de pantalla antes de comenzar. Se ha abierto Configuración del sistema. Después de habilitarlo, cierra y vuelve a abrir Pro Screen AI.",
@@ -109,5 +122,40 @@
 		"allow": "Permitir",
 		"granted": "Permitido",
 		"restartNote": "Activa Pro Screen AI en Configuración del Sistema. Tras permitir la grabación de pantalla, macOS puede pedirte que reinicies la app."
+	},
+	"launchWindow": {
+		"selectScreen": "Seleccionar pantalla",
+		"qualityHint": "Conserva la proporción · sin ampliar",
+		"language": "Idioma",
+		"quality": "Calidad",
+		"captureResolution": "Resolución de captura",
+		"source": "Original",
+		"captureFps": "FPS de captura",
+		"microphone": "Micrófono",
+		"off": "No"
+	},
+	"projectRecoveryPanel": {
+		"listError": "No se pudo leer la lista de recuperación.",
+		"openError": "No se pudo abrir la recuperación.",
+		"ariaLabel": "Recuperación de proyectos",
+		"title": "Borradores y copias de seguridad",
+		"draftCount": "{{count}} borradores",
+		"backupCount": "{{count}} copias de seguridad",
+		"hint": "La recuperación abre una copia y conserva el proyecto original.",
+		"refresh": "Actualizar la lista de recuperación",
+		"automaticDraft": "Borrador automático",
+		"previousSave": "Guardado anterior",
+		"opening": "Abriendo…",
+		"recoverCopy": "Recuperar copia"
+	},
+	"recordingRecoveryPanel": {
+		"listError": "No se pudieron leer las grabaciones interrumpidas.",
+		"recoverFailed": "La recuperación falló",
+		"ariaLabel": "Recuperación de grabaciones",
+		"title": "Grabaciones interrumpidas",
+		"hint": "El vídeo y el audio guardados se recuperan en un archivo nuevo. Puede faltar el final sin terminar; los archivos originales se conservan.",
+		"refresh": "Actualizar lista",
+		"recovering": "Procesando…",
+		"recover": "Recuperar grabación"
 	}
 }

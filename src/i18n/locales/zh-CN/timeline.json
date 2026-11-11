@@ -14,7 +14,8 @@
     "addedSuggestions": "已添加 {{count}} 个基于交互的缩放建议",
     "label": "缩放 {{index}}",
     "addZoom": "添加缩放 (Z)",
-    "suggestZooms": "从光标建议缩放"
+    "suggestZooms": "从光标建议缩放",
+    "auto": "自动缩放"
   },
   "trim": {
     "cannotPlace": "无法在此处放置修剪",
@@ -53,7 +54,11 @@
   "view": {
     "zoomSlider": "时间线缩放",
     "followPlayhead": "跟随",
-    "followPlayheadHint": "播放时保持播放头可见"
+    "followPlayheadHint": "播放时保持播放头可见",
+    "zoomOut": "缩小 (-)",
+    "zoomIn": "放大 (+)",
+    "fit": "适应",
+    "fitHint": "显示整个视频 (Shift+F)"
   },
   "clip": {
     "segment": "视频片段 {{start}}–{{end}} 秒 · 选中后按 Delete 剪掉",
@@ -100,5 +105,13 @@
   "sensitive": {
     "label": "隐私信息",
     "hint": "查找屏幕上的邮箱、电话、证件号、IBAN 和密钥并建议模糊"
+  },
+  "audio": {
+    "add": "添加音频",
+    "addFile": "添加音频文件"
+  },
+  "format": {
+    "heading": "视频尺寸 · 社交媒体",
+    "custom": "自定义"
   }
 }

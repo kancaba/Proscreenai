@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { useI18n, useScopedT } from '@/contexts/I18nContext'
+import { useScopedT } from '@/contexts/I18nContext'
 import { cn } from '@/lib/utils'
 import { Film, Image } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
@@ -7,9 +7,9 @@ import { OutputSizeControls } from './OutputSizeControls'
 import { GIF_FRAME_RATES, GIF_SIZE_PRESETS, type GifSizePreset } from '@/lib/exporter'
 import type { SettingsPanelProps } from './SettingsPanel'
 export function ExportSetupDialog({ open, onOpenChange, onStart, ...props }: SettingsPanelProps & { open: boolean; onOpenChange: (open: boolean) => void; onStart: () => void }) {
-  const { locale } = useI18n(); const tSettings = useScopedT('settings'); const tr = locale === 'tr'
+  const tSettings = useScopedT('settings'); const t = useScopedT('editor')
   const { exportFormat = 'mp4', onExportFormatChange, exportQuality = 'source', onExportQualityChange, exportResolution, onExportResolutionChange, exportFps, onExportFpsChange, exportCustomWidth, exportCustomHeight, onExportCustomSizeChange, videoElement, aspectRatio, gifFrameRate = 15, onGifFrameRateChange, gifSizePreset = 'medium', onGifSizePresetChange, gifLoop = true, onGifLoopChange, gifOutputDimensions = {width:1280,height:720} } = props
-  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent data-testid="export-setup" className="max-h-[85vh] max-w-lg overflow-y-auto border-white/10 bg-[#15151c] text-white"><DialogHeader><DialogTitle>{tr ? 'Videoyu dışa aktar' : 'Export video'}</DialogTitle><DialogDescription>{tr ? 'Çıktı boyutunu ve kalitesini seçin. Aktarım siz başlatınca çalışır.' : 'Choose your output settings, then start the export.'}</DialogDescription></DialogHeader>
+  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent data-testid="export-setup" className="max-h-[85vh] max-w-lg overflow-y-auto border-white/10 bg-[#15151c] text-white"><DialogHeader><DialogTitle>{t('exportSetupDialog.title', 'Export video')}</DialogTitle><DialogDescription>{t('exportSetupDialog.description', 'Choose your output settings, then start the export.')}</DialogDescription></DialogHeader>
         <div className="flex items-center gap-2 mb-3">
           <button
             onClick={() => onExportFormatChange?.('mp4')}
@@ -38,7 +38,7 @@ export function ExportSetupDialog({ open, onOpenChange, onStart, ...props }: Set
         </div>
 
         {exportFormat === 'mp4' && <OutputSizeControls sourceSize={props.sourceSize} exportResolution={exportResolution} onExportResolutionChange={onExportResolutionChange} exportFps={exportFps} onExportFpsChange={onExportFpsChange} exportCustomWidth={exportCustomWidth} exportCustomHeight={exportCustomHeight} onExportCustomSizeChange={onExportCustomSizeChange} video={videoElement} aspectRatio={aspectRatio} quality={exportQuality} />}
-        {exportFormat === 'mp4' && <p className="mb-1 text-[10px] text-slate-400">{locale === 'tr' ? 'Sıkıştırma kalitesi' : 'Compression quality'}</p>}
+        {exportFormat === 'mp4' && <p className="mb-1 text-[10px] text-slate-400">{t('exportSetupDialog.compressionQuality', 'Compression quality')}</p>}
         {exportFormat === 'mp4' && (
           <div className="mb-3 bg-white/5 border border-white/5 p-0.5 w-full grid grid-cols-4 h-7 rounded-lg">
             <button
@@ -75,7 +75,7 @@ export function ExportSetupDialog({ open, onOpenChange, onStart, ...props }: Set
                 exportQuality === 'source' ? "bg-white text-black" : "text-slate-400 hover:text-slate-200"
               )}
             >
-              {locale === 'tr' ? 'En yüksek' : 'Maximum'}
+              {t('exportSetupDialog.maximum', 'Maximum')}
             </button>
           </div>
         )}
@@ -126,5 +126,5 @@ export function ExportSetupDialog({ open, onOpenChange, onStart, ...props }: Set
           </div>
         )}
 
-<div className="flex justify-end gap-2 border-t border-white/10 pt-4"><button onClick={() => onOpenChange(false)} className="rounded-lg px-4 py-2 text-sm text-slate-400">{tr ? 'Vazgeç' : 'Cancel'}</button><button data-testid="confirm-export" onClick={onStart} className="rounded-lg bg-violet-300 px-5 py-2 text-sm font-semibold text-black">{tr ? 'Dışa aktarmayı başlat' : 'Start export'}</button></div></DialogContent></Dialog>
+<div className="flex justify-end gap-2 border-t border-white/10 pt-4"><button onClick={() => onOpenChange(false)} className="rounded-lg px-4 py-2 text-sm text-slate-400">{t('exportSetupDialog.cancel', 'Cancel')}</button><button data-testid="confirm-export" onClick={onStart} className="rounded-lg bg-violet-300 px-5 py-2 text-sm font-semibold text-black">{t('exportSetupDialog.start', 'Start export')}</button></div></DialogContent></Dialog>
 }

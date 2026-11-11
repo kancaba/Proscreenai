@@ -34,7 +34,7 @@ export default function PlaybackControls({
 
 	return (
 		<div className="flex items-center gap-3 px-2 py-1 rounded-xl bg-[#101016] border border-white/5">
-			<button type="button" onClick={() => onSeek(0)} title="Home" aria-label="Başa git" className="text-slate-500 hover:text-white p-1"><SkipBack size={14}/></button>
+			<button type="button" onClick={() => onSeek(0)} title={t("playback.toStart", "Go to start (Home)")} aria-label={t("playback.toStart", "Go to start (Home)")} className="rounded-md p-1.5 text-slate-400 hover:bg-white/10 hover:text-white"><SkipBack size={14}/></button>
 			<Button
 				onClick={onTogglePlayPause}
 				size="icon"
@@ -53,31 +53,31 @@ export default function PlaybackControls({
 				)}
 			</Button>
 
-			<span className="text-[11px] font-medium text-slate-300 tabular-nums w-[47px] text-right">
+			<span className="text-[11px] font-medium text-slate-300 tabular-nums min-w-[47px] text-right">
 				{formatTime(currentTime)}
 			</span>
 
 			<div className="flex-1 relative h-6 flex items-center group">
 				{/* Custom Track Background */}
-				<div className="absolute left-0 right-0 h-0.5 bg-white/10 rounded-full overflow-hidden">
-					<div className="h-full bg-[#2563EB] rounded-full" style={{ width: `${progress}%` }} />
+				<div className="absolute left-0 right-0 h-1 bg-white/10 rounded-full overflow-hidden">
+					<div className="h-full bg-[#c2b6ff] rounded-full" style={{ width: `${progress}%` }} />
 				</div>
 
 				{/* Interactive Input */}
 				<input
-					aria-label="Oynatma konumu"
+					aria-label={t("playback.position", "Playback position")}
 					type="range"
 					min="0"
 					max={duration || 100}
 					value={currentTime}
 					onChange={handleSeekChange}
 					step="0.01"
-					className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+					className="peer absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
 				/>
 
 				{/* Custom Thumb (visual only, follows progress) */}
 				<div
-					className="absolute w-2.5 h-2.5 bg-white rounded-full shadow-lg pointer-events-none group-hover:scale-125 transition-transform duration-100"
+					className="absolute w-2.5 h-2.5 bg-white rounded-full shadow-lg pointer-events-none group-hover:scale-125 peer-focus-visible:ring-2 peer-focus-visible:ring-[#c2b6ff] peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-[#101016] transition-transform duration-100"
 					style={{
 						left: `${progress}%`,
 						transform: "translateX(-50%)",
@@ -85,10 +85,10 @@ export default function PlaybackControls({
 				/>
 			</div>
 
-			<span className="text-[11px] font-medium text-slate-500 tabular-nums w-[47px]">
+			<span className="text-[11px] font-medium text-slate-400 tabular-nums min-w-[47px]">
 				{formatTime(duration)}
 			</span>
-			<button type="button" onClick={() => onSeek(duration)} title="End" aria-label="Sona git" className="text-slate-500 hover:text-white p-1"><SkipForward size={14}/></button>
+			<button type="button" onClick={() => onSeek(duration)} title={t("playback.toEnd", "Go to end (End)")} aria-label={t("playback.toEnd", "Go to end (End)")} className="rounded-md p-1.5 text-slate-400 hover:bg-white/10 hover:text-white"><SkipForward size={14}/></button>
 		</div>
 	);
 }

@@ -1,6 +1,7 @@
 import type { Span } from "dnd-timeline";
 import { useItem, useTimelineContext } from "dnd-timeline";
 import { EyeOff, Gauge, MessageSquare, Music, Scissors, ZoomIn } from "lucide-react";
+import { useScopedT } from "@/contexts/I18nContext";
 import { useEffect, useRef, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { AudioWaveform } from "./AudioWaveform";
@@ -59,6 +60,7 @@ export default function Item({
 }: ItemProps) {
 	// The edges trim and the middle moves. On a short clip the trim zones shrink so at least
 	// its middle third can always be grabbed to move it (the library default is 10 px per edge).
+	const t = useScopedT("timeline");
 	const { valueToPixels } = useTimelineContext();
 	const widthPx = valueToPixels(span.end - span.start);
 	const resizeHandleWidth = Math.max(6, Math.min(20, widthPx / 3));
@@ -144,14 +146,14 @@ export default function Item({
               data-testid={`trim-handle-${side}`}
               className={cn(glassStyles.zoomEndCap, glassStyles[side], "flex items-center justify-center gap-[2px]")}
               style={{ cursor: 'ew-resize', pointerEvents: 'auto', width: gripWidth, opacity: isSelected ? 1 : 0.85, background: endCapColor }}
-              title={side === 'left' ? 'Trim start' : 'Trim end'}
+              title={side === 'left' ? t('resizeLeft', 'Resize left') : t('resizeRight', 'Resize right')}
             >
               {gripWidth >= 7 && <><span className="h-3 w-px rounded bg-white/70" /><span className="h-3 w-px rounded bg-white/70" /></>}
             </div>
           ))}
           {isAudio && waveform && <AudioWaveform audioPath={waveform.audioPath} offsetMs={waveform.offsetMs} lengthMs={span.end - span.start} />}
           {/* Content */}
-          <div className="relative z-10 flex flex-col items-center justify-center text-white/90 opacity-80 group-hover:opacity-100 transition-opacity select-none overflow-hidden">
+          <div className="relative z-10 flex flex-col items-center justify-center text-white/95 select-none overflow-hidden">
             <div className="flex items-center gap-1.5">
               {isZoom ? (
                 <>
@@ -198,8 +200,8 @@ export default function Item({
               )}
             </div>
             <span
-              className={`text-[9px] tabular-nums tracking-tight whitespace-nowrap transition-opacity ${
-                isSelected ? 'opacity-60' : 'opacity-0 group-hover:opacity-40'
+              className={`text-[10px] tabular-nums tracking-tight whitespace-nowrap transition-opacity ${
+                isSelected ? 'opacity-80' : 'opacity-0 group-hover:opacity-70'
               }`}
             >
               {timeLabel}

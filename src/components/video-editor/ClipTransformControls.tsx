@@ -1,23 +1,23 @@
+import { useScopedT } from "@/contexts/I18nContext";
 import { DEFAULT_TRANSFORM, type ClipTransform } from "@/lib/sequence";
 
 export function ClipTransformControls({
 	value = DEFAULT_TRANSFORM,
 	onChange,
-	tr,
 }: {
 	value?: ClipTransform;
 	onChange: (next: ClipTransform) => void;
-	tr: boolean;
 }) {
+	const t = useScopedT("editor");
 	const fields = [
-		["scale", tr ? "Boyut" : "Size", 10, 200],
+		["scale", t("clipTransformControls.size", "Size"), 10, 200],
 		["x", "X", 0, 100],
 		["y", "Y", 0, 100],
-		["opacity", tr ? "Opaklık" : "Opacity", 0, 100],
+		["opacity", t("clipTransformControls.opacity", "Opacity"), 0, 100],
 	] as const;
 	return (
 		<details className="seq-transform">
-			<summary>{tr ? "Yerleşim" : "Transform"}</summary>
+			<summary>{t("clipTransformControls.transform", "Transform")}</summary>
 			<div>
 				{fields.map(([field, label, min, max]) => (
 					<label key={field}>
@@ -41,15 +41,15 @@ export function ClipTransformControls({
 					</label>
 				))}
 				<button onClick={() => onChange({ ...value, turns: (value.turns + 1) % 4 })}>
-					{tr ? "90° döndür" : "Rotate 90°"}
+					{t("clipTransformControls.rotate90", "Rotate 90°")}
 				</button>
 				<button aria-pressed={value.flip} onClick={() => onChange({ ...value, flip: !value.flip })}>
-					{tr ? "Aynala" : "Mirror"}
+					{t("clipTransformControls.mirror", "Mirror")}
 				</button>
 				<button onClick={() => onChange({ ...value, scale: 0.32, x: 0.8, y: 0.8 })}>
-					{tr ? "Köşeye yerleştir" : "Picture in picture"}
+					{t("clipTransformControls.pictureInPicture", "Picture in picture")}
 				</button>
-				<button onClick={() => onChange(DEFAULT_TRANSFORM)}>{tr ? "Sıfırla" : "Reset"}</button>
+				<button onClick={() => onChange(DEFAULT_TRANSFORM)}>{t("clipTransformControls.reset", "Reset")}</button>
 			</div>
 		</details>
 	);

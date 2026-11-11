@@ -26,7 +26,7 @@ const copy = {
 } as const
 
 export function AiCaptionsPanel({ open, onOpenChange, durationMs, trims, onApply, onSettings, onNarrate }: Props) {
-  const { locale } = useI18n()
+  const { locale, t: tFull } = useI18n()
   const c = copy[locale]
   const slots = useMemo(() => buildCaptionSlots(durationMs, trims), [durationMs, trims])
   const visibleSeconds = slots.reduce((sum, slot) => sum + slot.endMs - slot.startMs, 0) / 1000
@@ -67,7 +67,7 @@ export function AiCaptionsPanel({ open, onOpenChange, durationMs, trims, onApply
       // Drop results for a timeline that changed while the request was running.
       if (slotsRef.current !== requestedSlots || captions.length !== requestedSlots.length) return
       setDraftState({ slots: requestedSlots, texts: captions })
-    } catch (cause) { setError(aiErrorMessage(cause, locale === 'tr')) }
+    } catch (cause) { setError(aiErrorMessage(cause, tFull)) }
     finally { setBusy(false) }
   }
 

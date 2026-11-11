@@ -21,7 +21,9 @@
 		"pauseUnavailable": "Bu kayıt motorunda duraklatma henüz desteklenmiyor",
 		"finalizing": "Kaydın hazırlanıyor",
 		"keepOpen": "Video ve ses kaydediliyor. Lütfen pencereyi açık tut.",
-		"starting": "Hazırlanıyor…"
+		"starting": "Hazırlanıyor…",
+		"more": "Diğer",
+		"chooseSource": "Kaydedilecek kaynağı seç"
 	},
 	"sourceSelector": {
 		"loadingSources": "Kaynaklar yükleniyor…",
@@ -30,7 +32,18 @@
 		"windowsNote": "Yalnızca görünür (simge durumuna küçültülmemiş) pencereler kaydedilebilir.",
 		"windowPlaceholder": "Pencere",
 		"cancel": "Vazgeç",
-		"share": "Seç"
+		"share": "Seç",
+		"title": "Ekran veya pencere seç",
+		"close": "Ekran seçimini kapat",
+		"refresh": "Kaynakları yenile",
+		"permissionGranted": "Ekran kaydı izni açık",
+		"permissionCheck": "Ekran kaydı iznini bu uygulama için kontrol edin",
+		"openSettings": "Sistem Ayarlarını aç",
+		"loadError": "Kaynak listesi yüklenemedi. Yenileyin; sorun sürerse uygulamayı tamamen kapatıp yeniden açın.",
+		"noSources": "Kaynak bulunamadı. İzni yeni verdiyseniz Pro Screen AI’yi tamamen kapatıp yeniden açın.",
+		"noScreens": "Kullanılabilir ekran yok",
+		"noWindows": "Kullanılabilir pencere yok",
+		"noPreview": "Önizleme alınamadı · Ekran seçilebilir"
 	},
 	"permissions": {
 		"screenRecordingNeeded": "Pro Screen AI için Ekran Kaydı izni gerekiyor. Sistem Ayarları açıldı. İzni verdikten sonra Pro Screen AI uygulamasını kapatıp yeniden açın.",
@@ -109,5 +122,40 @@
 		"allow": "İzin ver",
 		"granted": "Verildi",
 		"restartNote": "Sistem Ayarları'nda Pro Screen AI'yi açın. Ekran kaydı izni verildikten sonra macOS uygulamayı yeniden başlatmanızı isteyebilir."
+	},
+	"launchWindow": {
+		"selectScreen": "Ekran seç",
+		"qualityHint": "Oran korunur · küçük kaynak büyütülmez",
+		"language": "Dil",
+		"quality": "Kalite",
+		"captureResolution": "Kayıt çözünürlüğü",
+		"source": "Orijinal",
+		"captureFps": "Kayıt FPS",
+		"microphone": "Mikrofon",
+		"off": "Kapalı"
+	},
+	"projectRecoveryPanel": {
+		"listError": "Kurtarma listesi okunamadı.",
+		"openError": "Kurtarma açılamadı.",
+		"ariaLabel": "Proje kurtarma",
+		"title": "Taslaklar ve yedekler",
+		"draftCount": "{{count}} otomatik taslak",
+		"backupCount": "{{count}} yedek",
+		"hint": "Kurtarılan çalışma yeni bir kopya olarak açılır. Özgün projeniz değişmez.",
+		"refresh": "Kurtarma listesini yenile",
+		"automaticDraft": "Otomatik taslak",
+		"previousSave": "Önceki kayıt",
+		"opening": "Açılıyor…",
+		"recoverCopy": "Kopyayı kurtar"
+	},
+	"recordingRecoveryPanel": {
+		"listError": "Kayıt kurtarma listesi okunamadı.",
+		"recoverFailed": "Kurtarma başarısız",
+		"ariaLabel": "Kayıt kurtarma",
+		"title": "Yarım kalan kayıtlar",
+		"hint": "Diske ulaşan görüntü ve ses yeni bir videoya kurtarılır. Son tamamlanmamış saniyeler eksik olabilir; ham dosyalar korunur.",
+		"refresh": "Listeyi yenile",
+		"recovering": "Kurtarılıyor…",
+		"recover": "Kaydı kurtar"
 	}
 }

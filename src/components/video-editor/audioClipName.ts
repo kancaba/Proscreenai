@@ -5,10 +5,12 @@ const GENERATED = [
   { prefix: "ema-lightning-", name: "Ema Lightning" },
 ];
 
-/** A readable name for an audio clip's file, e.g. "ElevenLabs seslendirme" or "music". */
-export function audioClipName(audioPath: string, tr: boolean): string {
+type Translate = (key: string, fallback?: string, vars?: Record<string, string | number>) => string;
+
+/** A readable name for an audio clip's file, e.g. "ElevenLabs voiceover" or "music". */
+export function audioClipName(audioPath: string, t: Translate): string {
   const file = audioPath.split(/[\\/]/).pop() ?? "";
   const generated = GENERATED.find((entry) => file.startsWith(entry.prefix));
-  if (generated) return `${generated.name} ${tr ? "seslendirme" : "voiceover"}`;
-  return file.replace(/\.[^.]+$/, "") || (tr ? "Ses" : "Audio");
+  if (generated) return t("editor.audioClipName.voiceover", "{{name}} voiceover", { name: generated.name });
+  return file.replace(/\.[^.]+$/, "") || t("editor.audioClipName.audio", "Audio");
 }

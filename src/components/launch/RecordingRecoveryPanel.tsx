@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { ArchiveRestore, RefreshCw, LoaderCircle } from "lucide-react";
-import { useI18n } from "@/contexts/I18nContext";
+import { useI18n, useScopedT } from "@/contexts/I18nContext";
 type Entry = Awaited<ReturnType<Window["electronAPI"]["listRecordingRecovery"]>>[number];
 export function RecordingRecoveryPanel({ onOpen }: { onOpen: () => Promise<void> }) {
 	const { locale } = useI18n();
-	const tr = locale === "tr";
+	const t = useScopedT("launch");
 	const [entries, setEntries] = useState<Entry[]>([]);
 	const [busy, setBusy] = useState<string | null>(null);
 	const [error, setError] = useState("");
@@ -24,7 +24,7 @@ export function RecordingRecoveryPanel({ onOpen }: { onOpen: () => Promise<void>
 				.catch(() => {
 					if (mounted)
 						setError(
-							tr ? "Kayıt kurtarma listesi okunamadı." : "Could not read interrupted recordings.",
+							t("recordingRecoveryPanel.listError", "Could not read interrupted recordings."),
 						);
 				});
 		};
@@ -34,7 +34,7 @@ export function RecordingRecoveryPanel({ onOpen }: { onOpen: () => Promise<void>
 			mounted = false;
 			window.removeEventListener("focus", refresh);
 		};
-	}, [tr, refreshToken]);
+	}, [t, refreshToken]);
 	async function recover(entry: Entry) {
 		if (busy) return;
 		setBusy(entry.id);
@@ -45,7 +45,7 @@ export function RecordingRecoveryPanel({ onOpen }: { onOpen: () => Promise<void>
 			setEntries((items) => items.filter((item) => item.id !== entry.id));
 			await onOpen();
 		} catch (e) {
-			setError(e instanceof Error ? e.message : "Kurtarma başarısız");
+			setError(e instanceof Error ? e.message : t("recordingRecoveryPanel.recoverFailed", "Recovery failed"));
 		} finally {
 			setBusy(null);
 		}
@@ -54,19 +54,20 @@ export function RecordingRecoveryPanel({ onOpen }: { onOpen: () => Promise<void>
 	return (
 		<section
 			className="studio-recovery"
-			aria-label={tr ? "Kayıt kurtarma" : "Recording recovery"}
+			aria-label={t("recordingRecoveryPanel.ariaLabel", "Recording recovery")}
 			data-testid="recording-recovery"
 		>
 			<details open={expanded} onToggle={(event) => setExpanded(event.currentTarget.open)}>
 				<summary>
 					<ArchiveRestore size={17} />
-					<strong>{tr ? "Yarım kalan kayıtlar" : "Interrupted recordings"}</strong>
+					<strong>{t("recordingRecoveryPanel.title", "Interrupted recordings")}</strong>
 					<span>{entries.length}</span>
 				</summary>
 				<p>
-					{tr
-						? "Diske ulaşan görüntü ve ses yeni bir videoya kurtarılır. Son tamamlanmamış saniyeler eksik olabilir; ham dosyalar korunur."
-						: "Recover saved video and audio into a new file. The unfinished tail may be missing; raw files are preserved."}
+					{t(
+						"recordingRecoveryPanel.hint",
+						"Recover saved video and audio into a new file. The unfinished tail may be missing; raw files are preserved.",
+					)}
 				</p>
 				{error && (
 					<p role="alert" className="studio-error">
@@ -74,7 +75,7 @@ export function RecordingRecoveryPanel({ onOpen }: { onOpen: () => Promise<void>
 						<button
 							disabled={!!busy}
 							onClick={() => setRefreshToken((value) => value + 1)}
-							aria-label={tr ? "Listeyi yenile" : "Refresh list"}
+							aria-label={t("recordingRecoveryPanel.refresh", "Refresh list")}
 						>
 							<RefreshCw size={14} />
 						</button>
@@ -100,12 +101,8 @@ export function RecordingRecoveryPanel({ onOpen }: { onOpen: () => Promise<void>
 									<LoaderCircle size={14} className="studio-recovery-spinner" />
 								)}
 								{busy === entry.id
-									? tr
-										? "Kurtarılıyor…"
-										: "Processing…"
-									: tr
-										? "Kaydı kurtar"
-										: "Recover recording"}
+									? t("recordingRecoveryPanel.recovering", "Processing…")
+									: t("recordingRecoveryPanel.recover", "Recover recording")}
 							</button>
 						</div>
 					))}

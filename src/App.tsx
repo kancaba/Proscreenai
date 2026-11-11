@@ -66,7 +66,7 @@ export default function App() {
       : t('app.name', 'Pro Screen AI');
   }, [windowType, locale, t]);
 
-  if (imageStudio) return <Suspense fallback={<div>Görsel Stüdyo açılıyor…</div>}><ImageStudio initialCreationId={initialCreationId} initialGallery={initialGallery} initialPlan={initialPlan} onHome={() => setImageStudio(false)} /></Suspense>;
+  if (imageStudio) return <Suspense fallback={<div className="flex h-screen items-center justify-center gap-3 bg-[#101014] text-sm text-white/60"><span role="status" aria-label="Görsel Stüdyo" className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-[#c2b6ff]" /></div>}><ImageStudio initialCreationId={initialCreationId} initialGallery={initialGallery} initialPlan={initialPlan} onHome={() => setImageStudio(false)} /></Suspense>;
 
   switch (windowType) {
     case 'welcome':

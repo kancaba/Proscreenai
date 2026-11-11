@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "../ui/button";
 import { MdCheck } from "react-icons/md";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { Card } from "../ui/card";
 import { useScopedT } from "../../contexts/I18nContext";
 import styles from "./SourceSelector.module.css";
 
@@ -102,7 +101,7 @@ export function SourceSelector() {
         );
       } catch (error) {
         if (id !== requestId.current) return;
-        setSourceError('Kaynak listesi yüklenemedi. Yenileyin; sorun sürerse uygulamayı tamamen kapatıp yeniden açın.');
+        setSourceError('load');
         console.error('Error loading sources:', error);
       } finally {
         if (id === requestId.current) { hasLoaded.current = true; inFlight.current = false; setLoading(false); setRefreshing(false); }
@@ -137,13 +136,21 @@ export function SourceSelector() {
   }, [loading, screenSources.length, windowSources.length]);
 
   const handleSourceSelect = (source: DesktopSource) => { setSelectedSource(source); };
+  const shareSource = (source: DesktopSource) => window.electronAPI.selectSource({ ...source, captureRegion: null });
   const handleShare = async () => {
-    if (selectedSource) await window.electronAPI.selectSource({ ...selectedSource, captureRegion: null });
+    if (selectedSource) await shareSource(selectedSource);
   };
+  const selectedBadge = (
+    <div className="absolute -top-1.5 -right-1.5">
+      <div className="w-5 h-5 bg-[#c2b6ff] text-[#211a34] rounded-full flex items-center justify-center shadow-md">
+        <MdCheck size={13} />
+      </div>
+    </div>
+  );
 
   const titleBar = <header className={styles.titleBar}>
-    <span>Ekran veya pencere seç</span>
-    <button type="button" className={styles.closeButton} aria-label="Ekran seçimini kapat" onClick={() => window.close()}>×</button>
+    <span>{t('sourceSelector.title', 'Choose a screen or window')}</span>
+    <button type="button" className={styles.closeButton} aria-label={t('sourceSelector.close', 'Close source selection')} onClick={() => window.close()}>×</button>
   </header>;
 
   if (loading) {
@@ -152,7 +159,7 @@ export function SourceSelector() {
         {titleBar}
         <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-zinc-600 mx-auto mb-2" />
+          <div className="animate-spin rounded-full h-6 w-6 border-2 border-white/15 border-t-[#c2b6ff] mx-auto mb-2" />
           <p className="text-xs text-zinc-300">{t('sourceSelector.loadingSources')}</p>
         </div></div>
       </div>
@@ -163,65 +170,65 @@ export function SourceSelector() {
     <div className={`h-screen overflow-hidden flex flex-col items-center ${styles.glassContainer}`}>
       {titleBar}
       <div className="w-full px-3 py-2 flex flex-wrap items-center gap-2 text-xs text-zinc-300 shrink-0">
-        <button disabled={refreshing} aria-busy={refreshing} data-testid="sources-refresh" className="rounded bg-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setRefreshToken(n => n + 1)}>Kaynakları yenile</button>
-        <span>{permission === 'granted' ? 'Ekran kaydı izni açık' : 'Ekran kaydı iznini bu uygulama için kontrol edin'}</span>
-        {permission !== 'granted' && <button className="text-blue-400 underline" onClick={() => void window.electronAPI.openScreenRecordingPreferences()}>Sistem Ayarlarını aç</button>}
-        {sourceError && <p role="alert" className="w-full text-amber-300">{sourceError}</p>}
-        {!sources.length && !sourceError && <p role="status" className="w-full">Kaynak bulunamadı. İzni yeni verdiyseniz Pro Screen AI’yi tamamen kapatıp yeniden açın.</p>}
+        <button type="button" disabled={refreshing} aria-busy={refreshing} data-testid="sources-refresh" className="inline-flex h-7 items-center gap-1.5 rounded-md bg-white/10 px-3 hover:bg-white/15 disabled:opacity-50" onClick={() => setRefreshToken(n => n + 1)}>{refreshing && <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/20 border-t-white/80" />}{t('sourceSelector.refresh', 'Refresh sources')}</button>
+        <span>{permission === 'granted' ? t('sourceSelector.permissionGranted', 'Screen recording is allowed') : t('sourceSelector.permissionCheck', 'Check the screen recording permission for this app')}</span>
+        {permission !== 'granted' && <button type="button" className="rounded text-[#c2b6ff] underline underline-offset-2 hover:text-[#ded6ff]" onClick={() => void window.electronAPI.openScreenRecordingPreferences()}>{t('sourceSelector.openSettings', 'Open System Settings')}</button>}
+        {sourceError && <p role="alert" className="w-full text-amber-300">{t('sourceSelector.loadError', 'The source list could not be loaded.')}</p>}
+        {!sources.length && !sourceError && <p role="status" className="w-full">{t('sourceSelector.noSources', 'No sources found.')}</p>}
       </div>
-      <div className={`w-full flex-1 min-h-0 overflow-auto ${styles.sourceGridScroll}`}>
-      <div className="flex-1 flex flex-col w-full max-w-xl" style={{ padding: 0 }}>
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'screens' | 'windows')}>
-          <TabsList className="grid grid-cols-2 mb-3 bg-zinc-900/40 rounded-full">
-            <TabsTrigger value="screens" className="data-[state=active]:bg-[#2563EB] data-[state=active]:text-white text-zinc-200 rounded-full text-xs py-1">
+      <div className="w-full flex-1 min-h-0 flex flex-col items-center px-3">
+      <div className="flex-1 min-h-0 flex flex-col w-full max-w-xl">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'screens' | 'windows')} className="flex-1 min-h-0 flex flex-col">
+          <TabsList className="grid grid-cols-2 mb-2 shrink-0 bg-zinc-900/40 rounded-full">
+            <TabsTrigger value="screens" className="data-[state=active]:bg-[#c2b6ff] data-[state=active]:text-[#211a34] text-zinc-200 hover:text-white rounded-full text-xs py-1">
               {t('sourceSelector.screens')} ({screenSources.length})
             </TabsTrigger>
-            <TabsTrigger value="windows" className="data-[state=active]:bg-[#2563EB] data-[state=active]:text-white text-zinc-200 rounded-full text-xs py-1">
+            <TabsTrigger value="windows" className="data-[state=active]:bg-[#c2b6ff] data-[state=active]:text-[#211a34] text-zinc-200 hover:text-white rounded-full text-xs py-1">
               {t('sourceSelector.windows')} ({windowSources.length})
             </TabsTrigger>
           </TabsList>
-            <div className="h-72 flex flex-col justify-stretch">
-            <TabsContent value="screens" className="h-full">
-              <div className={`grid grid-cols-2 gap-2 h-full overflow-y-auto pr-1 relative ${styles.sourceGridScroll}`}>
+            <div className="flex-1 min-h-0 flex flex-col">
+            <TabsContent value="screens" className="mt-0 min-h-0 flex-1 flex-col data-[state=active]:flex">
+              <div role="radiogroup" aria-label={t('sourceSelector.title', 'Choose a screen or window')} className={`grid grid-cols-2 content-start gap-3 flex-1 min-h-0 overflow-y-auto p-1.5 relative ${styles.sourceGridScroll}`}>
                 {screenSources.length === 0 && (
-                  <div className="col-span-2 text-center text-xs text-zinc-500 py-8">No screens available</div>
+                  <div className="col-span-2 text-center text-xs text-zinc-400 py-8">{t('sourceSelector.noScreens', 'No screens available')}</div>
                 )}
                 {screenSources.map(source => (
-                  <Card
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={selectedSource?.id === source.id}
                     key={source.id}
-                    className={`${styles.sourceCard} ${selectedSource?.id === source.id ? styles.selected : ''} cursor-pointer h-fit p-2 scale-95`}
-                    style={{ margin: 8, width: '90%', maxWidth: 220 }}
+                    className={`${styles.sourceCard} ${selectedSource?.id === source.id ? styles.selected : ''} cursor-pointer h-fit w-full p-2 text-left`}
                     onClick={() => handleSourceSelect(source)}
+                    onDoubleClick={() => void shareSource(source)}
                   >
                     <div className="p-1">
                       <div className="relative mb-1">
-                        {source.thumbnail ? <img src={source.thumbnail} alt={source.name} className="w-full aspect-video object-contain rounded border border-zinc-800"/> : <div className="w-full aspect-video rounded border border-zinc-800 bg-zinc-900 flex items-center justify-center text-xs text-zinc-400">Önizleme alınamadı · Ekran seçilebilir</div>}
-                        {selectedSource?.id === source.id && (
-                          <div className="absolute -top-1 -right-1">
-                            <div className="w-4 h-4 bg-[#2563EB] rounded-full flex items-center justify-center shadow-md">
-                              <MdCheck className={styles.icon} />
-                            </div>
-                          </div>
-                        )}
+                        {source.thumbnail ? <img src={source.thumbnail} alt={source.name} className="w-full aspect-video object-contain rounded border border-zinc-800"/> : <div className="w-full aspect-video rounded border border-zinc-800 bg-zinc-900 flex items-center justify-center text-xs text-zinc-400">{t('sourceSelector.noPreview', 'No preview · The screen can still be selected')}</div>}
+                        {selectedSource?.id === source.id && selectedBadge}
                       </div>
                       <div className={styles.name + " truncate"}>{source.name}</div>
                     </div>
-                  </Card>
+                  </button>
                 ))}
               </div>
             </TabsContent>
-            <TabsContent value="windows" className="h-full">
-              <p className="text-[10px] text-zinc-500 mb-1 px-1">{t('sourceSelector.windowsNote')}</p>
-              <div className={`grid grid-cols-2 gap-2 h-full overflow-y-auto pr-1 relative ${styles.sourceGridScroll}`}>
+            <TabsContent value="windows" className="mt-0 min-h-0 flex-1 flex-col data-[state=active]:flex">
+              <p className="text-[11px] text-zinc-400 mb-1.5 px-1 shrink-0">{t('sourceSelector.windowsNote')}</p>
+              <div role="radiogroup" aria-label={t('sourceSelector.title', 'Choose a screen or window')} className={`grid grid-cols-2 content-start gap-3 flex-1 min-h-0 overflow-y-auto p-1.5 relative ${styles.sourceGridScroll}`}>
                 {windowSources.length === 0 && (
-                  <div className="col-span-2 text-center text-xs text-zinc-500 py-8">No windows available</div>
+                  <div className="col-span-2 text-center text-xs text-zinc-400 py-8">{t('sourceSelector.noWindows', 'No windows available')}</div>
                 )}
                 {windowSources.map(source => (
-                  <Card
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={selectedSource?.id === source.id}
                     key={source.id}
-                    className={`${styles.sourceCard} ${selectedSource?.id === source.id ? styles.selected : ''} cursor-pointer h-fit p-2 scale-95`}
-                    style={{ margin: 8, width: '90%', maxWidth: 220 }}
+                    className={`${styles.sourceCard} ${selectedSource?.id === source.id ? styles.selected : ''} cursor-pointer h-fit w-full p-2 text-left`}
                     onClick={() => handleSourceSelect(source)}
+                    onDoubleClick={() => void shareSource(source)}
                   >
                     <div className="p-1">
                       <div className="relative mb-1">
@@ -236,7 +243,7 @@ export function SourceSelector() {
                             {source.appIcon ? (
                               <img
                                 src={source.appIcon}
-                                alt="App icon"
+                                alt=""
                                 className="w-8 h-8 rounded-md"
                               />
                             ) : (
@@ -245,36 +252,30 @@ export function SourceSelector() {
                             <div className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">{t('sourceSelector.windowPlaceholder')}</div>
                           </div>
                         )}
-                        {selectedSource?.id === source.id && (
-                          <div className="absolute -top-1 -right-1">
-                            <div className="w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center shadow-md">
-                              <MdCheck className={styles.icon} />
-                            </div>
-                          </div>
-                        )}
+                        {selectedSource?.id === source.id && selectedBadge}
                       </div>
                       <div className="flex items-center gap-1">
                         {source.appIcon && (
                           <img
                             src={source.appIcon}
-                            alt="App icon"
+                            alt=""
                             className={styles.icon + " flex-shrink-0"}
                           />
                         )}
                         <div className={styles.name + " truncate"}>{source.name}</div>
                       </div>
                     </div>
-                  </Card>
+                  </button>
                 ))}
               </div>
             </TabsContent>
           </div>
         </Tabs>
       </div>
-      {selectedSource?.sourceType === 'screen' && <div className="w-full max-w-xl">
+      {selectedSource?.sourceType === 'screen' && <div className="w-full max-w-xl shrink-0">
         <button
           type="button"
-          className="mx-3 my-1 rounded-md border border-white/15 px-3 py-1.5 text-xs text-zinc-100 hover:bg-white/10"
+          className="my-2 rounded-md border border-white/15 px-3 py-1.5 text-xs text-zinc-100 hover:bg-white/10"
           title={t('regionSelector.selectAreaTitle', 'Select an area of the screen to record')}
           onClick={() => void window.electronAPI.openRegionSelector(selectedSource)}
         >
@@ -285,7 +286,7 @@ export function SourceSelector() {
       <div className="shrink-0 bg-zinc-900 border-t border-zinc-800 p-2 w-full max-w-xl">
         <div className="flex justify-center gap-2">
           <Button variant="outline" onClick={() => window.close()} className="px-4 py-1 text-xs bg-zinc-800 border-zinc-700 text-zinc-200 hover:bg-zinc-700">{t('sourceSelector.cancel')}</Button>
-          <Button onClick={handleShare} disabled={!selectedSource} className="px-4 py-1 text-xs bg-[#2563EB] text-white hover:bg-[#2563EB]/80 disabled:opacity-50 disabled:bg-zinc-700">{t('sourceSelector.share')}</Button>
+          <Button onClick={handleShare} disabled={!selectedSource} className="px-4 py-1 text-xs font-semibold bg-[#c2b6ff] text-[#211a34] hover:bg-[#d3caff] disabled:opacity-50 disabled:bg-zinc-700 disabled:text-zinc-300">{t('sourceSelector.share')}</Button>
         </div>
       </div>
     </div>

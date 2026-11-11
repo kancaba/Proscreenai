@@ -66,7 +66,7 @@ export function LaunchWindow() {
     return `${m}:${s}`;
   };
 
-  const [selectedSource, setSelectedSource] = useState(locale === "tr" ? "Ekran seç" : "Select screen");
+  const [selectedSource, setSelectedSource] = useState(t("launchWindow.selectScreen", "Select screen"));
   const [hasSelectedSource, setHasSelectedSource] = useState(false);
   const [recordingsDirectory, setRecordingsDirectory] = useState<string | null>(null);
   // Click tracking (and so click zooms) needs Accessibility on macOS; recording works without it.
@@ -101,7 +101,7 @@ export function LaunchWindow() {
           setSelectedSource(source.name);
           setHasSelectedSource(true);
         } else {
-          setSelectedSource(locale === "tr" ? "Ekran seç" : "Select screen");
+          setSelectedSource(t("launchWindow.selectScreen", "Select screen"));
           setHasSelectedSource(false);
         }
       }
@@ -110,7 +110,7 @@ export function LaunchWindow() {
     void checkSelectedSource();
     const interval = setInterval(checkSelectedSource, 500);
     return () => clearInterval(interval);
-  }, [recording, busy, locale]);
+  }, [recording, busy, t]);
 
   const openSourceSelector = () => {
     window.electronAPI?.openSourceSelector();
@@ -203,8 +203,7 @@ export function LaunchWindow() {
     );
   }
 
-  const tr = locale === "tr";
-  const qualityHint = captureFormat || (tr ? "Oran korunur · küçük kaynak büyütülmez" : "Preserve aspect · no upscaling");
+  const qualityHint = captureFormat || t("launchWindow.qualityHint", "Preserve aspect · no upscaling");
   const noDrag = styles.electronNoDrag;
 
   // The bar's window is only as tall as the bar, so its menus are native popups.
@@ -218,7 +217,7 @@ export function LaunchWindow() {
       { id: "open-project", label: t("recording.openProject") },
       { id: "recordings-folder", label: recordingsDirectory ? t("recording.recordingFolder", undefined, { path: recordingsDirectoryName }) : t("recording.chooseRecordingsFolder") },
       { type: "separator" },
-      { label: tr ? "Dil" : "Language", submenu: SUPPORTED_LOCALES.map((code) => ({ id: `locale:${code}`, label: LOCALE_LABELS[code] ?? code, type: "radio" as const, checked: locale === code })) },
+      { label: t("launchWindow.language", "Language"), submenu: SUPPORTED_LOCALES.map((code) => ({ id: `locale:${code}`, label: LOCALE_LABELS[code] ?? code, type: "radio" as const, checked: locale === code })) },
     ]);
     if (chosen === "open-video") void openVideoFile();
     else if (chosen === "open-project") void openProjectFile();
@@ -229,11 +228,11 @@ export function LaunchWindow() {
   return (
     <div className={styles.hudRoot}>
       <div className={`${styles.subPill} ${noDrag}`} title={qualityHint}>
-        <span className={styles.subLabel}>{tr ? "Kalite" : "Quality"}</span>
-        <select aria-label={tr ? "Kayıt çözünürlüğü" : "Capture resolution"} data-testid="capture-resolution" value={captureResolution} onChange={(event) => setCaptureResolution(event.target.value)} disabled={controlsLocked} className={styles.subSelect}>
-          <option value="source">{tr ? "Orijinal" : "Source"}</option><option value="720">720p</option><option value="1080">1080p</option><option value="1440">1440p</option><option value="2160">4K</option>
+        <span className={styles.subLabel}>{t("launchWindow.quality", "Quality")}</span>
+        <select aria-label={t("launchWindow.captureResolution", "Capture resolution")} data-testid="capture-resolution" value={captureResolution} onChange={(event) => setCaptureResolution(event.target.value)} disabled={controlsLocked} className={styles.subSelect}>
+          <option value="source">{t("launchWindow.source", "Source")}</option><option value="720">720p</option><option value="1080">1080p</option><option value="1440">1440p</option><option value="2160">4K</option>
         </select>
-        <select aria-label="Capture FPS" data-testid="capture-fps" value={captureFps} disabled={controlsLocked} onChange={(event) => setCaptureFps(Number(event.target.value) as 30 | 60)} className={styles.subSelect}>
+        <select aria-label={t("launchWindow.captureFps", "Capture FPS")} data-testid="capture-fps" value={captureFps} disabled={controlsLocked} onChange={(event) => setCaptureFps(Number(event.target.value) as 30 | 60)} className={styles.subSelect}>
           <option value="30">30 FPS</option><option value="60">60 FPS</option>
         </select>
         {!clickTrackingAllowed && (
@@ -249,7 +248,7 @@ export function LaunchWindow() {
         <div className={`${styles.subPill} ${noDrag}`}>
           <MdMic size={13} className={styles.subIcon} />
           <select
-            aria-label={tr ? "Mikrofon" : "Microphone"}
+            aria-label={t("launchWindow.microphone", "Microphone")}
             value={microphoneDeviceId || selectedDeviceId}
             onChange={(event) => {
               setSelectedDeviceId(event.target.value);
@@ -259,7 +258,7 @@ export function LaunchWindow() {
           >
             {devices.map((device) => (
               <option key={device.deviceId} value={device.deviceId}>
-                {device.label || (tr ? "Mikrofon" : "Microphone")}
+                {device.label || t("launchWindow.microphone", "Microphone")}
               </option>
             ))}
           </select>
@@ -315,15 +314,15 @@ export function LaunchWindow() {
           </button>
           <button type="button" onClick={() => void chooseCountdown()} disabled={controlsLocked} title={t("recording.countdownDelay")} className={styles.chip}>
             <Timer size={14} />
-            <span className="tabular-nums">{countdownDelay > 0 ? `${countdownDelay}s` : (tr ? "Kapalı" : "Off")}</span>
+            <span className="tabular-nums">{countdownDelay > 0 ? `${countdownDelay}s` : t("launchWindow.off", "Off")}</span>
           </button>
         </div>
 
         <button
           type="button"
           onClick={hasSelectedSource ? toggleRecording : openSourceSelector}
-          disabled={controlsLocked || !hasSelectedSource}
-          title={hasSelectedSource ? t("recording.record") : t("permissions.selectSource")}
+          disabled={controlsLocked}
+          title={hasSelectedSource ? t("recording.record") : t("recording.chooseSource", "Choose what to record")}
           className={`${styles.recordButton} ${noDrag}`}
         >
           {busy ? <LoaderCircle size={14} className={styles.spinner} /> : <span className={styles.recordDot} />}
@@ -331,7 +330,7 @@ export function LaunchWindow() {
         </button>
 
         <div className={`${styles.group} ${noDrag}`}>
-          <button type="button" onClick={() => void openMoreMenu()} disabled={controlsLocked} title={tr ? "Diğer" : "More"} aria-label={tr ? "Diğer" : "More"} className={styles.iconButton}>
+          <button type="button" onClick={() => void openMoreMenu()} disabled={controlsLocked} title={t("recording.more", "More")} aria-label={t("recording.more", "More")} className={styles.iconButton}>
             <MoreHorizontal size={16} />
           </button>
           <span className={styles.divider} />

@@ -72,13 +72,13 @@
 .hudRoot { width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;padding:0 22px 16px;overflow:hidden;background:transparent; }
 
 .subPill { display:flex;align-items:center;gap:6px;max-width:100%;padding:4px 6px 4px 10px;border-radius:999px;background:rgba(20,18,30,.86);border:1px solid rgba(199,185,255,.14);box-shadow:0 3px 10px rgba(5,2,15,.22);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:#b9b0cc;font-size:11px; }
-.subLabel { color:#8f86a6;font-size:10px;letter-spacing:.02em; }
+.subLabel { color:#a39bb8;font-size:11px;letter-spacing:.02em; }
 .subIcon { color:#c7b9ff;flex-shrink:0; }
 .subSelect { color-scheme:dark;max-width:200px;border:0;border-radius:999px;background:rgba(255,255,255,.06);color:#ece8f6;padding:3px 8px;font-size:11px;outline:none;cursor:pointer; }
 .subSelect:hover:not(:disabled) { background:rgba(199,185,255,.14); }
 .subSelect:focus-visible { box-shadow:0 0 0 2px rgba(199,185,255,.55); }
 .subSelect:disabled { opacity:.5;cursor:default; }
-.permissionChip { display:flex;align-items:center;gap:4px;border-radius:999px;background:rgba(251,191,36,.12);color:#fcd783;padding:3px 8px;font-size:10px;cursor:pointer; }
+.permissionChip { display:flex;align-items:center;gap:4px;border-radius:999px;background:rgba(251,191,36,.12);color:#fcd783;padding:3px 8px;font-size:11px;cursor:pointer; }
 .permissionChip:hover { background:rgba(251,191,36,.22); }
 .permissionAction { font-weight:600;text-decoration:underline;text-underline-offset:2px; }
 
@@ -95,7 +95,7 @@
 .chipSelected { background:rgba(199,185,255,.12);color:#efeaff; }
 .chipText { max-width:118px;overflow:hidden;text-overflow:ellipsis; }
 
-.toggle { width:34px;color:rgba(255,255,255,.4); }
+.toggle { width:34px;color:rgba(255,255,255,.58); }
 .toggle[aria-pressed="true"] { background:rgba(199,185,255,.16);color:#d9ceff; }
 
 .iconButton { width:30px;height:30px;color:rgba(255,255,255,.55); }

@@ -4,7 +4,8 @@
     "editorTitle": "Pro Screen AI Editör",
     "subtitle": "Ekran kaydı ve video düzenleme",
     "manageRecordings": "Kayıt klasörü",
-    "language": "Dil"
+    "language": "Dil",
+    "home": "Ana ekran"
   },
   "actions": {
     "cancel": "Vazgeç",

@@ -1,5 +1,6 @@
 import { toFileUrl } from "./projectPersistence";
 import { memo, useRef, useState, type PointerEvent } from "react";
+import { useScopedT } from "@/contexts/I18nContext";
 import { clipEnd, dragClip, snapDelta, type SequenceClip, type ClipGesture } from "@/lib/sequence";
 
 import { AudioWaveform } from "./timeline/AudioWaveform";
@@ -29,7 +30,6 @@ interface Props {
 	scale: number;
 	tracks: number[];
 	snap: boolean;
-	tr: boolean;
 	disabled: boolean;
 	onSelect: (id: string) => void;
 	onEdit: (id: string) => void;
@@ -39,6 +39,7 @@ interface Props {
 	onPause: () => void;
 }
 export default function SequenceTracks(p: Props) {
+	const t = useScopedT("editor");
 	const area = useRef<HTMLDivElement>(null);
 	const scroll = useRef<HTMLDivElement>(null);
 	const gesture = useRef<{
@@ -119,7 +120,7 @@ export default function SequenceTracks(p: Props) {
 				<div className="seq-grid">
 					<div
 						className="seq-ruler"
-						aria-label={p.tr ? "Zaman cetveli" : "Time ruler"}
+						aria-label={t("sequenceTracks.timeRuler", "Time ruler")}
 						onPointerDown={(e) => {
 							p.onPause();
 							e.currentTarget.setPointerCapture(e.pointerId);

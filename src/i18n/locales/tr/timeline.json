@@ -14,7 +14,8 @@
     "addedSuggestions": "{{count}} zoom önerisi eklendi",
     "label": "Zoom {{index}}",
     "addZoom": "Zoom ekle (Z)",
-    "suggestZooms": "Otomatik zoom öner"
+    "suggestZooms": "Otomatik zoom öner",
+    "auto": "Oto zoom"
   },
   "trim": {
     "cannotPlace": "Buraya kesme eklenemiyor",
@@ -53,7 +54,11 @@
   "view": {
     "zoomSlider": "Timeline yakınlaştırma",
     "followPlayhead": "Takip et",
-    "followPlayheadHint": "Oynatırken oynatma imlecini görünür tut"
+    "followPlayheadHint": "Oynatırken oynatma imlecini görünür tut",
+    "zoomOut": "Uzaklaştır (-)",
+    "zoomIn": "Yakınlaştır (+)",
+    "fit": "Sığdır",
+    "fitHint": "Videoyu sığdır (Shift+F)"
   },
   "clip": {
     "segment": "Video parçası {{start}}–{{end}} sn · seçip Delete ile kesin",
@@ -100,5 +105,13 @@
   "sensitive": {
     "label": "Hassas veri",
     "hint": "Ekrandaki e-posta, telefon, kimlik/vergi no, IBAN ve anahtarları bul, bulanıklaştırma öner"
+  },
+  "audio": {
+    "add": "Ses ekle",
+    "addFile": "Ses dosyası ekle"
+  },
+  "format": {
+    "heading": "Video boyutu · Sosyal medya",
+    "custom": "Özel"
   }
 }

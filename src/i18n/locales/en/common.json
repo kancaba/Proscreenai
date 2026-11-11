@@ -4,7 +4,8 @@
     "editorTitle": "Pro Screen AI Editor",
     "subtitle": "Screen recording and editing",
     "manageRecordings": "Recordings folder",
-    "language": "Language"
+    "language": "Language",
+    "home": "Home"
   },
   "actions": {
     "cancel": "Cancel",

@@ -16,7 +16,7 @@ import { TypingInspector } from './TypingInspector';
 import { findTypingStretches, isStretchCut } from './typingStretches';
 import { setPartSpeed, speedOfPart } from './clipSpeed';
 import type { Span } from "dnd-timeline";
-import { Home, FolderOpen, Languages, Monitor, Settings2 } from "lucide-react";
+import { Home, FolderOpen, KeyRound, Languages, Mic, Monitor, Settings2, Sparkles } from "lucide-react";
 import { type Dispatch, type MutableRefObject, type SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { toast } from "sonner";
@@ -149,7 +149,7 @@ function LanguageSwitcher() {
     <button
       type="button"
       onClick={() => setLocale(next)}
-      className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-white/90 transition hover:bg-white/8 hover:text-white cursor-pointer"
+      className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-white/90 transition hover:bg-white/10 hover:text-white cursor-pointer"
       title={t("common.app.language", "Language")}
       aria-label={t("common.app.language", "Language")}
     >
@@ -3044,7 +3044,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
           className="absolute right-4 flex items-center gap-1"
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
-          <button type="button" disabled={isExporting} onClick={() => void window.electronAPI.showHome()} className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs text-white/80 hover:bg-white/10 disabled:opacity-40"><Home className="h-4 w-4" /> {t("common.app.home", "Ana ekran")}</button>
+          <button type="button" disabled={isExporting} onClick={() => void window.electronAPI.showHome()} className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs text-white/80 hover:bg-white/10 disabled:opacity-40"><Home className="h-4 w-4" /> {t("common.app.home", "Home")}</button>
           <button type="button" onClick={() => void window.electronAPI.showRecorder()} className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs text-white/80 hover:bg-white/10">
             <Monitor className="h-4 w-4" /> {t('launch.welcome.newRecording')}
           </button>
@@ -3053,7 +3053,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
           <button
             type="button"
             onClick={() => void openRecordingsFolder()}
-            className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-white/90 transition hover:bg-white/8 hover:text-white cursor-pointer"
+            className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-white/90 transition hover:bg-white/10 hover:text-white cursor-pointer"
             title={t("common.app.manageRecordings", "Open recordings folder")}
             aria-label={t("common.app.manageRecordings", "Open recordings folder")}
           >
@@ -3063,7 +3063,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
         </div>
       </div>}
 
-      {sequenceVisible && sequence ? <SequenceWorkspace key={projectGeneration} sequence={sequence} tr={locale==='tr'}
+      {sequenceVisible && sequence ? <SequenceWorkspace key={projectGeneration} sequence={sequence}
         name={(currentProjectPath || videoSourcePath || '').split(/[\\/]/).pop() || 'Kurgu'} dirty={hasUnsavedChanges}
         initialTime={sequenceTime.current} onTime={rememberSequenceTime} onChange={editSequence}
         onRecord={recordAndAppend} onVoiceover={insert=>{voiceInsert.current=insert;openVoiceover();}} renderEditor={session=><VideoEditor key={session.clip.id} clipSession={session}/>} onSave={handleSaveProject} onOpen={handleLoadProject}
@@ -3073,12 +3073,12 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
         <button disabled={isExporting} onClick={clipSession.onCancel}>{locale==='tr'?'Vazgeç':'Cancel'}</button>
         <button data-testid="apply-clip-edits" disabled={isExporting || !duration} onClick={applyClipEdit}>{locale==='tr'?'Klibe uygula':'Apply to clip'}</button>
       </div> : <div className="flex items-center gap-3 border-b border-white/10 px-3 py-1 text-xs">
-        <button disabled={isExporting || !duration} className="rounded bg-blue-700 px-3 py-1.5 text-white disabled:opacity-40" onClick={()=>{
+        <button disabled={isExporting || !duration} className="h-7 rounded-md bg-[#c2b6ff]/15 px-3 text-[11px] font-medium text-[#d9ceff] hover:bg-[#c2b6ff]/25 disabled:cursor-not-allowed disabled:opacity-40" onClick={()=>{
           pausePlayback();
           if(sequence) setSequenceVisible(true);
           else { setShowExportDialog(true); void handleExport({format:'mp4',quality:exportQuality},true); }
         }}>{locale==='tr'?'Video düzenleme':'Video editing'}</button>
-        {sequence && <button disabled={isExporting || !duration} onClick={()=>{pausePlayback();setShowExportDialog(true);void handleExport({format:'mp4',quality:exportQuality},true);}}>
+        {sequence && <button disabled={isExporting || !duration} className="h-7 rounded-md px-3 text-[11px] text-slate-300 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40" onClick={()=>{pausePlayback();setShowExportDialog(true);void handleExport({format:'mp4',quality:exportQuality},true);}}>
           {locale==='tr'?'Düzenlenmiş kaynağı kurguya ekle':'Add edited source to sequence'}</button>}
       </div>}
       <EditorToolbar onVoiceover={() => openVoiceover()} onShortcuts={openConfig} onAdd={addEditorTool} onAiCaptions={() => setAiCaptionsOpen(true)} onUndo={handleUndo} onRedo={handleRedo}
@@ -3290,7 +3290,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
           autoZoomControls={<AutoZoomControls settings={autoZoomSettings} onChange={updateAutoZoomSettings} onRegenerate={normalizedCursorTelemetry.length >= 2 && duration > 0 ? handleRegenerateAutoZoom : undefined} />}
           presets={<StylePresets appearance={appearance} onApply={applyAppearance} />}
           selectedAudioId={selectedAudioId}
-          aiPanel={<div className="space-y-3"><h2 className="text-sm font-semibold text-white">AI stüdyo</h2><AutoCaptionsSection state={autoCaptions} existingCount={transcriptCaptionCount} captionStyle={captionStyle} onCaptionStyleChange={handleCaptionStyleChange} /><AgentPanel state={agent} available={Boolean(agentVideoPath) && duration > 0} onApply={handleAgentApply} onSeek={handleSeek} onExpand={() => setAgentWideOpen(true)} /><p className="text-xs leading-relaxed text-slate-400">{locale === 'tr' ? 'Videonuz için yazılar üretin; Ema Lightning, Fish Audio veya ElevenLabs ile seslendirin.' : 'Generate captions and narrate with Ema Lightning, Fish Audio or ElevenLabs.'}</p><button onClick={() => setAiCaptionsOpen(true)} className="w-full rounded-lg bg-violet-300/15 p-3 text-left text-xs text-violet-200">{locale === 'tr' ? '✦ AI video yazıları' : '✦ AI captions'}</button><button onClick={() => openVoiceover()} className="w-full rounded-lg bg-violet-300/15 p-3 text-left text-xs text-violet-200">{locale === 'tr' ? '♫ Metni seslendir' : '♫ Text to speech'}</button><button onClick={() => setAiSettingsOpen(true)} className="w-full rounded-lg border border-white/10 p-3 text-left text-xs text-slate-400">{locale === 'tr' ? 'AI bağlantısı ve API anahtarı' : 'AI connection and API key'}</button></div>}
+          aiPanel={<div className="space-y-3"><h2 className="text-sm font-semibold text-white">AI stüdyo</h2><AutoCaptionsSection state={autoCaptions} existingCount={transcriptCaptionCount} captionStyle={captionStyle} onCaptionStyleChange={handleCaptionStyleChange} /><AgentPanel state={agent} available={Boolean(agentVideoPath) && duration > 0} onApply={handleAgentApply} onSeek={handleSeek} onExpand={() => setAgentWideOpen(true)} /><p className="text-xs leading-relaxed text-slate-400">{locale === 'tr' ? 'Videonuz için yazılar üretin; Ema Lightning, Fish Audio veya ElevenLabs ile seslendirin.' : 'Generate captions and narrate with Ema Lightning, Fish Audio or ElevenLabs.'}</p><button type="button" onClick={() => setAiCaptionsOpen(true)} className="flex w-full items-center gap-2 rounded-lg bg-violet-300/15 p-3 text-left text-xs text-violet-200 hover:bg-violet-300/25"><Sparkles size={14} className="shrink-0" />{locale === 'tr' ? 'AI video yazıları' : 'AI captions'}</button><button type="button" onClick={() => openVoiceover()} className="flex w-full items-center gap-2 rounded-lg bg-violet-300/15 p-3 text-left text-xs text-violet-200 hover:bg-violet-300/25"><Mic size={14} className="shrink-0" />{locale === 'tr' ? 'Metni seslendir' : 'Text to speech'}</button><button type="button" onClick={() => setAiSettingsOpen(true)} className="flex w-full items-center gap-2 rounded-lg border border-white/10 p-3 text-left text-xs text-slate-300 hover:border-white/20 hover:bg-white/5"><KeyRound size={14} className="shrink-0" />{locale === 'tr' ? 'AI bağlantısı ve API anahtarı' : 'AI connection and API key'}</button></div>}
           header={<>
             {selectedTyping && <TypingInspector index={selectedTypingIndex} total={timelineTyping.length} stretch={selectedTyping}
               speed={speedOfPart(selectedTyping, speedRegions)} onSpeedChange={(speed) => speedUpTyping([selectedTyping], speed)}
@@ -3304,7 +3304,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
                 onMove: (toIndex) => void moveClipPart(selectedPart.startMs, toIndex),
               } : undefined} />}
             {activeRegion && <RegionInspector region={activeRegion}
-              label={activeRegionKind === 'blur' ? (locale === 'tr' ? 'Bulanık alan' : 'Blur area') : activeRegionKind === 'zoom' ? 'Zoom' : activeRegionKind === 'trim' ? t('timeline.trim.label', undefined, { index: '' }) : activeRegionKind === 'audio' && selectedAudio ? audioClipName(selectedAudio.audioPath, locale === 'tr') : t('timeline.speed.label')}
+              label={activeRegionKind === 'blur' ? (locale === 'tr' ? 'Bulanık alan' : 'Blur area') : activeRegionKind === 'zoom' ? 'Zoom' : activeRegionKind === 'trim' ? t('timeline.trim.label', undefined, { index: '' }) : activeRegionKind === 'audio' && selectedAudio ? audioClipName(selectedAudio.audioPath, t) : t('timeline.speed.label')}
               onChange={updateActiveRegion} onDelete={deleteActiveRegion}
               crossfade={activeRegionKind === 'trim' ? { enabled: Boolean((activeRegion as TrimRegion).crossfade), onChange: (on) => setTrimRegions((previous) => previous.map((region) => {
                 if (region.id !== activeRegion.id) return region;

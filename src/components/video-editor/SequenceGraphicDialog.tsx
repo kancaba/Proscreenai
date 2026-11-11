@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useScopedT } from "@/contexts/I18nContext";
 import { AnnotationSettingsPanel } from "./AnnotationSettingsPanel";
 import { renderAnnotations } from "@/lib/exporter/annotationRenderer";
 import { DEFAULT_ANNOTATION_STYLE, DEFAULT_FIGURE_DATA, type AnnotationRegion } from "./types";
@@ -19,17 +20,16 @@ export function SequenceGraphicDialog({
 	initial,
 	width,
 	height,
-	tr,
 	close,
 	save,
 }: {
 	initial?: AnnotationRegion;
 	width: number;
 	height: number;
-	tr: boolean;
 	close: () => void;
 	save: (data: ArrayBuffer, annotation: AnnotationRegion) => Promise<void>;
 }) {
+	const t = useScopedT("editor");
 	const [item, setItem] = useState<AnnotationRegion>(
 		() =>
 			initial ?? {
@@ -96,7 +96,7 @@ export function SequenceGraphicDialog({
 		>
 			<DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto bg-[#181a21] text-white">
 				<DialogHeader>
-					<DialogTitle>{tr ? "Yazı ve görsel katmanı" : "Titles and graphics"}</DialogTitle>
+					<DialogTitle>{t("sequenceGraphicDialog.title", "Titles and graphics")}</DialogTitle>
 				</DialogHeader>
 				<div className="grid min-h-0 grid-cols-2 gap-3">
 					<canvas ref={canvas} className="w-full self-start bg-[#30323c]" />
@@ -133,7 +133,7 @@ export function SequenceGraphicDialog({
 				{error && <p role="alert">{error}</p>}
 				<div className="flex justify-end gap-3">
 					<button onClick={close} disabled={busy}>
-						{tr ? "Vazgeç" : "Cancel"}
+						{t("sequenceGraphicDialog.cancel", "Cancel")}
 					</button>
 					<button
 						data-testid="save-sequence-graphic"
@@ -141,7 +141,7 @@ export function SequenceGraphicDialog({
 						disabled={empty || busy}
 						onClick={apply}
 					>
-						{tr ? "Katmanı uygula" : "Apply layer"}
+						{t("sequenceGraphicDialog.applyLayer", "Apply layer")}
 					</button>
 				</div>
 			</DialogContent>

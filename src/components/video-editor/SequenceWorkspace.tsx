@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Download, Film, Magnet, Undo2, Redo2, Save, Scissors, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useScopedT } from "@/contexts/I18nContext";
 import {
 	activeAt,
 	clipEnd,
@@ -71,7 +72,6 @@ export async function inspectClip(
 
 interface Props {
 	sequence: Sequence;
-	tr: boolean;
 	name: string;
 	dirty: boolean;
 	initialTime: number;
@@ -87,7 +87,6 @@ interface Props {
 }
 export default function SequenceWorkspace({
 	sequence,
-	tr,
 	name,
 	dirty,
 	initialTime,
@@ -100,7 +99,7 @@ export default function SequenceWorkspace({
 	onOpen,
 	onScreenEditor,
 }: Props) {
-	const label = (turkish: string, english: string) => (tr ? turkish : english);
+	const t = useScopedT("editor");
 	const [selectedId, setSelected] = useState<string | null>(null);
 	const [time, setTime] = useState(initialTime);
 	const clock = useRef(time);
@@ -149,7 +148,7 @@ export default function SequenceWorkspace({
 				(t) =>
 					!clips.some((c) => c.track === t && c.start < clipEnd(clip) && clipEnd(c) > clip.start),
 			);
-			if (track === undefined) throw Error(label("Boş ses kanalı yok.", "No free audio track."));
+			if (track === undefined) throw Error(t("sequenceWorkspace.noFreeAudioTrack", "No free audio track."));
 			commit([...clips, { ...clip, track }]);
 			setSelected(clip.id);
 		} catch (e) {
@@ -167,14 +166,14 @@ export default function SequenceWorkspace({
 		const track = old?.track ?? highest + 1;
 		if (track > 7)
 			throw Error(
-				label("Bu zamanda üst video kanalı dolu.", "No upper video track is available here."),
+				t("sequenceWorkspace.noUpperVideoTrack", "No upper video track is available here."),
 			);
 		const path = await window.electronAPI.storeSequenceGraphic(data);
 		if (!alive.current) return;
 		const name =
 			graphic.type === "text"
 				? getAnnotationText(graphic).slice(0, 100)
-				: label("Grafik", "Graphic");
+				: t("sequenceWorkspace.graphic", "Graphic");
 		const layer: SequenceClip = {
 			start,
 			track,
@@ -236,10 +235,7 @@ export default function SequenceWorkspace({
 		commit(clips.map((c) => (c.id === changed.id ? changed : c)));
 		if (outMs < rendered.sourceMs)
 			toast.info(
-				label(
-					"Klip sonraki klibin başında kırpıldı. Boşluk açarak kenarını uzatabilirsin.",
-					"The next clip limits this edit. Make room to extend its edge.",
-				),
+				t("sequenceWorkspace.clipLimitedByNext", "The next clip limits this edit. Make room to extend its edge."),
 			);
 		setSelected(changed.id);
 		setSession(null);
@@ -302,7 +298,7 @@ export default function SequenceWorkspace({
 	) {
 		const value = { ...baseSequence(), clips: next, ...settings };
 		if (!validSequence(value)) {
-			toast.error(label("Klip sınırı veya süresi geçersiz.", "Invalid clip count or duration."));
+			toast.error(t("sequenceWorkspace.invalidClips", "Invalid clip count or duration."));
 			return;
 		}
 		setPlaying(false);
@@ -377,7 +373,7 @@ export default function SequenceWorkspace({
 				),
 		);
 		if (track === undefined) {
-			toast.error(label("Boş ses kanalı yok.", "No free audio track."));
+			toast.error(t("sequenceWorkspace.noFreeAudioTrack", "No free audio track."));
 			return;
 		}
 		const audio = { ...selected, id: crypto.randomUUID(), track };
@@ -431,10 +427,7 @@ export default function SequenceWorkspace({
 				)
 			) {
 				throw new Error(
-					label(
-						"Dosya bu kliplerin görüntü, ses veya süre gereksinimini karşılamıyor.",
-						"The file does not cover the video, audio or duration of these clips.",
-					),
+					t("sequenceWorkspace.relinkMismatch", "The file does not cover the video, audio or duration of these clips."),
 				);
 			}
 			if (alive.current)
@@ -471,7 +464,7 @@ export default function SequenceWorkspace({
 			if (JSON.stringify(sequence.output) !== JSON.stringify(output) || fps !== sequence.fps)
 				commit(clips, { output, fps });
 			const saved = await window.electronAPI.exportSequence(next);
-			if (saved) toast.success(label("Video kaydedildi", "Video saved"), { description: saved });
+			if (saved) toast.success(t("sequenceWorkspace.videoSaved", "Video saved"), { description: saved });
 		} catch (e) {
 			toast.error(String(e));
 		} finally {
@@ -523,7 +516,7 @@ export default function SequenceWorkspace({
 	return (
 		<section className="seq-workspace">
 			<header className="seq-top">
-				<strong>{label("Video düzenleme", "Video editing")}</strong>
+				<strong>{t("sequenceWorkspace.title", "Video editing")}</strong>
 				<span>
 					{name}
 					{dirty ? " •" : ""}
@@ -536,7 +529,7 @@ export default function SequenceWorkspace({
 							void onRecord();
 						}}
 					>
-						{label("Ekran kaydı ekle", "Add screen recording")}
+						{t("sequenceWorkspace.addScreenRecording", "Add screen recording")}
 					</button>
 				)}
 				{onScreenEditor && !session && (
@@ -548,18 +541,18 @@ export default function SequenceWorkspace({
 							onScreenEditor();
 						}}
 					>
-						{label("Ekran editörüne dön", "Back to screen editor")}
+						{t("sequenceWorkspace.backToScreenEditor", "Back to screen editor")}
 					</button>
 				)}
 				<button disabled={!!busy || !!session} onClick={onOpen}>
-					{label("Proje aç", "Open project")}
+					{t("sequenceWorkspace.openProject", "Open project")}
 				</button>
 				<button onClick={onSave}>
 					<Save size={15} />
-					{label("Kaydet", "Save")}
+					{t("sequenceWorkspace.save", "Save")}
 				</button>
 				<select
-					aria-label={label("Sahne oranı", "Canvas ratio")}
+					aria-label={t("sequenceWorkspace.canvasRatio", "Canvas ratio")}
 					disabled={!!session || !!busy}
 					value={`${sequence.width}:${sequence.height}`}
 					onChange={(e) => {
@@ -585,11 +578,11 @@ export default function SequenceWorkspace({
 					}}
 				>
 					<Download size={15} />
-					{busy === "export" ? Math.round(progress * 100) + "%" : label("Dışa aktar", "Export")}
+					{busy === "export" ? Math.round(progress * 100) + "%" : t("sequenceWorkspace.export", "Export")}
 				</button>
 				{busy === "export" && (
 					<button onClick={() => window.electronAPI.cancelSequenceExport()}>
-						{label("İptal", "Cancel")}
+						{t("sequenceWorkspace.cancel", "Cancel")}
 					</button>
 				)}
 			</header>
@@ -610,14 +603,14 @@ export default function SequenceWorkspace({
 					<div
 						className="seq-effect-tools"
 						role="toolbar"
-						aria-label={label("Klip araçları", "Clip tools")}
+						aria-label={t("sequenceWorkspace.clipTools", "Clip tools")}
 					>
 						<details className="seq-transform seq-fades">
-							<summary>{label("Açılış ve kapanış", "Fades")}</summary>
+							<summary>{t("sequenceWorkspace.fades", "Fades")}</summary>
 							<div>
 								{(["fadeInMs", "fadeOutMs"] as const).map((key, i) => (
 									<label key={key}>
-										{i ? label("Kapanış", "Fade out") : label("Açılış", "Fade in")}
+										{i ? t("sequenceWorkspace.fadeOut", "Fade out") : t("sequenceWorkspace.fadeIn", "Fade in")}
 										<select
 											value={sequence.fades?.[key] ?? 0}
 											disabled={!!busy}
@@ -645,16 +638,16 @@ export default function SequenceWorkspace({
 								setDrawing({});
 							}}
 						>
-							{label("Başlık katmanı", "Title layer")}
+							{t("sequenceWorkspace.titleLayer", "Title layer")}
 						</button>
 						{(
 							[
-								["appearance", label("Görünüm", "Appearance")],
-								["zoom", "Zoom"],
-								["speed", label("Hız", "Speed")],
-								["text", label("Metin ve görsel", "Text and graphics")],
-								["blur", label("Bulanıklaştır", "Blur")],
-								["captions", label("Altyazı", "Captions")],
+								["appearance", t("sequenceWorkspace.toolAppearance", "Appearance")],
+								["zoom", t("sequenceWorkspace.toolZoom", "Zoom")],
+								["speed", t("sequenceWorkspace.toolSpeed", "Speed")],
+								["text", t("sequenceWorkspace.toolText", "Text and graphics")],
+								["blur", t("sequenceWorkspace.toolBlur", "Blur")],
+								["captions", t("sequenceWorkspace.toolCaptions", "Captions")],
 								["ai", "AI"],
 							] as const
 						).map(([tool, title]) => (
@@ -674,7 +667,7 @@ export default function SequenceWorkspace({
 								onVoiceover(insertVoice);
 							}}
 						>
-							{label("Seslendirme", "Voiceover")}
+							{t("sequenceWorkspace.voiceover", "Voiceover")}
 						</button>
 					</div>
 					<SequenceMonitor
@@ -685,7 +678,7 @@ export default function SequenceWorkspace({
 					/>
 					{previewError && (
 						<div role="alert">
-							{label("Medya açılamadı", "Cannot play media")} · {previewError}
+							{t("sequenceWorkspace.cannotPlayMedia", "Cannot play media")} · {previewError}
 						</div>
 					)}
 					<div className="seq-transport">
@@ -707,41 +700,41 @@ export default function SequenceWorkspace({
 					<fieldset disabled={!!busy} className="seq-tools">
 						<button onClick={() => add()}>
 							<Film size={15} />
-							{label("Medya ekle", "Add media")}
+							{t("sequenceWorkspace.addMedia", "Add media")}
 						</button>
 						<button
 							onClick={() => history(false)}
 							disabled={!past.current.length}
-							aria-label={label("Geri al", "Undo")}
+							aria-label={t("sequenceWorkspace.undo", "Undo")}
 						>
 							<Undo2 size={15} />
 						</button>
 						<button
 							onClick={() => history(true)}
 							disabled={!future.current.length}
-							aria-label={label("Yinele", "Redo")}
+							aria-label={t("sequenceWorkspace.redo", "Redo")}
 						>
 							<Redo2 size={15} />
 						</button>
 						<button onClick={split}>
 							<Scissors size={15} />
-							{label("Böl", "Split")}
+							{t("sequenceWorkspace.split", "Split")}
 						</button>
-						<button disabled={!selected} onClick={remove} aria-label={label("Sil", "Delete")}>
+						<button disabled={!selected} onClick={remove} aria-label={t("sequenceWorkspace.delete", "Delete")}>
 							<Trash2 size={15} />
 						</button>
 						<button disabled={!selected} onClick={closeGap}>
-							{label("Önceki boşluğu kapat", "Close preceding gap")}
+							{t("sequenceWorkspace.closeGap", "Close preceding gap")}
 						</button>
 						<button
 							disabled={!selected?.hasAudio || selected.track < 0 || !selected.volume}
 							onClick={detach}
 						>
-							{label("Sesi ayır", "Detach audio")}
+							{t("sequenceWorkspace.detachAudio", "Detach audio")}
 						</button>
 						<button aria-pressed={snap} onClick={() => setSnap(!snap)}>
 							<Magnet size={15} />
-							{label("Mıknatıs", "Snap")}
+							{t("sequenceWorkspace.snap", "Snap")}
 						</button>
 						<button
 							disabled={videoCount >= 8}
@@ -756,7 +749,7 @@ export default function SequenceWorkspace({
 							+ A
 						</button>
 						<label>
-							{label("Ölçek", "Zoom")}{" "}
+							{t("sequenceWorkspace.timelineZoom", "Zoom")}{" "}
 							<input
 								type="range"
 								min={0.5}
@@ -776,7 +769,6 @@ export default function SequenceWorkspace({
 					selected={selectedId}
 					tracks={tracks}
 					disabled={!!busy || !!session}
-					tr={tr}
 					snap={snap}
 					onSelect={setSelected}
 					onSeek={seek}
@@ -800,7 +792,7 @@ export default function SequenceWorkspace({
 					<fieldset className="seq-details" disabled={!!busy}>
 						<strong>{selected.name}</strong>
 						<label>
-							{label("Başlangıç (sn)", "Start (s)")}{" "}
+							{t("sequenceWorkspace.startSeconds", "Start (s)")}{" "}
 							<input
 								key={selected.id + ":" + selected.start}
 								type="number"
@@ -819,7 +811,7 @@ export default function SequenceWorkspace({
 						</label>
 						{selected.hasAudio && (
 							<label>
-								{label("Ses düzeyi", "Volume")}{" "}
+								{t("sequenceWorkspace.volume", "Volume")}{" "}
 								<input
 									type="number"
 									min={0}
@@ -840,7 +832,6 @@ export default function SequenceWorkspace({
 						)}
 						{selected.track >= 0 && (
 							<ClipTransformControls
-								tr={tr}
 								value={selected.transform}
 								onChange={(transform) =>
 									commit(clips.map((c) => (c.id === selected.id ? { ...c, transform } : c)))
@@ -854,12 +845,12 @@ export default function SequenceWorkspace({
 									setDrawing({ clip: selected });
 								}}
 							>
-								{label("Katmanı düzenle", "Edit layer")}
+								{t("sequenceWorkspace.editLayer", "Edit layer")}
 							</button>
 						)}
-						<button onClick={duplicate}>{label("Çoğalt", "Duplicate")}</button>
+						<button onClick={duplicate}>{t("sequenceWorkspace.duplicate", "Duplicate")}</button>
 						<button disabled={!!selected.graphic} onClick={relink}>
-							{label("Kaynağı yeniden bağla", "Relink source")}
+							{t("sequenceWorkspace.relinkSource", "Relink source")}
 						</button>
 						<span>
 							{(selected.inMs / 1000).toFixed(2)} – {(selected.outMs / 1000).toFixed(2)} s
@@ -872,7 +863,6 @@ export default function SequenceWorkspace({
 					initial={drawing.clip?.graphic}
 					width={sequence.width}
 					height={sequence.height}
-					tr={tr}
 					close={() => setDrawing(null)}
 					save={saveGraphic}
 				/>

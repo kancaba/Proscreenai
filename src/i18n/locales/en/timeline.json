@@ -14,7 +14,8 @@
     "addedSuggestions": "Added {{count}} interaction-based zoom suggestion(s)",
     "label": "Zoom {{index}}",
     "addZoom": "Add Zoom (Z)",
-    "suggestZooms": "Suggest Zooms from Cursor"
+    "suggestZooms": "Suggest Zooms from Cursor",
+    "auto": "Auto zoom"
   },
   "trim": {
     "cannotPlace": "Cannot place trim here",
@@ -53,7 +54,11 @@
   "view": {
     "zoomSlider": "Timeline zoom",
     "followPlayhead": "Follow",
-    "followPlayheadHint": "Keep the playhead in view while playing"
+    "followPlayheadHint": "Keep the playhead in view while playing",
+    "zoomOut": "Zoom out (-)",
+    "zoomIn": "Zoom in (+)",
+    "fit": "Fit",
+    "fitHint": "Fit the whole video (Shift+F)"
   },
   "clip": {
     "segment": "Video part {{start}}–{{end}} s · select and press Delete to cut it",
@@ -100,5 +105,13 @@
   "sensitive": {
     "label": "Private info",
     "hint": "Find e-mails, phone and ID numbers, IBANs and keys on screen and suggest blurs"
+  },
+  "audio": {
+    "add": "Add audio",
+    "addFile": "Add an audio file"
+  },
+  "format": {
+    "heading": "Video size · Social media",
+    "custom": "Custom"
   }
 }
