@@ -34,6 +34,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   modelionCancelSpeech: (requestId: string) => ipcRenderer.invoke('modelion-cancel-speech', requestId),
   transcribeVideo: (input: { videoPath: string; language: string; requestId: string }) => ipcRenderer.invoke('transcribe-video', input),
   cancelTranscription: (requestId: string) => ipcRenderer.invoke('cancel-transcription', requestId),
+  scanSensitiveText: (input: { videoPath: string; durationMs: number; requestId: string }) => ipcRenderer.invoke('scan-sensitive-text', input),
+  cancelSensitiveScan: (requestId: string) => ipcRenderer.invoke('cancel-sensitive-scan', requestId),
+  onSensitiveScanProgress: (callback: (progress: { requestId: string; fraction: number }) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, progress: { requestId: string; fraction: number }) => callback(progress)
+    ipcRenderer.on('sensitive-scan-progress', listener)
+    return () => ipcRenderer.removeListener('sensitive-scan-progress', listener)
+  },
   getAudioWaveform: (audioPath: string) => ipcRenderer.invoke('audio-waveform', audioPath),
   appendVideo: (currentVideoPath: string, addedVideoPath?: string) => ipcRenderer.invoke('append-video', currentVideoPath, addedVideoPath),
   reorderVideo: (currentVideoPath: string, pieces: Array<{ startMs: number; endMs: number }>) => ipcRenderer.invoke('reorder-video', currentVideoPath, pieces),

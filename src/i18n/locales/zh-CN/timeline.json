@@ -96,5 +96,9 @@
     "delete": "删除",
     "clear": "取消选择",
     "hint": "按住 Shift 或 {{mod}} 点击可添加或移除 · {{mod}}+A 选择同类全部 · 拖动或 Alt+←/→ 一起移动 · Delete 删除全部"
+  },
+  "sensitive": {
+    "label": "隐私信息",
+    "hint": "查找屏幕上的邮箱、电话、证件号、IBAN 和密钥并建议模糊"
   }
 }

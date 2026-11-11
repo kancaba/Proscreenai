@@ -1,4 +1,5 @@
 import type { KeystrokeSettings, RecordedShortcut } from '@/lib/keystrokes';
+import type { CursorEffects } from '@/lib/cursorEffects';
 import GIF from 'gif.js';
 import type { ExportProgress, ExportResult, GifFrameRate, GifSizePreset, GIF_SIZE_PRESETS } from './types';
 import { StreamingVideoDecoder } from './streamingDecoder';
@@ -47,6 +48,7 @@ interface GifExporterConfig {
   cursorSmoothing?: number;
   cursorMotionBlur?: number;
   cursorClickBounce?: number;
+  cursorEffects?: CursorEffects;
   previewWidth?: number;
   previewHeight?: number;
   onProgress?: (progress: ExportProgress) => void;
@@ -135,6 +137,7 @@ export class GifExporter {
         cursorSmoothing: this.config.cursorSmoothing,
         cursorMotionBlur: this.config.cursorMotionBlur,
         cursorClickBounce: this.config.cursorClickBounce,
+        cursorEffects: this.config.cursorEffects,
       });
       await this.renderer.initialize();
 

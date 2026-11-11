@@ -96,5 +96,9 @@
     "delete": "Sil",
     "clear": "Seçimi kaldır",
     "hint": "Shift veya {{mod}} ile tıkla: ekle/çıkar · {{mod}}+A: o türün hepsi · sürükle veya Alt+←/→: birlikte kaydır · Sil: hepsini sil"
+  },
+  "sensitive": {
+    "label": "Hassas veri",
+    "hint": "Ekrandaki e-posta, telefon, kimlik/vergi no, IBAN ve anahtarları bul, bulanıklaştırma öner"
   }
 }

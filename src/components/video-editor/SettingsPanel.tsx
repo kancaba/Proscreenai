@@ -24,6 +24,8 @@ import { FADE_CHOICES_MS, type Fades } from "@/lib/fades";
 import { ENDING_CHOICES_MS, type EndingHold, MAX_ENDING_MS } from "@/lib/endingHold";
 import type { KeystrokeSettings } from "@/lib/keystrokes";
 import { KeystrokeSettingsPanel } from "./KeystrokeSettingsPanel";
+import type { CursorEffects } from "@/lib/cursorEffects";
+import { CursorEffectsPanel } from "./CursorEffectsPanel";
 const GRADIENTS = [
   "linear-gradient( 111.6deg,  rgba(114,167,232,1) 9.4%, rgba(253,129,82,1) 43.9%, rgba(253,129,82,1) 54.8%, rgba(249,202,86,1) 86.3% )",
   "linear-gradient(120deg, #d4fc79 0%, #96e6a1 100%)",
@@ -105,6 +107,10 @@ export interface SettingsPanelProps extends OutputSizeProps {
   onCursorMotionBlurChange?: (amount: number) => void;
   cursorClickBounce?: number;
   onCursorClickBounceChange?: (amount: number) => void;
+  cursorEffects?: CursorEffects;
+  onCursorEffectsChange?: (effects: CursorEffects) => void;
+  /** Whether the recording has clicks for the click effect. */
+  hasClicks?: boolean;
   borderRadius?: number;
   onBorderRadiusChange?: (radius: number) => void;
   padding?: number;
@@ -185,6 +191,9 @@ export function SettingsPanel({
   cursorMotionBlur = 0.35,
   onCursorMotionBlurChange,
   cursorClickBounce = 1,
+  cursorEffects,
+  onCursorEffectsChange,
+  hasClicks = false,
   onCursorClickBounceChange,
   borderRadius = 12.5,
   onBorderRadiusChange,
@@ -475,6 +484,9 @@ export function SettingsPanel({
         <div className={activeTab === 'motion' ? '' : 'hidden'}>
 
         {activeTab === 'motion' && header}
+        {activeTab === 'motion' && cursorEffects && onCursorEffectsChange && (
+          <CursorEffectsPanel effects={cursorEffects} onChange={onCursorEffectsChange} hasClicks={hasClicks} tr={locale === 'tr'} />
+        )}
         <div className="mb-4">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-slate-200">{tSettings('zoom.level')}</span>

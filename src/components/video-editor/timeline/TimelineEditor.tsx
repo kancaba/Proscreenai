@@ -11,7 +11,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Scissors, ZoomIn, MessageSquare, ChevronDown, Check, Gauge, WandSparkles, Music, Film, FolderOpen, Video, LoaderCircle, Hourglass, ChevronsLeft, TextCursorInput } from "lucide-react";
+import { Plus, Scissors, ZoomIn, MessageSquare, ChevronDown, Check, Gauge, WandSparkles, Music, Film, FolderOpen, Video, LoaderCircle, Hourglass, ChevronsLeft, TextCursorInput, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useShortcuts } from "@/contexts/ShortcutsContext";
@@ -96,6 +96,8 @@ interface TimelineEditorProps {
   selectedAudioId?: string | null;
   /** Copy, paste, duplicate, split, delete or nudge a timeline item. */
   onRegionCommand?: (command: RegionCommand, target: RegionTarget | null) => void;
+  /** Looks for private details on screen and suggests blurs (macOS). */
+  onFindSensitive?: () => void;
   /** Delete or move several selected items together, as one step. */
   onRegionGroupCommand?: (command: Extract<RegionCommand, { type: "delete" | "nudge" }>, targets: RegionTarget[]) => void;
   canPasteRegion?: boolean;
@@ -770,6 +772,7 @@ export default function TimelineEditor({
   onAspectRatioChange,
   onRegionCommand,
   onRegionGroupCommand,
+  onFindSensitive,
   canPasteRegion = false,
   clip,
 }: TimelineEditorProps) {
@@ -1665,6 +1668,19 @@ export default function TimelineEditor({
           >
             <WandSparkles className="w-4 h-4" /><span className="workspace-timeline-action-label">Oto zoom</span>
           </Button>
+          {onFindSensitive && (
+            <Button
+              onClick={onFindSensitive}
+              variant="ghost"
+              size="icon"
+              data-testid="find-sensitive"
+              className="h-7 w-7 text-slate-400 hover:text-cyan-300 hover:bg-cyan-300/10 transition-all"
+              title={tTimeline('sensitive.hint', 'Find e-mails, phone and ID numbers, IBANs and keys on screen and suggest blurs')}
+              aria-label={tTimeline('sensitive.label', 'Private info')}
+            >
+              <ShieldCheck className="w-4 h-4" /><span className="workspace-timeline-action-label">{tTimeline('sensitive.label', 'Private info')}</span>
+            </Button>
+          )}
           <Button
             onClick={handleAddTrim}
             variant="ghost"

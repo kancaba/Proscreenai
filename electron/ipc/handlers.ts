@@ -27,6 +27,7 @@ import { createCountdownWindow, getCountdownWindow, closeCountdownWindow, setHud
 
 import { validateCaptureRegion, regionCropFilter, type CaptureRegion } from '../../src/utils/captureRegion'
 import { normalizeShortcuts, shortcutFromKeyEvent, type RecordedShortcut } from '../../src/lib/keystrokes'
+import { registerSensitiveScanHandlers } from '../sensitiveScan'
 
 const execFileAsync = promisify(execFile)
 const nodeRequire = createRequire(import.meta.url)
@@ -1627,6 +1628,15 @@ export function registerIpcHandlers(
     ),
   }
   registerTranscriptionHandlers(transcriptionDeps)
+  registerSensitiveScanHandlers({
+    getFfmpegPath: getFfmpegBinaryPath,
+    getHelperPath: () => ensureSwiftHelperBinary(
+      resolveUnpackedAppPath('electron', 'native', 'TextRecognizer.swift'),
+      path.join(userDataDirectory, 'native-tools', 'openscreen-text-recognizer'),
+      'text recognition helper',
+      'openscreen-text-recognizer',
+    ),
+  })
   registerAudioWaveformHandlers(getFfmpegBinaryPath)
   registerSequenceMedia(getFfmpegBinaryPath, getRecordingsDir)
   registerVideoAppendHandlers({

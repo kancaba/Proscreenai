@@ -96,5 +96,9 @@
     "delete": "Delete",
     "clear": "Clear",
     "hint": "Shift or {{mod}} + click adds or removes an item · {{mod}}+A selects all of a kind · drag or Alt+←/→ moves them together · Delete removes them"
+  },
+  "sensitive": {
+    "label": "Private info",
+    "hint": "Find e-mails, phone and ID numbers, IBANs and keys on screen and suggest blurs"
   }
 }

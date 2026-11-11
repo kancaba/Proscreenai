@@ -198,6 +198,12 @@ interface Window {
       | { success: false; code: 'unsupported-platform' | 'unsupported-os' | 'unsupported-locale' | 'assets-unavailable' | 'no-audio' | 'no-speech' | 'too-long' | 'cancelled' | 'failed'; message: string }
     >
     cancelTranscription: (requestId: string) => Promise<void>
+    scanSensitiveText: (input: { videoPath: string; durationMs: number; requestId: string }) => Promise<
+      | { success: true; frames: number; intervalMs: number; suggestions: Array<{ id: string; kind: 'email' | 'phone' | 'tckn' | 'vkn' | 'iban' | 'card' | 'secret'; text: string; rect: { x: number; y: number; width: number; height: number }; startMs: number; endMs: number }> }
+      | { success: false; cancelled?: boolean; message?: string }
+    >
+    cancelSensitiveScan: (requestId: string) => Promise<void>
+    onSensitiveScanProgress: (callback: (progress: { requestId: string; fraction: number }) => void) => () => void
     agentDetectTools: (force?: boolean) => Promise<import('./lib/agent/agentApi').AgentToolInfo[]>
     agentStart: (input: import('./lib/agent/agentApi').AgentStartInput) => Promise<{ success: true; runId: string } | { success: false; code: string; message: string }>
     agentCancel: (runId: string) => Promise<void>

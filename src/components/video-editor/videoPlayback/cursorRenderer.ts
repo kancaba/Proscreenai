@@ -3,6 +3,7 @@ import { MotionBlurFilter } from 'pixi-filters/motion-blur';
 import type { CursorTelemetryPoint } from '../types';
 import { createSpringState, getCursorSpringConfig, resetSpringState, stepSpringValue } from './motionSmoothing';
 import { uploadedCursorAssets, UPLOADED_CURSOR_SAMPLE_SIZE } from './uploadedCursorAssets';
+import { CLICK_EFFECT_MS, type CursorEffects, clickEffectShapes, DEFAULT_CURSOR_EFFECTS, hexToNumber } from '@/lib/cursorEffects';
 
 type CursorAssetKey = NonNullable<CursorTelemetryPoint['cursorType']>;
 
@@ -39,6 +40,8 @@ export interface CursorRenderConfig {
   motionBlur: number;
   /** Click bounce multiplier. */
   clickBounce: number;
+  /** Click effect and cursor style. */
+  effects: CursorEffects;
 }
 
 export const DEFAULT_CURSOR_CONFIG: CursorRenderConfig = {
@@ -49,6 +52,7 @@ export const DEFAULT_CURSOR_CONFIG: CursorRenderConfig = {
   smoothingFactor: 0.18,
   motionBlur: 0,
   clickBounce: 1,
+  effects: DEFAULT_CURSOR_EFFECTS,
 };
 
 const REFERENCE_WIDTH = 1920;
@@ -471,17 +475,64 @@ export class SmoothedCursorState {
   }
 }
 
-function drawClickRing(graphics: Graphics, px: number, py: number, h: number, progress: number) {
-  void graphics;
-  void px;
-  void py;
-  void h;
-  void progress;
+/** The latest click at or before `timeMs` still playing its effect. */
+function findPlayingClick(samples: CursorTelemetryPoint[], timeMs: number) {
+  const click = findLatestInteractionSample(samples, timeMs);
+  if (!click) return null;
+  const ageMs = timeMs - click.timeMs;
+  return ageMs >= 0 && ageMs <= CLICK_EFFECT_MS ? { click, ageMs } : null;
+}
+
+/** The click effect at the click point, and a halo behind the cursor when that style is chosen. */
+function drawClickEffects(
+  graphics: Graphics,
+  samples: CursorTelemetryPoint[],
+  timeMs: number,
+  viewport: CursorViewportRect,
+  cursor: { px: number; py: number; h: number },
+  effects: CursorEffects,
+) {
+  const playing = effects.click !== 'off' ? findPlayingClick(samples, timeMs) : null;
+  if (effects.cursor === 'halo') {
+    // The halo swells a little on a click.
+    const swell = playing ? Math.sin(Math.min(1, playing.ageMs / 260) * Math.PI) * 0.18 : 0;
+    graphics.circle(cursor.px, cursor.py, cursor.h * (0.62 + swell)).fill({ color: hexToNumber(effects.cursorColor), alpha: 0.32 });
+  }
+  if (!playing) return;
+  const color = hexToNumber(effects.clickColor);
+  const x = viewport.x + playing.click.cx * viewport.width;
+  const y = viewport.y + playing.click.cy * viewport.height;
+  for (const shape of clickEffectShapes(effects.click, playing.ageMs, cursor.h * effects.clickSize)) {
+    if (shape.alpha <= 0) continue;
+    if (shape.kind === 'disc') graphics.circle(x, y, shape.radius).fill({ color, alpha: shape.alpha });
+    else if (shape.kind === 'ring') graphics.circle(x, y, shape.radius).stroke({ width: shape.width, color, alpha: shape.alpha });
+    else {
+      graphics
+        .moveTo(x + Math.cos(shape.angle) * shape.from, y + Math.sin(shape.angle) * shape.from)
+        .lineTo(x + Math.cos(shape.angle) * shape.to, y + Math.sin(shape.angle) * shape.to)
+        .stroke({ width: shape.width, color, alpha: shape.alpha, cap: 'round' });
+    }
+  }
+}
+
+/** A dot or ring drawn in place of the arrow. */
+function drawCursorShape(graphics: Graphics, px: number, py: number, h: number, scale: number, effects: CursorEffects) {
+  const color = hexToNumber(effects.cursorColor);
+  if (effects.cursor === 'dot') {
+    const radius = h * 0.26 * scale;
+    graphics.circle(px, py, radius + h * 0.05).fill({ color: 0x000000, alpha: 0.25 });
+    graphics.circle(px, py, radius).fill({ color, alpha: 0.95 }).stroke({ width: Math.max(1, h * 0.045), color: 0xffffff, alpha: 0.95 });
+  } else if (effects.cursor === 'ring') {
+    const radius = h * 0.38 * scale;
+    graphics.circle(px, py, radius).stroke({ width: Math.max(1.5, h * 0.075), color, alpha: 0.95 });
+    graphics.circle(px, py, Math.max(1.5, h * 0.06)).fill({ color, alpha: 0.95 });
+  }
 }
 
 export class PixiCursorOverlay {
   public readonly container: Container;
   private clickRingGraphics: Graphics;
+  private cursorShapeGraphics: Graphics;
   private cursorShadowSprites: Partial<Record<CursorAssetKey, Sprite>>;
   private cursorShadowFilters: Partial<Record<CursorAssetKey, BlurFilter>>;
   private cursorSprites: Partial<Record<CursorAssetKey, Sprite>>;
@@ -499,6 +550,7 @@ export class PixiCursorOverlay {
     this.container.label = 'cursor-overlay';
 
     this.clickRingGraphics = new Graphics();
+    this.cursorShapeGraphics = new Graphics();
     this.cursorShadowSprites = {};
     this.cursorShadowFilters = {};
     this.cursorSprites = {};
@@ -533,6 +585,7 @@ export class PixiCursorOverlay {
       this.clickRingGraphics,
       ...Object.values(this.cursorShadowSprites),
       ...Object.values(this.cursorSprites),
+      this.cursorShapeGraphics,
     );
     this.setMotionBlur(this.config.motionBlur);
   }
@@ -558,6 +611,10 @@ export class PixiCursorOverlay {
 
   setClickBounce(clickBounce: number) {
     this.config.clickBounce = Math.max(0, clickBounce);
+  }
+
+  setEffects(effects: CursorEffects) {
+    this.config.effects = effects;
   }
 
   update(
@@ -597,7 +654,7 @@ export class PixiCursorOverlay {
     const px = viewport.x + this.state.x * viewport.width;
     const py = viewport.y + this.state.y * viewport.height;
     const h = this.config.dotRadius * getCursorViewportScale(viewport);
-    const { cursorType, clickBounceProgress, clickProgress } = getCursorVisualState(samples, timeMs);
+    const { cursorType, clickBounceProgress } = getCursorVisualState(samples, timeMs);
     const spriteKey = (cursorType in this.cursorSprites ? cursorType : 'arrow') as CursorAssetKey;
     const asset = getCursorAsset(spriteKey);
     const shadowSprite = this.cursorShadowSprites[spriteKey] ?? this.cursorShadowSprites.arrow!;
@@ -605,15 +662,20 @@ export class PixiCursorOverlay {
     const bounceScale = Math.max(0.72, 1 - Math.sin(clickBounceProgress * Math.PI) * (0.08 * this.config.clickBounce));
     const scaledH = h;
 
+    const effects = this.config.effects;
     this.clickRingGraphics.clear();
-    drawClickRing(this.clickRingGraphics, px, py, h, clickProgress);
+    drawClickEffects(this.clickRingGraphics, samples, timeMs, viewport, { px, py, h }, effects);
+    // A dot or ring takes the arrow's place.
+    const shaped = effects.cursor === 'dot' || effects.cursor === 'ring';
+    this.cursorShapeGraphics.clear();
+    if (shaped) drawCursorShape(this.cursorShapeGraphics, px, py, h, bounceScale, effects);
 
     for (const [key, currentShadowSprite] of Object.entries(this.cursorShadowSprites) as Array<[CursorAssetKey, Sprite]>) {
-      currentShadowSprite.visible = key === spriteKey;
+      currentShadowSprite.visible = !shaped && key === spriteKey;
     }
 
     for (const [key, currentSprite] of Object.entries(this.cursorSprites) as Array<[CursorAssetKey, Sprite]>) {
-      currentSprite.visible = key === spriteKey;
+      currentSprite.visible = !shaped && key === spriteKey;
     }
 
     if (shadowSprite) {
@@ -660,6 +722,7 @@ export class PixiCursorOverlay {
   reset(): void {
     this.state.reset();
     this.clickRingGraphics.clear();
+    this.cursorShapeGraphics.clear();
     for (const shadowSprite of Object.values(this.cursorShadowSprites)) {
       shadowSprite.visible = false;
       shadowSprite.scale.set(1);
@@ -678,6 +741,7 @@ export class PixiCursorOverlay {
 
   destroy(): void {
     this.clickRingGraphics.destroy();
+    this.cursorShapeGraphics.destroy();
     for (const shadowFilter of Object.values(this.cursorShadowFilters)) {
       shadowFilter.destroy();
     }

@@ -12,6 +12,7 @@ import { WALLPAPER_PATHS } from "@/lib/wallpapers";
 import { type BlurRegion, normalizeBlurRegions } from "./blurRegions";
 import { normalizeVoiceoverTakes, type VoiceoverTake } from "./voiceoverTakes";
 import { type KeystrokeSettings, normalizeKeystrokeSettings } from "@/lib/keystrokes";
+import { type CursorEffects, hasCursorEffects, normalizeCursorEffects } from "@/lib/cursorEffects";
 import {
   DEFAULT_CURSOR_CLICK_BOUNCE,
   DEFAULT_CURSOR_MOTION_BLUR,
@@ -49,6 +50,8 @@ export interface ProjectEditorState {
   cursorSmoothing: number;
   cursorMotionBlur: number;
   cursorClickBounce: number;
+  /** Click effect and cursor style (absent while both are off). */
+  cursorEffects?: CursorEffects;
   borderRadius: number;
   padding: number;
   cropRegion: CropRegion;
@@ -92,6 +95,11 @@ function normalizedBlurs(value: unknown): { blurRegions?: BlurRegion[] } {
 }
 
 /** Generated voiceovers of a saved project; nothing when there are none. */
+function normalizedCursorEffects(value: unknown): { cursorEffects?: CursorEffects } {
+  const cursorEffects = normalizeCursorEffects(value);
+  return hasCursorEffects(cursorEffects) ? { cursorEffects } : {};
+}
+
 function normalizedKeystrokes(value: unknown): { keystrokes?: KeystrokeSettings } {
   const keystrokes = normalizeKeystrokeSettings(value);
   return keystrokes.enabled ? { keystrokes } : {};
@@ -428,6 +436,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
     ...normalizedBlurs((editor as Partial<ProjectEditorState>).blurRegions),
     ...normalizedTakes((editor as Partial<ProjectEditorState>).voiceoverTakes),
     ...normalizedKeystrokes((editor as Partial<ProjectEditorState>).keystrokes),
+    ...normalizedCursorEffects((editor as Partial<ProjectEditorState>).cursorEffects),
     sourceAudioVolume: isFiniteNumber((editor as Partial<ProjectEditorState>).sourceAudioVolume)
       ? clamp((editor as Partial<ProjectEditorState>).sourceAudioVolume as number, 0, 1)
       : 1,

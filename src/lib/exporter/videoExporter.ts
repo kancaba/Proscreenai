@@ -1,4 +1,5 @@
 import type { KeystrokeSettings, RecordedShortcut } from '@/lib/keystrokes';
+import type { CursorEffects } from '@/lib/cursorEffects';
 import type { ExportConfig, ExportProgress, ExportResult } from './types';
 import { fadeAmount, type Fades, NO_FADES } from '@/lib/fades';
 import type { EndingHold } from '@/lib/endingHold';
@@ -37,6 +38,7 @@ interface VideoExporterConfig extends ExportConfig {
   cursorSmoothing?: number;
   cursorMotionBlur?: number;
   cursorClickBounce?: number;
+  cursorEffects?: CursorEffects;
   audioRegions?: AudioRegion[];
   /** Volume of the recording's own sound, 0 (muted) to 1; default 1. */
   sourceAudioVolume?: number;
@@ -108,6 +110,7 @@ export class VideoExporter {
         cursorSmoothing: this.config.cursorSmoothing,
         cursorMotionBlur: this.config.cursorMotionBlur,
         cursorClickBounce: this.config.cursorClickBounce,
+        cursorEffects: this.config.cursorEffects,
       });
       await this.renderer.initialize();
 

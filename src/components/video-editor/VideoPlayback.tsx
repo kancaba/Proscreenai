@@ -23,6 +23,7 @@ import { activeBlurRegions, type BlurRect, type BlurRegion } from "./blurRegions
 import { BlurAreaLayer } from "./videoPlayback/blurLayer";
 import { KeystrokeOverlay } from "./KeystrokeOverlay";
 import type { KeystrokeSettings, RecordedShortcut } from "@/lib/keystrokes";
+import { type CursorEffects, DEFAULT_CURSOR_EFFECTS } from "@/lib/cursorEffects";
 import {
   DEFAULT_CURSOR_CLICK_BOUNCE,
   DEFAULT_CURSOR_MOTION_BLUR,
@@ -100,6 +101,7 @@ interface VideoPlaybackProps {
   cursorSmoothing?: number;
   cursorMotionBlur?: number;
   cursorClickBounce?: number;
+  cursorEffects?: CursorEffects;
 }
 
 export interface VideoPlaybackRef {
@@ -156,6 +158,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
   cursorSmoothing = DEFAULT_CURSOR_SMOOTHING,
   cursorMotionBlur = DEFAULT_CURSOR_MOTION_BLUR,
   cursorClickBounce = DEFAULT_CURSOR_CLICK_BOUNCE,
+  cursorEffects = DEFAULT_CURSOR_EFFECTS,
 }, ref) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -234,6 +237,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
   const cursorSmoothingRef = useRef(cursorSmoothing);
   const cursorMotionBlurRef = useRef(cursorMotionBlur);
   const cursorClickBounceRef = useRef(cursorClickBounce);
+  const cursorEffectsRef = useRef(cursorEffects);
   const motionBlurStateRef = useRef<MotionBlurState>(createMotionBlurState());
   const blurRegionsRef = useRef<BlurRegion[]>(blurRegions);
   const selectedBlurIdRef = useRef<string | null>(selectedBlurId);
@@ -712,6 +716,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
           smoothingFactor: cursorSmoothingRef.current,
           motionBlur: cursorMotionBlurRef.current,
           clickBounce: cursorClickBounceRef.current,
+          effects: cursorEffectsRef.current,
         });
         cursorOverlayRef.current = cursorOverlay;
         cursorContainer.addChild(cursorOverlay.container);
@@ -1088,6 +1093,11 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(({
     overlay.setClickBounce(cursorClickBounce);
     overlay.reset();
   }, [cursorSize, cursorSmoothing, cursorMotionBlur, cursorClickBounce]);
+
+  useEffect(() => {
+    cursorEffectsRef.current = cursorEffects;
+    cursorOverlayRef.current?.setEffects(cursorEffects);
+  }, [cursorEffects]);
 
   const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
     const video = e.currentTarget;

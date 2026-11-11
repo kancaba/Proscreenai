@@ -109,6 +109,9 @@ import type { EditorAppearance } from './appearancePresets';
 import { type BlurRect, type BlurRegion, clampBlurRect, DEFAULT_BLUR_RECT, DEFAULT_BLUR_SPAN_MS, DEFAULT_BLUR_STRENGTH } from './blurRegions';
 import { BlurControls } from './BlurControls';
 import { DEFAULT_KEYSTROKE_SETTINGS, type KeystrokeSettings, type RecordedShortcut } from '@/lib/keystrokes';
+import { type CursorEffects, DEFAULT_CURSOR_EFFECTS, hasCursorEffects } from '@/lib/cursorEffects';
+import type { SensitiveSuggestion } from '@/lib/sensitiveText';
+import { SensitiveScanDialog } from './SensitiveScanDialog';
 
 const LOOP_CURSOR_END_WINDOW_MS = 670;
 
@@ -210,6 +213,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
   const [cursorSmoothing, setCursorSmoothing] = useState(DEFAULT_CURSOR_SMOOTHING);
   const [cursorMotionBlur, setCursorMotionBlur] = useState(DEFAULT_CURSOR_MOTION_BLUR);
   const [cursorClickBounce, setCursorClickBounce] = useState(DEFAULT_CURSOR_CLICK_BOUNCE);
+  const [cursorEffects, setCursorEffects] = useState<CursorEffects>(DEFAULT_CURSOR_EFFECTS);
   const [borderRadius, setBorderRadius] = useState(12.5);
   const [padding, setPadding] = useState(50);
   const [cropRegion, setCropRegion] = useState<CropRegion>(DEFAULT_CROP_REGION);
@@ -608,6 +612,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
     setCursorSmoothing(normalizedEditor.cursorSmoothing);
     setCursorMotionBlur(normalizedEditor.cursorMotionBlur);
     setCursorClickBounce(normalizedEditor.cursorClickBounce);
+    setCursorEffects(normalizedEditor.cursorEffects ?? DEFAULT_CURSOR_EFFECTS);
     setBorderRadius(normalizedEditor.borderRadius);
     setPadding(normalizedEditor.padding);
     setCropRegion(normalizedEditor.cropRegion);
@@ -678,6 +683,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
         cursorSmoothing,
         cursorMotionBlur,
         cursorClickBounce,
+        ...(hasCursorEffects(cursorEffects) ? { cursorEffects } : {}),
         borderRadius,
         padding,
         cropRegion,
@@ -717,6 +723,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
     cursorSmoothing,
     cursorMotionBlur,
     cursorClickBounce,
+    cursorEffects,
     borderRadius,
     padding,
     cropRegion,
@@ -1864,6 +1871,21 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
   }, [sourceAudioVolume, videoPath, duration, previewFade]);
 
   const agentVideoPath = videoSourcePath ?? (videoPath ? fromFileUrl(videoPath) : null);
+  const [sensitiveOpen, setSensitiveOpen] = useState(false);
+  /** The chosen private-detail suggestions become blur areas, as one undoable step. */
+  const handleApplySensitive = useCallback((suggestions: SensitiveSuggestion[]) => {
+    if (suggestions.length === 0) return;
+    startNewHistoryStep();
+    setBlurRegions((previous) => [
+      ...previous,
+      ...suggestions.map((item): BlurRegion => ({ id: `blur-${nextBlurIdRef.current++}`, startMs: item.startMs, endMs: item.endMs, rect: clampBlurRect(item.rect), style: 'blur', strength: DEFAULT_BLUR_STRENGTH })),
+    ]);
+    toast.success(locale === 'tr' ? `${suggestions.length} alan bulanıklaştırıldı` : `${suggestions.length} areas blurred`, {
+      id: 'sensitive-apply',
+      duration: 8000,
+      action: { label: t('editor.agent.undo'), onClick: () => handleUndo() },
+    });
+  }, [startNewHistoryStep, locale, t, handleUndo]);
   /** What an AI agent is told about the project when a task starts. */
   const getAgentSnapshot = (): AgentProjectSnapshot | null => {
     if (!agentVideoPath || duration <= 0) return null;
@@ -2439,6 +2461,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
           cursorSmoothing,
           cursorMotionBlur,
           cursorClickBounce,
+          cursorEffects,
           previewWidth,
           previewHeight,
           onProgress: (progress: ExportProgress) => {
@@ -2507,6 +2530,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
           cursorSmoothing,
           cursorMotionBlur,
           cursorClickBounce,
+          cursorEffects,
           audioRegions: addToSequence && !embedded ? [] : audioRegions,
           sourceAudioVolume,
           fades,
@@ -2614,7 +2638,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
       setShowExportDialog(keepExportDialogOpen);
       setExportProgress(null);
     }
-  }, [embedded,clipSession,currentProjectSnapshot,totalSourceMs,sequence, editSequence, cutMap, clipSplits, videoClips, effectiveZoomRegions, exportFileBase, sourceAudioVolume, fades, ending, endingMs, videoPath, wallpaper, zoomRegions, trimRegions, speedRegions, shadowIntensity, backgroundBlur, zoomMotionBlur, connectZooms, showCursor, effectiveCursorTelemetry, recordedShortcuts, keystrokes, cursorSize, cursorSmoothing, cursorMotionBlur, cursorClickBounce, borderRadius, padding, cropRegion, annotationRegions, blurRegions, audioRegions, isPlaying, aspectRatio, exportQuality, exportResolution, exportFps, exportCustomWidth, exportCustomHeight,showExportSuccessToast]);
+  }, [embedded,clipSession,currentProjectSnapshot,totalSourceMs,sequence, editSequence, cutMap, clipSplits, videoClips, effectiveZoomRegions, exportFileBase, sourceAudioVolume, fades, ending, endingMs, videoPath, wallpaper, zoomRegions, trimRegions, speedRegions, shadowIntensity, backgroundBlur, zoomMotionBlur, connectZooms, showCursor, effectiveCursorTelemetry, recordedShortcuts, keystrokes, cursorSize, cursorSmoothing, cursorMotionBlur, cursorClickBounce, cursorEffects, borderRadius, padding, cropRegion, annotationRegions, blurRegions, audioRegions, isPlaying, aspectRatio, exportQuality, exportResolution, exportFps, exportCustomWidth, exportCustomHeight,showExportSuccessToast]);
 
   const handleStartExport = useCallback(() => {
     if (!videoPath) {
@@ -3088,6 +3112,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
                       cursorSmoothing={cursorSmoothing}
                       cursorMotionBlur={cursorMotionBlur}
                       cursorClickBounce={cursorClickBounce}
+                      cursorEffects={cursorEffects}
                     />
                   </div>
                 </div>
@@ -3149,6 +3174,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
               onSelectAudio={handleSelectAudio}
               onRegionCommand={handleRegionCommand}
               onRegionGroupCommand={handleRegionGroupCommand}
+              onFindSensitive={/mac/i.test(navigator.platform) && agentVideoPath && duration > 0 ? () => setSensitiveOpen(true) : undefined}
               canPasteRegion={canPasteRegion}
               annotationRegions={timelineAnnotations}
               onAnnotationAdded={(span) => handleAnnotationAdded(fromTimeline(span))}
@@ -3266,6 +3292,9 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
           onCursorMotionBlurChange={setCursorMotionBlur}
           cursorClickBounce={cursorClickBounce}
           onCursorClickBounceChange={setCursorClickBounce}
+          cursorEffects={cursorEffects}
+          onCursorEffectsChange={setCursorEffects}
+          hasClicks={cursorTelemetry.some((sample) => sample.interactionType === 'click' || sample.interactionType === 'double-click' || sample.interactionType === 'right-click')}
           borderRadius={borderRadius}
           onBorderRadiusChange={setBorderRadius}
           padding={padding}
@@ -3334,6 +3363,9 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
           </div>
         </DialogContent>
       </Dialog>
+      {sensitiveOpen && agentVideoPath && (
+        <SensitiveScanDialog open={sensitiveOpen} onOpenChange={setSensitiveOpen} videoPath={agentVideoPath} durationMs={totalSourceMs} blurs={blurRegions} onApply={handleApplySensitive} onSeek={(ms) => handleSeek(ms / 1000)} tr={locale === 'tr'} />
+      )}
       <VoiceoverPanel open={voiceoverOpen} onOpenChange={setVoiceoverOpen} initialText={voiceoverText}
         onSettings={() => { setVoiceoverOpen(false); setAiSettingsOpen(true); }} remainingSeconds={Math.max(0, sequenceVisible && sequence ? (sequenceEnd(sequence.clips)-sequenceTime.current)/1000 : duration-currentTime)}
         takes={voiceoverTakes} onTakeCreated={take => setVoiceoverTakes(previous => addVoiceoverTake(previous, take))} onTakeRemove={id => setVoiceoverTakes(previous => previous.filter(take => take.id !== id))}
