@@ -12,7 +12,7 @@ const SIGN_IN_COMMANDS: Record<AgentToolId, string> = {
   cursor: "agent login",
   opencode: "opencode auth login",
 };
-const KIND_ORDER: ProposalKind[] = ["zoom", "caption", "text", "blur", "trim", "speed"];
+const KIND_ORDER: ProposalKind[] = ["zoom", "caption", "text", "blur", "trim", "speed", "fade"];
 
 const clock = (ms: number) => {
   const seconds = ms / 1000;
@@ -87,6 +87,7 @@ function describeProposal(item: Proposal) {
   if (item.kind === "speed") return `${item.speed}× · ${item.reason ?? ""}`;
   if (item.kind === "caption" || item.kind === "text") return item.text;
   if (item.kind === "blur") return item.reason ?? `${Math.round(item.rect.width * 100)}% × ${Math.round(item.rect.height * 100)}%`;
+  if (item.kind === "fade") return `${item.edge === "in" ? "▶" : "■"} ${((item.endMs - item.startMs) / 1000).toLocaleString()} s${item.reason ? ` · ${item.reason}` : ""}`;
   return item.reason ?? "";
 }
 

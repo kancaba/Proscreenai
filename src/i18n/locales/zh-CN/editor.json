@@ -183,6 +183,7 @@
 		"data": "发送给所选工具的提供方：项目摘要、点击、语音文本和停顿。不会发送视频文件。",
 		"dataWithFrames": "发送给所选工具的提供方：项目摘要、点击、语音文本、停顿以及它请求的视频画面。每个画面都会消耗大量令牌。不会发送视频文件。",
 		"tasks": {
+			"tutorial-edit": "教程剪辑",
 			"smart-zoom": "智能缩放",
 			"fix-captions": "修正字幕",
 			"cut-pauses": "剪掉静音",
@@ -196,6 +197,7 @@
 		"toolNames": {
 			"get_project": "读取项目",
 			"get_clicks": "读取点击",
+			"get_typing": "查找打字片段",
 			"get_transcript": "准备语音文本",
 			"get_pauses": "查找静音",
 			"get_frame": "查看画面",
@@ -205,6 +207,7 @@
 			"propose_captions": "字幕建议",
 			"propose_text": "文字建议",
 			"propose_blur": "模糊建议",
+			"propose_fade": "淡入淡出建议",
 			"review_proposals": "检查建议",
 			"clear_proposals": "清除建议"
 		},
@@ -226,7 +229,8 @@
 			"text": "文字",
 			"trim": "剪切",
 			"speed": "速度",
-			"blur": "模糊"
+			"blur": "模糊",
+			"fade": "淡入淡出"
 		},
 		"replaces": "替换现有内容",
 		"selectNone": "全不选",
@@ -450,7 +454,12 @@
 		"hintFishMore": "针对特定词语：<whisper>…</whisper>、<emphasis>…</emphasis>、<slow>…</slow>、<fast>…</fast>",
 		"hintElevenIntro": "可用方括号中的英文音频标签来引导演绎：",
 		"hintElevenExample": "[excited] 新功能来了！[whispers] 别告诉任何人。",
-		"hintElevenMore": "更多示例：[laughs]、[sighs]、[sarcastic]、[calm]"
+		"hintElevenMore": "更多示例：[laughs]、[sighs]、[sarcastic]、[calm]",
+		"linesTitle": "按字幕时间朗读",
+		"linesInfo": "{{count}} 条字幕 · {{chars}} 个字符。每条字幕单独配音并放在其出现的位置；语音不会重叠，朗读时字幕保持显示。",
+		"linesButton": "用 {{engine}} 为 {{count}} 条字幕配音",
+		"linesProgress": "正在配音第 {{current}}/{{total}} 条字幕…",
+		"linesStopped": "已为 {{total}} 条中的 {{done}} 条字幕配音；请重试以继续。"
 	},
 	"aiErrors": {
 		"missingPermission": "此 {{provider}} 密钥没有执行该操作的权限。请在 {{provider}} 中为密钥开启语音读取和文字转语音权限，或创建新密钥。",
@@ -468,5 +477,12 @@
 	"audioClipName": {
 		"voiceover": "{{name}} 配音",
 		"audio": "音频"
+	},
+	"voiceLines": {
+		"added": "已在 {{count}} 条字幕下添加语音。",
+		"shifted": "其中 {{count}} 条稍晚开始，以便前一段语音结束。",
+		"offer": "要朗读新字幕吗？发送前由你选择声音。",
+		"offerAction": "配音",
+		"overrun": "语音比视频结尾长 {{seconds}} 秒，结尾部分听不到。可以放慢加速的片段，或延长视频结尾。"
 	}
 }

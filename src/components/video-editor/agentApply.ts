@@ -1,3 +1,4 @@
+import { type Fades, NO_FADES } from "@/lib/fades";
 import type { Proposal, ProposalSet, TextPreset } from "@/lib/agent/proposals";
 import { SUBTITLE_PLACEMENT, TEXT_STYLE_PRESETS } from "./annotationEffects";
 import { type BlurRegion, clampBlurRect, DEFAULT_BLUR_STRENGTH } from "./blurRegions";
@@ -15,6 +16,8 @@ export interface EditorRegions {
   speeds: SpeedRegion[];
   annotations: AnnotationRegion[];
   blurs: BlurRegion[];
+  /** Fades at the start and end; left as they are when absent and nothing is proposed. */
+  fades?: Fades;
 }
 
 export interface RegionIds {
@@ -105,5 +108,11 @@ export function applyProposals(current: EditorRegions, set: ProposalSet, chosen:
     ...of("blur").map((item): BlurRegion => ({ id: ids.blur(), startMs: item.startMs, endMs: item.endMs, rect: clampBlurRect(item.rect), style: item.style, strength: DEFAULT_BLUR_STRENGTH })),
   ];
 
-  return { zooms, trims, speeds: speeds.sort((a, b) => a.startMs - b.startMs), annotations, blurs };
+  const fades = { ...(current.fades ?? NO_FADES) };
+  for (const item of of("fade")) {
+    if (item.edge === "in") fades.fadeInMs = item.endMs - item.startMs;
+    else fades.fadeOutMs = item.endMs - item.startMs;
+  }
+
+  return { zooms, trims, speeds: speeds.sort((a, b) => a.startMs - b.startMs), annotations, blurs, fades };
 }

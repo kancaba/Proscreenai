@@ -63,6 +63,21 @@ describe("applying agent proposals", () => {
     expect(applyProposals(current, { items: [blur], replaceZooms: false, replaceCaptions: false }, new Set(), ids()).blurs).toEqual(current.blurs);
   });
 
+  it("sets the chosen fades and leaves the others as they were", () => {
+    const fades: ProposalSet = {
+      replaceZooms: false,
+      replaceCaptions: false,
+      items: [
+        { id: "f1", kind: "fade", edge: "out", startMs: 19000, endMs: 20000 },
+        { id: "f2", kind: "fade", edge: "in", startMs: 0, endMs: 500 },
+      ],
+    };
+    const withFades = { ...current, fades: { fadeInMs: 2000, fadeOutMs: 0 } };
+    expect(applyProposals(withFades, fades, new Set(["f1"]), ids()).fades).toEqual({ fadeInMs: 2000, fadeOutMs: 1000 });
+    expect(applyProposals(withFades, fades, new Set(["f1", "f2"]), ids()).fades).toEqual({ fadeInMs: 500, fadeOutMs: 1000 });
+    expect(applyProposals(current, fades, new Set(), ids()).fades).toEqual({ fadeInMs: 0, fadeOutMs: 0 });
+  });
+
   it("merges touching cuts", () => {
     expect(mergeTrims([{ id: "a", startMs: 5000, endMs: 6000 }, { id: "b", startMs: 1000, endMs: 2000 }, { id: "c", startMs: 2000, endMs: 2500 }])).toEqual([
       { id: "b", startMs: 1000, endMs: 2500 },

@@ -4,12 +4,14 @@
  * Every check returns a plain message so the agent can correct itself and try again.
  */
 
-export type ProposalKind = "zoom" | "trim" | "speed" | "caption" | "text" | "blur";
+export type ProposalKind = "zoom" | "trim" | "speed" | "caption" | "text" | "blur" | "fade";
 export type TextPreset = "title" | "subtitle" | "label" | "callout" | "typing";
 
 export const AGENT_SPEEDS = [0.25, 0.5, 0.75, 1.25, 1.5, 1.75, 2] as const;
 export type AgentSpeed = (typeof AGENT_SPEEDS)[number];
 export const TEXT_PRESETS: TextPreset[] = ["title", "subtitle", "label", "callout", "typing"];
+/** Fade lengths the editor offers. */
+export const AGENT_FADES_MS = [500, 1000, 2000] as const;
 
 interface ProposalBase {
   id: string;
@@ -47,7 +49,12 @@ export interface BlurProposal extends ProposalBase {
   rect: { x: number; y: number; width: number; height: number };
   style: "blur" | "pixelate";
 }
-export type Proposal = ZoomProposal | TrimProposal | SpeedProposal | CaptionProposal | TextProposal | BlurProposal;
+/** A fade from black at the start (in) or to black at the end (out); its length is the span. */
+export interface FadeProposal extends ProposalBase {
+  kind: "fade";
+  edge: "in" | "out";
+}
+export type Proposal = ZoomProposal | TrimProposal | SpeedProposal | CaptionProposal | TextProposal | BlurProposal | FadeProposal;
 
 export interface ProposalSet {
   items: Proposal[];
@@ -78,6 +85,7 @@ const LIMITS = {
   caption: { min: 300, max: 15000 },
   text: { min: 500, max: 30000 },
   blur: { min: 300, max: Number.POSITIVE_INFINITY },
+  fade: { min: 500, max: 2000 },
 };
 /** Smallest blur side, as a fraction of the frame. */
 const MIN_BLUR_SIDE = 0.01;
@@ -165,6 +173,15 @@ function readItem(kind: ProposalKind, raw: unknown, durationMs: number, id: stri
       const round = (value: number) => Number(value.toFixed(4));
       return { ...base, kind, rect: { x: round(x), y: round(y), width: round(Math.min(width, 1 - x)), height: round(Math.min(height, 1 - y)) }, style };
     }
+    case "fade": {
+      const edge = item.edge;
+      if (edge !== "in" && edge !== "out") return "edge must be in or out";
+      const length = span.endMs - span.startMs;
+      if (!(AGENT_FADES_MS as readonly number[]).includes(length)) return `a fade lasts ${AGENT_FADES_MS.join(", ")} ms`;
+      if (edge === "in" && span.startMs !== 0) return "a fade in starts at 0";
+      if (edge === "out" && span.endMs !== durationMs) return `a fade out ends at the end of the video (${durationMs} ms)`;
+      return { ...base, kind, edge };
+    }
   }
 }
 
@@ -211,6 +228,11 @@ export function addProposals(
       errors.push(`${describe(index, raw)}: ${item}`);
       continue;
     }
+    if (item.kind === "fade") {
+      // One fade per end: a new one replaces the earlier proposal.
+      const edge = item.edge;
+      next = { ...next, items: next.items.filter((other) => !(other.kind === "fade" && other.edge === edge)) };
+    }
     if (kind === "zoom" || kind === "speed" || kind === "caption") {
       const clash = sameKind().find((other) => overlaps(other, item));
       if (clash) {
@@ -255,7 +277,9 @@ export function summarizeProposals(set: ProposalSet): string {
               ? JSON.stringify(item.text)
               : item.kind === "blur"
                 ? `${item.style} area x ${item.rect.x}, y ${item.rect.y}, ${item.rect.width} × ${item.rect.height}`
-                : "cut";
+                : item.kind === "fade"
+                  ? `fade ${item.edge}, ${item.endMs - item.startMs} ms`
+                  : "cut";
       return `${item.kind} ${item.startMs}–${item.endMs} ms: ${detail}${item.reason ? ` — ${item.reason}` : ""}`;
     });
   const flags = [set.replaceZooms ? "replaces current zooms" : "", set.replaceCaptions ? "replaces current speech captions" : ""].filter(Boolean);
@@ -276,6 +300,8 @@ function toRaw(item: Proposal): Record<string, unknown> {
       return { ...base, text: item.text, style: item.preset, ...(item.position ? { x: item.position.x, y: item.position.y } : {}) };
     case "blur":
       return { ...base, ...item.rect, style: item.style };
+    case "fade":
+      return { ...base, edge: item.edge };
     default:
       return base;
   }
@@ -286,7 +312,7 @@ export function sanitizeProposalSet(value: unknown, context: ProposalContext, ne
   const raw = value as Partial<ProposalSet> | null;
   if (!raw || !Array.isArray(raw.items)) return EMPTY_PROPOSALS;
   let set: ProposalSet = EMPTY_PROPOSALS;
-  const kinds: ProposalKind[] = ["zoom", "trim", "speed", "caption", "text", "blur"];
+  const kinds: ProposalKind[] = ["zoom", "trim", "speed", "caption", "text", "blur", "fade"];
   for (const kind of kinds) {
     const items = raw.items.filter((item): item is Proposal => !!item && (item as Proposal).kind === kind).map(toRaw);
     if (items.length === 0) continue;

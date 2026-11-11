@@ -102,6 +102,7 @@ import { RegionInspector } from './RegionInspector';
 import { DEFAULT_ZOOM_SPAN_MS, findAvailableSpan, validRegionSpan, type TimeSpan } from './editingTools';
 import { groupMoveDelta, KIND_ALLOWS_OVERLAP, moveRegionGroup, nudgeRegion, placeCopy, type RegionCommand, type RegionKind, type RegionTarget, splitRegion, type TimedRegion } from './timeline/regionCommands';
 import { getAnnotationText } from './annotationText';
+import { placeVoiceLines, type VoicedLine, type VoiceLine, voiceOverrunMs } from './voiceLines';
 import { fadeAmount, type Fades, NO_FADES } from '@/lib/fades';
 import { type EndingHold, NO_ENDING } from '@/lib/endingHold';
 import { applyAudioTimelineChange, audioFileOffsetSeconds, audioTimelineSpan, firstFreeAudioTrack, isAudioActive, MAX_AUDIO_TRACKS, splitAudioRegion } from './audioRegionSpan';
@@ -1792,6 +1793,36 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
     setSelectedSpeedId(null);
   }, [cutMap]);
 
+  /** The video's captions in order, for reading them aloud at their own time. */
+  const voiceLines = useMemo<VoiceLine[]>(() => annotationRegions
+    .filter((region) => region.type === 'text')
+    .map((region) => ({ id: region.id, startMs: region.startMs, endMs: region.endMs, text: getAnnotationText(region).trim() }))
+    .filter((line) => line.text.length > 0)
+    .sort((a, b) => a.startMs - b.startMs), [annotationRegions]);
+
+  /** Speech for each caption goes under it, as one undoable edit; captions shorter than their speech get longer. */
+  const handleAddVoiceLines = useCallback((voiced: VoicedLine[]) => {
+    const placed = placeVoiceLines(voiced, cutMap);
+    if (placed.length === 0) return;
+    startNewHistoryStep();
+    setAudioRegions((prev) => {
+      const next = [...prev];
+      for (const item of placed) {
+        const region: AudioRegion = { id: `audio-${nextAudioIdRef.current++}`, startMs: item.startMs, endMs: item.startMs + item.durationMs, audioPath: item.path, volume: 1, sourceDurationMs: item.durationMs };
+        const track = firstFreeAudioTrack(next, audioTimelineSpan(region, cutMap), cutMap);
+        next.push(track > 0 ? { ...region, track } : region);
+      }
+      return next;
+    });
+    const longer = new Map(placed.flatMap((item) => (item.captionEndMs !== undefined ? [[item.lineId, item.captionEndMs] as const] : [])));
+    if (longer.size > 0) setAnnotationRegions((prev) => prev.map((region) => (longer.has(region.id) ? { ...region, endMs: longer.get(region.id) ?? region.endMs } : region)));
+    const shifted = placed.filter((item) => item.shifted).length;
+    toast.success(t('editor.voiceLines.added', undefined, { count: placed.length }) + (shifted > 0 ? ` ${t('editor.voiceLines.shifted', undefined, { count: shifted })}` : ''), { duration: 8000 });
+    // Speech past the end is not heard; say so, so the edit can make room (less speed-up, a longer ending).
+    const overrun = voiceOverrunMs(placed, cutMap, timelineMs);
+    if (overrun >= 300) toast.warning(t('editor.voiceLines.overrun', undefined, { seconds: (overrun / 1000).toLocaleString(locale, { maximumFractionDigits: 1 }) }), { id: 'voice-overrun', duration: 15000 });
+  }, [cutMap, startNewHistoryStep, t, locale, timelineMs]);
+
   /** A clip moved or resized on the edited timeline (where cuts are already removed), possibly onto another track. */
   const handleAudioTimelineChange = useCallback((id: string, span: Span, track?: number) => {
     setAudioRegions((prev) => prev.map((region) => {
@@ -1947,7 +1978,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
   /** The chosen agent proposals become one undoable edit. */
   const handleAgentApply = () => {
     const next = applyProposals(
-      { zooms: zoomRegions, trims: trimRegions, speeds: speedRegions, annotations: annotationRegions, blurs: blurRegions },
+      { zooms: zoomRegions, trims: trimRegions, speeds: speedRegions, annotations: annotationRegions, blurs: blurRegions, fades },
       agent.proposals,
       agent.chosen,
       {
@@ -1965,6 +1996,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
     setTrimRegions(next.trims);
     setSpeedRegions(next.speeds);
     setBlurRegions(next.blurs);
+    if (next.fades) setFades(next.fades);
     // Captions the agent writes get the same look as the others.
     setAnnotationRegions(applyCaptionStyle(next.annotations, captionStyle));
     setSelectedZoomId(null);
@@ -1975,6 +2007,14 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
       duration: 8000,
       action: { label: t('editor.agent.undo'), onClick: () => handleUndo() },
     });
+    // Captions the agent wrote can be read aloud next; nothing is sent until the user starts it.
+    if (!sequenceVisible && agent.proposals.items.some((item) => item.kind === 'caption' && agent.chosen.has(item.id))) {
+      toast(t('editor.voiceLines.offer'), {
+        id: 'agent-voice-offer',
+        duration: 15000,
+        action: { label: t('editor.voiceLines.offerAction'), onClick: () => openVoiceover() },
+      });
+    }
   };
 
   const handleAnnotationSpanChange = useCallback((id: string, span: Span) => {
@@ -3430,6 +3470,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
       <VoiceoverPanel open={voiceoverOpen} onOpenChange={setVoiceoverOpen} initialText={voiceoverText}
         onSettings={() => { setVoiceoverOpen(false); setAiSettingsOpen(true); }} remainingSeconds={Math.max(0, sequenceVisible && sequence ? (sequenceEnd(sequence.clips)-sequenceTime.current)/1000 : duration-currentTime)}
         takes={voiceoverTakes} onTakeCreated={take => setVoiceoverTakes(previous => addVoiceoverTake(previous, take))} onTakeRemove={id => setVoiceoverTakes(previous => previous.filter(take => take.id !== id))}
+        lines={voiceLines} onAddLines={sequenceVisible ? undefined : handleAddVoiceLines}
         onAdd={(path, seconds, at) => { if(sequenceVisible && voiceInsert.current){void voiceInsert.current(path,at);return;} const start = at === 'start' ? 0 : Math.min(currentTime, Math.max(0,duration-.1)); handleAudioAdded({start:Math.round(start*1000),end:Math.round((start+seconds)*1000)},path,seconds*1000); }} />
       <ExportSetupDialog open={exportSetupOpen} onOpenChange={setExportSetupOpen} onStart={() => { setExportSetupOpen(false); handleStartExport(); }}
         selected={wallpaper} onWallpaperChange={setWallpaper} aspectRatio={aspectRatio} videoElement={videoPlaybackRef.current?.video}

@@ -11,6 +11,7 @@ import {
   summarizeProposals,
 } from '../../src/lib/agent/proposals'
 import { detectInteractionCandidates } from '../../src/components/video-editor/timeline/zoomSuggestionUtils'
+import { findTypingStretches } from '../../src/components/video-editor/typingStretches'
 import type { CursorTelemetryPoint } from '../../src/components/video-editor/types'
 import { detectVideoSpeech, TRANSCRIPTION_LOCALES, type TranscriptionDeps, transcribeVideo } from '../transcription'
 
@@ -47,6 +48,17 @@ async function readTelemetry(videoPath: string): Promise<CursorTelemetryPoint[]>
         return !!point && Number.isFinite(point.timeMs) && Number.isFinite(point.cx) && Number.isFinite(point.cy)
       })
       .sort((a, b) => a.timeMs - b.timeMs)
+  } catch {
+    return []
+  }
+}
+
+/** Key press times recorded with the video (no keys, only when they were pressed). */
+async function readKeyTimes(videoPath: string): Promise<number[]> {
+  try {
+    const parsed = JSON.parse(await fs.readFile(`${videoPath}.cursor.json`, 'utf8'))
+    const keys: unknown[] = Array.isArray(parsed?.keys) ? parsed.keys : []
+    return keys.filter((time): time is number => typeof time === 'number' && Number.isFinite(time) && time >= 0)
   } catch {
     return []
   }
@@ -192,6 +204,18 @@ export function createAgentSession(options: AgentSessionOptions) {
         return json({ hasSpeech: speech.length > 0, pauses: listed.slice(0, PAGE_LIMIT * 2) })
       }),
     },
+    {
+      name: 'get_typing',
+      description: 'Stretches where the user was typing (from key press times recorded with the video; which keys were pressed is not recorded). Empty if key tracking was off.',
+      inputSchema: { type: 'object', properties: range, additionalProperties: false },
+      annotations: read,
+      handler: traced('get_typing', async (args) => {
+        const { fromMs, toMs } = windowOf(args, snapshot.durationMs)
+        const keyTimes = await readKeyTimes(snapshot.videoPath)
+        const stretches = findTypingStretches(keyTimes, snapshot.durationMs).filter((stretch) => stretch.endMs >= fromMs && stretch.startMs <= toMs)
+        return json({ tracked: keyTimes.length > 0, typing: stretches.slice(0, PAGE_LIMIT) })
+      }),
+    },
     ...(options.framesAllowed
       ? [{
           name: 'get_frame',
@@ -251,6 +275,20 @@ export function createAgentSession(options: AgentSessionOptions) {
       handler: traced('propose_blur', propose('blur', 'areas')),
     },
     {
+      name: 'propose_fade',
+      description: 'Suggest a fade from black at the start (fadeInMs) and/or to black at the end (fadeOutMs) of the final video: 500, 1000 or 2000 ms. A new value replaces your earlier fade proposal for that end.',
+      inputSchema: { type: 'object', properties: { fadeInMs: { type: 'number', enum: [500, 1000, 2000] }, fadeOutMs: { type: 'number', enum: [500, 1000, 2000] }, reason: { type: 'string' } }, additionalProperties: false },
+      annotations: stage,
+      handler: traced('propose_fade', async (args) => {
+        const items: Array<Record<string, unknown>> = []
+        const reason = typeof args.reason === 'string' ? args.reason : undefined
+        if (args.fadeInMs !== undefined) items.push({ edge: 'in', startMs: 0, endMs: args.fadeInMs, reason })
+        if (args.fadeOutMs !== undefined) items.push({ edge: 'out', startMs: typeof args.fadeOutMs === 'number' ? snapshot.durationMs - args.fadeOutMs : undefined, endMs: snapshot.durationMs, reason })
+        if (items.length === 0) return textResult('Pass fadeInMs, fadeOutMs or both.', true)
+        return propose('fade', 'items')({ items })
+      }),
+    },
+    {
       name: 'review_proposals',
       description: 'List your proposals so far.',
       inputSchema: { type: 'object', properties: {}, additionalProperties: false },
@@ -259,8 +297,8 @@ export function createAgentSession(options: AgentSessionOptions) {
     },
     {
       name: 'clear_proposals',
-      description: 'Remove your proposals of one kind (zoom, trim, speed, caption, text, blur), or all of them when kind is omitted.',
-      inputSchema: { type: 'object', properties: { kind: { type: 'string', enum: ['zoom', 'trim', 'speed', 'caption', 'text', 'blur'] } }, additionalProperties: false },
+      description: 'Remove your proposals of one kind (zoom, trim, speed, caption, text, blur, fade), or all of them when kind is omitted.',
+      inputSchema: { type: 'object', properties: { kind: { type: 'string', enum: ['zoom', 'trim', 'speed', 'caption', 'text', 'blur', 'fade'] } }, additionalProperties: false },
       annotations: stage,
       handler: traced('clear_proposals', async (args) => {
         proposals = clearProposals(proposals, typeof args.kind === 'string' ? (args.kind as ProposalKind) : undefined)

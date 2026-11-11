@@ -183,6 +183,7 @@
 		"data": "Se envía al proveedor de la herramienta: resumen del proyecto, clics, texto hablado y pausas. El archivo de vídeo no se envía.",
 		"dataWithFrames": "Se envía al proveedor de la herramienta: resumen del proyecto, clics, texto hablado, pausas y los fotogramas que pida. Cada fotograma usa muchos tokens. El archivo de vídeo no se envía.",
 		"tasks": {
+			"tutorial-edit": "Edición de tutorial",
 			"smart-zoom": "Zoom inteligente",
 			"fix-captions": "Corregir subtítulos",
 			"cut-pauses": "Cortar silencios",
@@ -196,6 +197,7 @@
 		"toolNames": {
 			"get_project": "Leyendo el proyecto",
 			"get_clicks": "Leyendo clics",
+			"get_typing": "Buscando escritura",
 			"get_transcript": "Preparando el texto hablado",
 			"get_pauses": "Buscando silencios",
 			"get_frame": "Mirando un fotograma",
@@ -205,6 +207,7 @@
 			"propose_captions": "Propuesta de subtítulos",
 			"propose_text": "Propuesta de texto",
 			"propose_blur": "Propuesta de desenfoque",
+			"propose_fade": "Propuesta de fundido",
 			"review_proposals": "Revisando propuestas",
 			"clear_proposals": "Borrando propuestas"
 		},
@@ -226,7 +229,8 @@
 			"text": "Texto",
 			"trim": "Cortes",
 			"speed": "Velocidad",
-			"blur": "Desenfoque"
+			"blur": "Desenfoque",
+			"fade": "Fundido"
 		},
 		"replaces": "sustituye lo actual",
 		"selectNone": "Ninguno",
@@ -450,7 +454,12 @@
 		"hintFishMore": "Para palabras concretas: <whisper>…</whisper>, <emphasis>…</emphasis>, <slow>…</slow>, <fast>…</fast>",
 		"hintElevenIntro": "Dirige la interpretación con etiquetas de audio en inglés entre corchetes:",
 		"hintElevenExample": "[excited] ¡Ya está aquí la nueva función! [whispers] No se lo digas a nadie.",
-		"hintElevenMore": "Más ejemplos: [laughs], [sighs], [sarcastic], [calm]"
+		"hintElevenMore": "Más ejemplos: [laughs], [sighs], [sarcastic], [calm]",
+		"linesTitle": "Leer los subtítulos en su momento",
+		"linesInfo": "{{count}} subtítulos · {{chars}} caracteres. Cada subtítulo se locuta por separado y se coloca donde aparece; las voces no se solapan y el subtítulo sigue en pantalla mientras se lee.",
+		"linesButton": "Locutar {{count}} subtítulos con {{engine}}",
+		"linesProgress": "Locutando subtítulo {{current}} de {{total}}…",
+		"linesStopped": "Se locutaron {{done}} de {{total}} subtítulos; vuelve a intentarlo para continuar."
 	},
 	"aiErrors": {
 		"missingPermission": "Esta clave de {{provider}} no tiene permiso para esta acción. Permite la lectura de voces y la conversión de texto a voz para la clave en {{provider}}, o crea una clave nueva.",
@@ -468,5 +477,12 @@
 	"audioClipName": {
 		"voiceover": "Locución de {{name}}",
 		"audio": "Audio"
+	},
+	"voiceLines": {
+		"added": "Voz añadida bajo {{count}} subtítulos.",
+		"shifted": "{{count}} empiezan un poco más tarde para que termine la voz anterior.",
+		"offer": "¿Leer en voz alta los nuevos subtítulos? Eliges la voz antes de enviar nada.",
+		"offerAction": "Locutar",
+		"overrun": "La voz dura {{seconds}} s más que el vídeo, así que el final no se oye. Ralentiza una parte acelerada o alarga el final del vídeo."
 	}
 }

@@ -183,6 +183,7 @@
 		"data": "Sent to your chosen tool's provider: project summary, clicks, speech text and pauses. The video file is not sent.",
 		"dataWithFrames": "Sent to your chosen tool's provider: project summary, clicks, speech text, pauses and the video frames it asks for. Each frame uses many tokens. The video file is not sent.",
 		"tasks": {
+			"tutorial-edit": "Tutorial edit",
 			"smart-zoom": "Smart zoom",
 			"fix-captions": "Fix captions",
 			"cut-pauses": "Cut silences",
@@ -196,6 +197,7 @@
 		"toolNames": {
 			"get_project": "Reading the project",
 			"get_clicks": "Reading clicks",
+			"get_typing": "Finding typing",
 			"get_transcript": "Preparing the speech text",
 			"get_pauses": "Finding silences",
 			"get_frame": "Looking at a frame",
@@ -205,6 +207,7 @@
 			"propose_captions": "Caption proposal",
 			"propose_text": "Text proposal",
 			"propose_blur": "Blur proposal",
+			"propose_fade": "Fade proposal",
 			"review_proposals": "Checking proposals",
 			"clear_proposals": "Clearing proposals"
 		},
@@ -226,7 +229,8 @@
 			"text": "Text",
 			"trim": "Cuts",
 			"speed": "Speed",
-			"blur": "Blur"
+			"blur": "Blur",
+			"fade": "Fade"
 		},
 		"replaces": "replaces current",
 		"selectNone": "None",
@@ -450,7 +454,12 @@
 		"hintFishMore": "For specific words: <whisper>…</whisper>, <emphasis>…</emphasis>, <slow>…</slow>, <fast>…</fast>",
 		"hintElevenIntro": "Direct the delivery with audio tags in square brackets:",
 		"hintElevenExample": "[excited] The new feature is here! [whispers] Don’t tell anyone.",
-		"hintElevenMore": "More examples: [laughs], [sighs], [sarcastic], [calm]"
+		"hintElevenMore": "More examples: [laughs], [sighs], [sarcastic], [calm]",
+		"linesTitle": "Read the captions at their own time",
+		"linesInfo": "{{count}} captions · {{chars}} characters. Each caption is voiced separately and placed where it appears; speech never overlaps, and captions stay on screen while they are read.",
+		"linesButton": "Voice {{count}} captions with {{engine}}",
+		"linesProgress": "Voicing caption {{current}} of {{total}}…",
+		"linesStopped": "{{done}} of {{total}} captions were voiced; try again to continue."
 	},
 	"aiErrors": {
 		"missingPermission": "This {{provider}} key lacks a permission for this action. Allow voice read and text-to-speech for the key in {{provider}}, or create a new key.",
@@ -468,5 +477,12 @@
 	"audioClipName": {
 		"voiceover": "{{name}} voiceover",
 		"audio": "Audio"
+	},
+	"voiceLines": {
+		"added": "Speech added under {{count}} captions.",
+		"shifted": "{{count}} started a little later so the speech before could finish.",
+		"offer": "Read the new captions aloud? You choose the voice before anything is sent.",
+		"offerAction": "Voice them",
+		"overrun": "The speech runs {{seconds}} s past the end of the video, so the end is not heard. Slow down a sped-up part, or lengthen the video’s ending."
 	}
 }

@@ -183,6 +183,7 @@
     "data": "Gönderilenler: proje özeti, tıklamalar, konuşma metni ve sessizlikler, seçtiğiniz aracın sağlayıcısına gider. Video dosyası gönderilmez.",
     "dataWithFrames": "Gönderilenler: proje özeti, tıklamalar, konuşma metni, sessizlikler ve istenen video kareleri, seçtiğiniz aracın sağlayıcısına gider. Her kare çok sayıda token tüketir. Video dosyası gönderilmez.",
     "tasks": {
+      "tutorial-edit": "Eğitim videosu kurgusu",
       "smart-zoom": "Akıllı zoom",
       "fix-captions": "Altyazıları düzelt",
       "cut-pauses": "Sessizlikleri kes",
@@ -196,6 +197,7 @@
     "toolNames": {
       "get_project": "Proje okunuyor",
       "get_clicks": "Tıklamalar okunuyor",
+      "get_typing": "Yazma bölümleri bulunuyor",
       "get_transcript": "Konuşma metni hazırlanıyor",
       "get_pauses": "Sessizlikler bulunuyor",
       "get_frame": "Kare inceleniyor",
@@ -205,6 +207,7 @@
       "propose_captions": "Altyazı önerisi",
       "propose_text": "Yazı önerisi",
       "propose_blur": "Bulanıklaştırma önerisi",
+      "propose_fade": "Kararma önerisi",
       "review_proposals": "Öneriler kontrol ediliyor",
       "clear_proposals": "Öneriler temizleniyor"
     },
@@ -226,7 +229,8 @@
       "text": "Yazı",
       "trim": "Kesme",
       "speed": "Hız",
-      "blur": "Bulanıklaştırma"
+      "blur": "Bulanıklaştırma",
+      "fade": "Kararma"
     },
     "replaces": "mevcutların yerini alır",
     "selectNone": "Hiçbiri",
@@ -450,7 +454,12 @@
     "hintFishMore": "Belirli sözcükler için: <whisper>…</whisper>, <emphasis>…</emphasis>, <slow>…</slow>, <fast>…</fast>",
     "hintElevenIntro": "Okunuşu köşeli parantezli İngilizce ses etiketleriyle yönlendirebilirsiniz:",
     "hintElevenExample": "[excited] Yeni özellik geldi! [whispers] Kimseye söylemeyin.",
-    "hintElevenMore": "Diğer örnekler: [laughs], [sighs], [sarcastic], [calm]"
+    "hintElevenMore": "Diğer örnekler: [laughs], [sighs], [sarcastic], [calm]",
+    "linesTitle": "Yazıları kendi zamanında seslendir",
+    "linesInfo": "{{count}} yazı · {{chars}} karakter. Her yazı ayrı seslendirilir ve göründüğü yere konur; sesler üst üste binmez, yazı okunurken ekranda kalır.",
+    "linesButton": "{{count}} yazıyı {{engine}} ile seslendir",
+    "linesProgress": "{{current}}/{{total}} yazı seslendiriliyor…",
+    "linesStopped": "{{total}} yazıdan {{done}} tanesi seslendirildi; devam etmek için tekrar dene."
   },
   "aiErrors": {
     "missingPermission": "{{provider}} anahtarının bu işlem için yetkisi yok. {{provider}} panelinde anahtara ses okuma ve seslendirme izinlerini verin veya yeni bir anahtar oluşturun.",
@@ -468,5 +477,12 @@
   "audioClipName": {
     "voiceover": "{{name}} seslendirme",
     "audio": "Ses"
+  },
+  "voiceLines": {
+    "added": "{{count}} yazının altına ses eklendi.",
+    "shifted": "{{count}} tanesi önceki ses bitsin diye biraz geç başlıyor.",
+    "offer": "Yeni yazıları seslendirmek ister misin? Hiçbir şey gönderilmeden önce sesi sen seçersin.",
+    "offerAction": "Seslendir",
+    "overrun": "Ses videonun bitişini {{seconds}} sn aşıyor; sonu duyulmaz. Hızlandırılmış bir bölümü yavaşlatabilir ya da videonun sonunu uzatabilirsin."
   }
 }

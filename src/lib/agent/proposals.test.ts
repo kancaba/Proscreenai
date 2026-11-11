@@ -78,6 +78,34 @@ describe("agent proposals", () => {
     expect(sanitizeProposalSet(result.set, context, nextId).items.map((item) => item.kind)).toEqual(["blur", "blur"]);
   });
 
+  it("accepts one fade per end and explains bad ones", () => {
+    const result = addProposals(
+      EMPTY_PROPOSALS,
+      "fade",
+      [
+        { edge: "out", startMs: 19000, endMs: 20000, reason: "soft ending" },
+        { edge: "in", startMs: 0, endMs: 500 },
+        { edge: "in", startMs: 0, endMs: 700 },
+        { edge: "out", startMs: 15000, endMs: 16000 },
+        { edge: "side", startMs: 0, endMs: 1000 },
+      ],
+      context,
+      {},
+      nextId,
+    );
+    expect(result.accepted).toBe(2);
+    expect(result.errors).toEqual([
+      "item 3 (0–700 ms): a fade lasts 500, 1000, 2000 ms",
+      "item 4 (15000–16000 ms): a fade out ends at the end of the video (20000 ms)",
+      "item 5 (0–1000 ms): edge must be in or out",
+    ]);
+    expect(summarizeProposals(result.set)).toMatch(/fade 19000–20000 ms: fade out, 1000 ms — soft ending/);
+    // A new fade for the same end replaces the earlier one.
+    const longer = addProposals(result.set, "fade", [{ edge: "out", startMs: 18000, endMs: 20000 }], context, {}, nextId).set;
+    expect(longer.items.filter((item) => item.kind === "fade").map((item) => [item.startMs, item.endMs])).toEqual([[0, 500], [18000, 20000]]);
+    expect(sanitizeProposalSet(longer, context, nextId).items.map((item) => item.kind)).toEqual(["fade", "fade"]);
+  });
+
   it("summarises and clears", () => {
     const { set } = addProposals(EMPTY_PROPOSALS, "trim", [{ startMs: 1000, endMs: 2000, reason: "pause" }], context, {}, nextId);
     expect(summarizeProposals(set)).toMatch(/trim 1000–2000 ms: cut — pause/);

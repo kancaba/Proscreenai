@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useI18n, useScopedT } from '@/contexts/I18nContext'
 import { toFileUrl } from './projectPersistence'
 import type { VoiceoverTake } from './voiceoverTakes'
+import type { VoiceLine, VoicedLine } from './voiceLines'
 type Provider = 'modelion' | 'fish' | 'elevenlabs'
 type CloudProvider = Exclude<Provider, 'modelion'>
 type Voice = { id: string; title: string; author: string; languages: string[]; likes: number; sample?: string }
@@ -46,11 +47,21 @@ const isModelOf = (provider: CloudProvider) => (value: unknown): value is string
 const isVoiceOf = (provider: CloudProvider) => (value: unknown): value is ChosenVoice => typeof value === 'object' && value !== null && typeof (value as { id?: unknown }).id === 'string' && cloud[provider].voiceId.test((value as { id: string }).id) && typeof (value as { title?: unknown }).title === 'string'
 const cancel = (active: { id: string; provider: Provider }) => void (active.provider === 'modelion' ? window.electronAPI.modelionCancelSpeech(active.id) : cloud[active.provider].cancel(active.id))
 type AddAt = 'playhead' | 'start'
-export function VoiceoverPanel({ open, onOpenChange, initialText, onSettings, onAdd, remainingSeconds, takes, onTakeCreated, onTakeRemove }: {
+/** Length of a generated audio file, from its metadata. */
+function audioSeconds(path: string) {
+  return new Promise<number>((resolve, reject) => {
+    const audio = new Audio(toFileUrl(path)); const timer = setTimeout(() => { audio.src = ''; reject(new Error('Audio metadata timed out.')) }, 15000)
+    audio.onloadedmetadata = () => { clearTimeout(timer); const seconds = audio.duration; audio.src = ''; Number.isFinite(seconds) && seconds > 0 ? resolve(seconds) : reject(new Error('Invalid audio duration.')) }
+    audio.onerror = () => { clearTimeout(timer); audio.src = ''; reject(new Error('Generated audio could not be decoded.')) }
+  })
+}
+export function VoiceoverPanel({ open, onOpenChange, initialText, onSettings, onAdd, remainingSeconds, takes, onTakeCreated, onTakeRemove, lines = [], onAddLines }: {
   open: boolean; onOpenChange: (open: boolean) => void; initialText: string; onSettings: () => void
   onAdd: (path: string, durationSeconds: number, at: AddAt) => void; remainingSeconds: number
   /** Voiceovers already generated for this project, newest first. */
   takes: VoiceoverTake[]; onTakeCreated: (take: VoiceoverTake) => void; onTakeRemove: (id: string) => void
+  /** The video's captions, to read each one aloud at its own time. */
+  lines?: VoiceLine[]; onAddLines?: (voiced: VoicedLine[]) => void
 }) {
   const { locale, t: tFull } = useI18n(), tr = locale === 'tr', t = useScopedT('editor')
   const [text, setText] = useState(initialText), [language, setLanguage] = useState(locale === 'tr' ? 'tr' : 'en')
@@ -61,6 +72,9 @@ export function VoiceoverPanel({ open, onOpenChange, initialText, onSettings, on
   const [query, setQuery] = useState(''), [voices, setVoices] = useState<Voice[]>([]), [searching, setSearching] = useState(false), [listing, setListing] = useState<'mine' | 'search' | null>(null)
   const [result, setResult] = useState<{ path: string; duration: number } | null>(null)
   const request = useRef<{ id: string; provider: Provider } | null>(null)
+  const [lineProgress, setLineProgress] = useState<{ done: number; total: number } | null>(null)
+  // Lines already read with a voice, so trying again after an error does not pay for them twice.
+  const voicedCache = useRef(new Map<string, { path: string; durationMs: number }>())
   const active = provider === 'modelion' ? null : provider, voice = active ? chosen[active] : null
   useEffect(() => { if (!open) return; setText(initialText); setResult(null); setError('')
     const check = (status: () => Promise<{ configured: boolean }>) => status().then(value => value.configured).catch(() => false)
@@ -88,18 +102,50 @@ export function VoiceoverPanel({ open, onOpenChange, initialText, onSettings, on
       const response = active && voice
         ? await cloud[active].generate({ text: text.trim(), voiceId: voice.id, model: models[active], language, requestId: current.id })
         : await window.electronAPI.modelionGenerateSpeech({ text: text.trim(), language, requestId: current.id })
-      const duration = await new Promise<number>((resolve, reject) => {
-        const audio = new Audio(toFileUrl(response.path)); const timer = setTimeout(() => { audio.src = ''; reject(new Error('Audio metadata timed out.')) }, 15000)
-        audio.onloadedmetadata = () => { clearTimeout(timer); const seconds = audio.duration; audio.src = ''; Number.isFinite(seconds) && seconds > 0 ? resolve(seconds) : reject(new Error('Invalid audio duration.')) }
-        audio.onerror = () => { clearTimeout(timer); audio.src = ''; reject(new Error('Generated audio could not be decoded.')) }
-      })
+      const duration = await audioSeconds(response.path)
       // Kept with the project right away, even if the panel was closed meanwhile: it was paid for.
       onTakeCreated({ id: crypto.randomUUID(), path: response.path, durationMs: Math.round(duration * 1000), text: text.trim(), voice: active && voice ? `${providerName[active]} · ${voice.title}` : 'Ema Lightning', createdAt: Date.now() })
       if (request.current === current) setResult({ path: response.path, duration })
     } catch (cause) { if (request.current === current) setError(aiErrorMessage(cause, tFull, providerName[current.provider])) }
     finally { if (request.current === current) { request.current = null; setBusy(false) } }
   }
+  /** Reads every caption aloud, one file each, and hands them back to be placed at their captions. */
+  async function generateLines() {
+    if (!onAddLines || lines.length === 0) return
+    const current = { id: crypto.randomUUID(), provider }; request.current = current; setBusy(true); setResult(null); setError('')
+    const voiced: VoicedLine[] = []
+    try {
+      for (const [index, line] of lines.entries()) {
+        if (request.current !== current) return
+        setLineProgress({ done: index, total: lines.length })
+        const key = [provider, voice?.id ?? '', active ? models[active] : '', language, line.text].join('|')
+        let made = voicedCache.current.get(key)
+        if (!made) {
+          const requestId = crypto.randomUUID(); request.current = { ...current, id: requestId }
+          const response = active && voice
+            ? await cloud[active].generate({ text: line.text, voiceId: voice.id, model: models[active], language, requestId })
+            : await window.electronAPI.modelionGenerateSpeech({ text: line.text, language, requestId })
+          if (request.current?.id !== requestId) return
+          request.current = current
+          made = { path: response.path, durationMs: Math.round((await audioSeconds(response.path)) * 1000) }
+          voicedCache.current.set(key, made)
+          onTakeCreated({ id: crypto.randomUUID(), path: made.path, durationMs: made.durationMs, text: line.text, voice: active && voice ? `${providerName[active]} · ${voice.title}` : 'Ema Lightning', createdAt: Date.now() })
+        }
+        voiced.push({ line, ...made })
+      }
+      setLineProgress(null)
+      request.current = null; setBusy(false)
+      onAddLines(voiced)
+      close(false)
+    } catch (cause) {
+      setError(`${t('voiceoverPanel.linesStopped', '{{done}} of {{total}} captions were voiced; try again to continue.', { done: voiced.length, total: lines.length })} ${aiErrorMessage(cause, tFull, providerName[current.provider])}`)
+      setLineProgress(null)
+    } finally {
+      if (request.current?.id === current.id || request.current === null) { request.current = null; setBusy(false) }
+    }
+  }
   const ready = configured[provider] && (!active || voice !== null)
+  const lineChars = lines.reduce((sum, line) => sum + line.text.length, 0)
   const engine = active ? providerName[active] : 'Ema Lightning'
   const hint = active && cloud[active].hint?.models.includes(models[active]) ? cloud[active].hint?.lines.map(line => t(`voiceoverPanel.${line.key}`, line.en)) : undefined
   const add = (path: string, seconds: number, at: AddAt) => { onAdd(path, seconds, at); close(false) }
@@ -122,6 +168,11 @@ export function VoiceoverPanel({ open, onOpenChange, initialText, onSettings, on
     <div className="flex items-center justify-between text-xs text-slate-400"><select aria-label={t('voiceoverPanel.language', 'Voice language')} disabled={busy} value={language} onChange={event => { setLanguage(event.target.value); setResult(null) }} className="rounded bg-[#252530] p-2"><option value="tr">Türkçe</option><option value="en">English</option></select><span>{text.length}/4000</span></div>
     <p className="text-[11px] text-slate-500">{t('voiceoverPanel.sendNotice', 'Generating speech sends this script to {{provider}} and may use account credits.', { provider: providerName[provider], providerDative: providerDative[provider] })}</p>
     <button data-testid="generate-speech" disabled={busy || !ready || !text.trim()} onClick={() => void generate()} className="rounded-xl bg-violet-300 px-4 py-3 text-sm font-medium text-black disabled:opacity-40">{busy ? (t('voiceoverPanel.generating', 'Generating speech…')) : (t('voiceoverPanel.generateWith', 'Generate with {{engine}}', { engine }))}</button>
+    {onAddLines && lines.length > 0 && <div data-testid="voice-lines" className="space-y-2 rounded-xl border border-violet-300/20 p-3">
+      <p className="text-xs font-medium text-slate-200">{t('voiceoverPanel.linesTitle', 'Read the captions at their own time')}</p>
+      <p className="text-[11px] text-slate-400">{t('voiceoverPanel.linesInfo', '{{count}} captions · {{chars}} characters. Each caption is voiced separately and placed where it appears; speech never overlaps, and captions stay on screen while they are read.', { count: lines.length, chars: lineChars })}</p>
+      <button data-testid="generate-lines" disabled={busy || !ready} onClick={() => void generateLines()} className="w-full rounded-lg bg-violet-300/20 px-3 py-2 text-xs font-medium text-violet-100 disabled:opacity-40">{lineProgress ? t('voiceoverPanel.linesProgress', 'Voicing caption {{current}} of {{total}}…', { current: lineProgress.done + 1, total: lineProgress.total }) : t('voiceoverPanel.linesButton', 'Voice {{count}} captions with {{engine}}', { count: lines.length, engine })}</button>
+    </div>}
     {error && <p role="alert" className="text-xs text-red-300">{error}</p>}
     {result && <div className="space-y-3 rounded-xl border border-emerald-300/20 p-3"><audio controls src={toFileUrl(result.path)} className="w-full" /><p className="text-xs text-slate-400">{result.duration.toFixed(1)} {t('voiceoverPanel.seconds', 'seconds')}</p>{atEnd ? <p className="text-xs text-amber-300">{t('voiceoverPanel.playheadAtEnd', 'The playhead is at the end of the video. Add it at the start, or close the panel and pick a spot; the voiceover is kept in this project.')}</p> : result.duration > remainingSeconds && <p className="text-xs text-amber-300">{t('voiceoverPanel.exceedsVideo', 'The audio exceeds the remaining video. Only the part before the end will be used.')}</p>}<div className="grid grid-cols-2 gap-2"><button data-testid="add-voiceover" disabled={atEnd} onClick={() => add(result.path, result.duration, 'playhead')} className="rounded-lg bg-emerald-300/15 p-2 text-sm text-emerald-200 disabled:opacity-40">{t('voiceoverPanel.addAtPlayhead', 'Add at playhead')}</button><button data-testid="add-voiceover-start" onClick={() => add(result.path, result.duration, 'start')} className="rounded-lg bg-white/10 p-2 text-sm text-slate-200">{t('voiceoverPanel.addAtStart', 'Add at start')}</button></div><p className="text-[11px] text-slate-500">{t('voiceoverPanel.savedNote', 'This voiceover is saved with the project; you can add it again later from the list.')}</p></div>}
     {earlier.length > 0 && <div data-testid="voiceover-takes" className="space-y-2 rounded-xl border border-white/10 p-3"><p className="text-xs text-slate-400">{t('voiceoverPanel.projectTakes', 'Voiceovers made for this project · {{count}}', { count: earlier.length })}</p>
