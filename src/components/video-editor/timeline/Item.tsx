@@ -5,6 +5,7 @@ import { useScopedT } from "@/contexts/I18nContext";
 import { useEffect, useRef, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { AudioWaveform } from "./AudioWaveform";
+import { useRowCompact } from "./Row";
 import glassStyles from "./ItemGlass.module.css";
 
 interface ItemProps {
@@ -61,6 +62,9 @@ export default function Item({
 	// The edges trim and the middle moves. On a short clip the trim zones shrink so at least
 	// its middle third can always be grabbed to move it (the library default is 10 px per edge).
 	const t = useScopedT("timeline");
+	// In a collapsed row the item is a thin bar; it can still be selected, moved and resized.
+	const compact = useRowCompact();
+	const barHeight = compact ? 16 : 40;
 	const { valueToPixels } = useTimelineContext();
 	const widthPx = valueToPixels(span.end - span.start);
 	const resizeHandleWidth = Math.max(6, Math.min(20, widthPx / 3));
@@ -110,7 +114,7 @@ export default function Item({
 	const MIN_ITEM_PX = 6;
 	const localRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => { if (isSelected) localRef.current?.scrollIntoView({block:'nearest',inline:'nearest'}) }, [isSelected]);
-  const safeItemStyle = { ...itemStyle, top: lane * 42, height: 40, minWidth: MIN_ITEM_PX };
+  const safeItemStyle = { ...itemStyle, top: compact ? 3 : lane * 42, height: barHeight, minWidth: MIN_ITEM_PX };
 
   return (
     <div
@@ -134,7 +138,7 @@ export default function Item({
             "w-full h-full overflow-hidden flex items-center justify-center gap-1.5 cursor-grab active:cursor-grabbing relative",
             isSelected && glassStyles.selected
           )}
-          style={{ height: 40, color: '#fff', minWidth: 24 }}
+          style={{ height: barHeight, color: '#fff', minWidth: 24 }}
           onClick={(event) => {
             event.stopPropagation();
             onSelect?.(event);
@@ -148,12 +152,12 @@ export default function Item({
               style={{ cursor: 'ew-resize', pointerEvents: 'auto', width: gripWidth, opacity: isSelected ? 1 : 0.85, background: endCapColor }}
               title={side === 'left' ? t('resizeLeft', 'Resize left') : t('resizeRight', 'Resize right')}
             >
-              {gripWidth >= 7 && <><span className="h-3 w-px rounded bg-white/70" /><span className="h-3 w-px rounded bg-white/70" /></>}
+              {gripWidth >= 7 && !compact && <><span className="h-3 w-px rounded bg-white/70" /><span className="h-3 w-px rounded bg-white/70" /></>}
             </div>
           ))}
           {isAudio && waveform && <AudioWaveform audioPath={waveform.audioPath} offsetMs={waveform.offsetMs} lengthMs={span.end - span.start} />}
           {/* Content */}
-          <div className="relative z-10 flex flex-col items-center justify-center text-white/95 select-none overflow-hidden">
+          {!compact && <div className="relative z-10 flex flex-col items-center justify-center text-white/95 select-none overflow-hidden">
             <div className="flex items-center gap-1.5">
               {isZoom ? (
                 <>
@@ -206,7 +210,7 @@ export default function Item({
             >
               {timeLabel}
             </span>
-          </div>
+          </div>}
         </div>
       </div>
     </div>

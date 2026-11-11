@@ -113,5 +113,9 @@
   "format": {
     "heading": "Tamaño del vídeo · Redes sociales",
     "custom": "Personalizado"
+  },
+  "rows": {
+    "collapse": "Contraer pista",
+    "expand": "Expandir pista"
   }
 }

@@ -113,5 +113,9 @@
   "format": {
     "heading": "Video size · Social media",
     "custom": "Custom"
+  },
+  "rows": {
+    "collapse": "Collapse track",
+    "expand": "Expand track"
   }
 }

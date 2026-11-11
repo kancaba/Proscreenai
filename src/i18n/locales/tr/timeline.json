@@ -113,5 +113,9 @@
   "format": {
     "heading": "Video boyutu · Sosyal medya",
     "custom": "Özel"
+  },
+  "rows": {
+    "collapse": "Satırı daralt",
+    "expand": "Satırı aç"
   }
 }

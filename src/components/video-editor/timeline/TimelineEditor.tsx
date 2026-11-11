@@ -23,7 +23,7 @@ import TimelineWrapper, { type TimelineSnapScale } from "./TimelineWrapper";
 import { RegionContextMenu } from "./RegionContextMenu";
 import type { RegionCommand, RegionKind, RegionTarget, TimedRegion } from "./regionCommands";
 import { followPlayhead, rangeForZoomLevel, zoomLevelForRange } from "./timelineView";
-import Row from "./Row";
+import Row, { CollapsedRowsProvider } from "./Row";
 import Item from "./Item";
 import KeyframeMarkers from "./KeyframeMarkers";
 import type { Range, Span } from "dnd-timeline";
@@ -602,6 +602,7 @@ function Timeline({
   const blurLayout = layoutTrackLanes(blurItems);
 
 	return (
+		<CollapsedRowsProvider>
 		<div
 			ref={setRefs}
 			style={style}
@@ -720,6 +721,7 @@ function Timeline({
         );
       })}
     </div>
+    </CollapsedRowsProvider>
   );
 }
 

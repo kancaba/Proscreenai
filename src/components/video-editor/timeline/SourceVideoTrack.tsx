@@ -5,6 +5,7 @@ import { useScopedT } from '@/contexts/I18nContext'
 import { useVideoFrames } from './useVideoFrames'
 import type { TrimRegion } from '../types'
 import type { ClipTrackProps } from './TimelineEditor'
+import { useRowCompact } from './Row'
 
 const FRAME_COUNT = 8
 
@@ -38,6 +39,8 @@ export function SourceVideoTrack({ path, durationMs, trims, clip, selectedCutId 
   const name = path.split(/[\\/]/).pop() || 'Video'
   const videos = clip?.videos ?? []
   const percent = (ms: number) => `${(ms / Math.max(1, durationMs)) * 100}%`
+  // Collapsed: a thin strip with the frames, parts and cuts; names and badges are left out.
+  const compact = useRowCompact()
 
   // Dragging a part (past a few pixels; a plain click still selects it) to another piece edge.
   const trackRef = useRef<HTMLDivElement>(null)
@@ -75,9 +78,9 @@ export function SourceVideoTrack({ path, durationMs, trims, clip, selectedCutId 
     window.addEventListener('pointercancel', onCancel)
   }
 
-  return <div ref={setNodeRef} style={itemStyle} data-testid="source-video-track" aria-label={`Ana video: ${name}`}><div ref={trackRef} style={{ ...itemContentStyle, height: 52 }} className="relative overflow-hidden rounded-lg border-2 border-cyan-300/60 bg-cyan-900/30">
+  return <div ref={setNodeRef} style={itemStyle} data-testid="source-video-track" aria-label={`Ana video: ${name}`}><div ref={trackRef} style={{ ...itemContentStyle, height: compact ? 16 : 52, marginTop: compact ? 3 : undefined }} className="relative overflow-hidden rounded-lg border-2 border-cyan-300/60 bg-cyan-900/30">
     <div className="pointer-events-none absolute inset-0 flex opacity-45">{frames.map((frame,index) => <img key={index} src={frame} alt="" draggable={false} className="h-full min-w-0 flex-1 object-cover" />)}</div>
-    {videos.length > 1
+    {compact ? null : videos.length > 1
       ? <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[21px] bg-black/55 text-[11px] text-cyan-100">
         {videos.map((video, index) => {
           const end = videos[index + 1]?.outStart ?? durationMs
@@ -107,7 +110,7 @@ export function SourceVideoTrack({ path, durationMs, trims, clip, selectedCutId 
       />
     })}
     {/* Typing found while recording; clicking one opens its card to speed it up or cut it. */}
-    {clip?.typing?.map((stretch) => {
+    {!compact && clip?.typing?.map((stretch) => {
       const selected = clip.selectedTypingStart === stretch.startMs
       return <button
         key={`typing-${stretch.startMs}`}
@@ -122,7 +125,7 @@ export function SourceVideoTrack({ path, durationMs, trims, clip, selectedCutId 
       ><Keyboard size={10} className="shrink-0" /></button>
     })}
     {/* Speed changes sit on the video they speed up; clicking one selects its part. */}
-    {clip?.speeds?.map((badge) => <button
+    {!compact && clip?.speeds?.map((badge) => <button
       key={badge.id}
       type="button"
       data-testid="speed-badge"
@@ -148,7 +151,7 @@ export function SourceVideoTrack({ path, durationMs, trims, clip, selectedCutId 
         style={{ left: percent(marker.outMs) }}
       >
         <span className={`absolute inset-y-0 left-1/2 -translate-x-1/2 ${marker.crossfade ? 'w-2 bg-gradient-to-r from-transparent via-violet-300 to-transparent' : `w-0.5 ${selected ? 'bg-white' : 'bg-red-400'}`}`} />
-        <Scissors size={10} className="relative rounded-sm bg-black/70" />
+        {!compact && <Scissors size={10} className="relative rounded-sm bg-black/70" />}
       </button>
     })}
     {/* The part being dragged, where it would go, and a handle that follows the pointer. */}
@@ -165,7 +168,8 @@ export function EndingTrackItem({ startMs, durationMs, mode, onSelect }: { start
   const t = useScopedT('timeline')
   const { setNodeRef, itemStyle, itemContentStyle } = useItem({ id: 'video-ending', span: { start: startMs, end: startMs + durationMs }, disabled: true, data: { rowId: 'source-video-row' } })
   const label = t(mode === 'freeze' ? 'ending.freeze' : 'ending.background')
-  return <div ref={setNodeRef} style={itemStyle}><div style={{ ...itemContentStyle, height: 52 }}>
+  const compact = useRowCompact()
+  return <div ref={setNodeRef} style={itemStyle}><div style={{ ...itemContentStyle, height: compact ? 16 : 52, marginTop: compact ? 3 : undefined }}>
     <button
       type="button"
       data-testid="ending-track"

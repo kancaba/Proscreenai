@@ -113,5 +113,9 @@
   "format": {
     "heading": "视频尺寸 · 社交媒体",
     "custom": "自定义"
+  },
+  "rows": {
+    "collapse": "收起轨道",
+    "expand": "展开轨道"
   }
 }
