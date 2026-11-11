@@ -47,7 +47,8 @@
     "delete": "删除",
     "noSpace": "播放头处没有可放置此项的空间。",
     "cannotSplit": "请将播放头移到该项内部再分割。",
-    "copied": "已复制。使用 Cmd/Ctrl + V 粘贴到播放头。"
+    "copied": "已复制。使用 Cmd/Ctrl + V 粘贴到播放头。",
+    "noSpaceGroup": "所选项目移到那里会与其他项目重叠。"
   },
   "view": {
     "zoomSlider": "时间线缩放",
@@ -89,5 +90,11 @@
   "blur": {
     "label": "模糊 {{index}}",
     "addBlur": "隐藏敏感信息：使用工具栏中的模糊"
+  },
+  "group": {
+    "count": "已选择 {{count}} 项",
+    "delete": "删除",
+    "clear": "取消选择",
+    "hint": "按住 Shift 或 {{mod}} 点击可添加或移除 · {{mod}}+A 选择同类全部 · 拖动或 Alt+←/→ 一起移动 · Delete 删除全部"
   }
 }

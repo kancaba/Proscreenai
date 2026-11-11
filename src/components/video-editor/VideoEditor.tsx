@@ -100,7 +100,7 @@ import type { CaptionSlot } from './aiCaptionTiming';
 import { StylePresets } from './StylePresets';
 import { RegionInspector } from './RegionInspector';
 import { DEFAULT_ZOOM_SPAN_MS, findAvailableSpan, validRegionSpan, type TimeSpan } from './editingTools';
-import { KIND_ALLOWS_OVERLAP, nudgeRegion, placeCopy, type RegionCommand, type RegionKind, type RegionTarget, splitRegion, type TimedRegion } from './timeline/regionCommands';
+import { groupMoveDelta, KIND_ALLOWS_OVERLAP, moveRegionGroup, nudgeRegion, placeCopy, type RegionCommand, type RegionKind, type RegionTarget, splitRegion, type TimedRegion } from './timeline/regionCommands';
 import { getAnnotationText } from './annotationText';
 import { fadeAmount, type Fades, NO_FADES } from '@/lib/fades';
 import { type EndingHold, NO_ENDING } from '@/lib/endingHold';
@@ -2048,6 +2048,45 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
     handleSelectZoom, handleSelectTrim, handleSelectSpeed, handleSelectAnnotation, handleSelectAudio, handleSelectBlur,
   ]);
 
+  /** Several timeline items selected together: delete them, or move them by the same amount, as one step. */
+  const handleRegionGroupCommand = useCallback((command: Extract<RegionCommand, { type: "delete" | "nudge" }>, targets: RegionTarget[]) => {
+    const kinds: Record<RegionKind, { regions: TimedRegion[]; set: (regions: TimedRegion[]) => void }> = {
+      zoom: { regions: zoomRegions, set: setZoomRegions as unknown as (regions: TimedRegion[]) => void },
+      trim: { regions: trimRegions, set: setTrimRegions as unknown as (regions: TimedRegion[]) => void },
+      speed: { regions: speedRegions, set: setSpeedRegions as unknown as (regions: TimedRegion[]) => void },
+      annotation: { regions: annotationRegions, set: setAnnotationRegions as unknown as (regions: TimedRegion[]) => void },
+      audio: { regions: audioRegions, set: setAudioRegions as unknown as (regions: TimedRegion[]) => void },
+      blur: { regions: blurRegions, set: setBlurRegions as unknown as (regions: TimedRegion[]) => void },
+    };
+    const idsOf = (kind: RegionKind) => new Set(targets.filter((target) => target.kind === kind).map((target) => target.id));
+    const used = (Object.keys(kinds) as RegionKind[]).filter((kind) => idsOf(kind).size > 0);
+    if (used.length === 0) return;
+    startNewHistoryStep();
+    if (command.type === "delete") {
+      for (const kind of used) kinds[kind].set(kinds[kind].regions.filter((region) => !idsOf(kind).has(region.id)));
+      setSelectedZoomId(null);
+      setSelectedTrimId(null);
+      setSelectedSpeedId(null);
+      setSelectedAnnotationId(null);
+      setSelectedAudioId(null);
+      setSelectedBlurId(null);
+      return;
+    }
+    // Texts and sounds may sit in the ending extension; video edits stay on the video.
+    const totalFor = (kind: RegionKind) => (kind === "annotation" || kind === "audio" ? totalSourceMs + endingMs : totalSourceMs);
+    const delta = groupMoveDelta(
+      used.flatMap((kind) => kinds[kind].regions.filter((region) => idsOf(kind).has(region.id)).map((region) => ({ region, totalMs: totalFor(kind) }))),
+      command.deltaMs,
+    );
+    if (delta === 0) return;
+    const moved = used.map((kind) => [kind, moveRegionGroup(kinds[kind].regions, idsOf(kind), delta, KIND_ALLOWS_OVERLAP[kind])] as const);
+    if (moved.some(([, regions]) => regions === null)) {
+      toast.info(t('timeline.regionMenu.noSpaceGroup', 'The selected items would land on others there.'));
+      return;
+    }
+    for (const [kind, regions] of moved) if (regions) kinds[kind].set(regions);
+  }, [zoomRegions, trimRegions, speedRegions, annotationRegions, audioRegions, blurRegions, totalSourceMs, endingMs, startNewHistoryStep, t]);
+
   const handleAnnotationContentChange = useCallback((id: string, content: string) => {
     setAnnotationRegions((prev) => {
       const updated = prev.map((region) => {
@@ -3109,6 +3148,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
               selectedAudioId={selectedAudioId}
               onSelectAudio={handleSelectAudio}
               onRegionCommand={handleRegionCommand}
+              onRegionGroupCommand={handleRegionGroupCommand}
               canPasteRegion={canPasteRegion}
               annotationRegions={timelineAnnotations}
               onAnnotationAdded={(span) => handleAnnotationAdded(fromTimeline(span))}

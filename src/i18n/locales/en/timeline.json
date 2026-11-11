@@ -47,7 +47,8 @@
     "delete": "Delete",
     "noSpace": "There is no free space at the playhead for this item.",
     "cannotSplit": "Move the playhead inside the item to split it.",
-    "copied": "Copied. Paste at the playhead with Cmd/Ctrl + V."
+    "copied": "Copied. Paste at the playhead with Cmd/Ctrl + V.",
+    "noSpaceGroup": "The selected items would land on others there."
   },
   "view": {
     "zoomSlider": "Timeline zoom",
@@ -89,5 +90,11 @@
   "blur": {
     "label": "Blur {{index}}",
     "addBlur": "Hide sensitive info: Blur in the toolbar"
+  },
+  "group": {
+    "count": "{{count}} items selected",
+    "delete": "Delete",
+    "clear": "Clear",
+    "hint": "Shift or {{mod}} + click adds or removes an item · {{mod}}+A selects all of a kind · drag or Alt+←/→ moves them together · Delete removes them"
   }
 }

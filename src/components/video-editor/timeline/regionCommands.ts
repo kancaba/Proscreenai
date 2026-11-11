@@ -89,3 +89,28 @@ export function nudgeRegion<T extends TimedRegion>(
   if (!allowOverlap && track.some((other) => other.id !== region.id && overlaps(other, moved))) return null;
   return moved;
 }
+
+/**
+ * The largest part of `deltaMs` a group can move together while every item stays inside its
+ * track (0…`totalMs`). Items keep their distance to each other.
+ */
+export function groupMoveDelta(items: Array<{ region: TimedRegion; totalMs: number }>, deltaMs: number): number {
+  if (items.length === 0 || !Number.isFinite(deltaMs)) return 0;
+  const lowest = Math.max(...items.map(({ region }) => -region.startMs));
+  const highest = Math.min(...items.map(({ region, totalMs }) => totalMs - region.endMs));
+  if (highest < lowest) return 0;
+  return Math.round(Math.min(highest, Math.max(lowest, deltaMs)));
+}
+
+/**
+ * The track with the regions in `ids` moved by `deltaMs`; null when, on a track without
+ * overlaps, a moved region would land on one that stays.
+ */
+export function moveRegionGroup<T extends TimedRegion>(regions: T[], ids: Set<string>, deltaMs: number, allowOverlap: boolean): T[] | null {
+  const moved = regions.map((region) => (ids.has(region.id) ? { ...region, startMs: region.startMs + deltaMs, endMs: region.endMs + deltaMs } : region));
+  if (!allowOverlap) {
+    const staying = moved.filter((region) => !ids.has(region.id));
+    if (moved.some((region) => ids.has(region.id) && staying.some((other) => overlaps(other, region)))) return null;
+  }
+  return moved;
+}

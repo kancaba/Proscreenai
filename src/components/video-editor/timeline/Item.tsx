@@ -12,7 +12,8 @@ interface ItemProps {
   rowId: string;
   children: React.ReactNode;
   isSelected?: boolean;
-  onSelect?: () => void;
+  /** Gets the press, click or right-click, so modifier keys can add the item to a group. */
+  onSelect?: (event?: React.SyntheticEvent) => void;
   onContextMenu?: (event: React.MouseEvent) => void;
   lane?: number;
   zoomDepth?: number;
@@ -115,11 +116,11 @@ export default function Item({
       style={safeItemStyle}
       {...listeners}
       {...attributes}
-      onPointerDownCapture={() => onSelect?.()}
+      onPointerDownCapture={(event) => onSelect?.(event)}
       onContextMenu={(event) => {
         event.preventDefault();
         event.stopPropagation();
-        onSelect?.();
+        onSelect?.(event);
         onContextMenu?.(event);
       }}
       className="group"
@@ -134,7 +135,7 @@ export default function Item({
           style={{ height: 40, color: '#fff', minWidth: 24 }}
           onClick={(event) => {
             event.stopPropagation();
-            onSelect?.();
+            onSelect?.(event);
           }}
         >
           {(['left', 'right'] as const).map((side) => (

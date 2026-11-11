@@ -47,7 +47,8 @@
     "delete": "Sil",
     "noSpace": "Oynatma imlecinde bu öğe için boş yer yok.",
     "cannotSplit": "Bölmek için oynatma imlecini öğenin içine getirin.",
-    "copied": "Kopyalandı. Cmd/Ctrl + V ile oynatma imlecine yapıştırın."
+    "copied": "Kopyalandı. Cmd/Ctrl + V ile oynatma imlecine yapıştırın.",
+    "noSpaceGroup": "Seçili öğeler oraya taşınınca diğerlerinin üstüne biner."
   },
   "view": {
     "zoomSlider": "Timeline yakınlaştırma",
@@ -89,5 +90,11 @@
   "blur": {
     "label": "Bulanık {{index}}",
     "addBlur": "Hassas bilgiyi gizle: araç çubuğunda Bulanıklaştır"
+  },
+  "group": {
+    "count": "{{count}} öğe seçili",
+    "delete": "Sil",
+    "clear": "Seçimi kaldır",
+    "hint": "Shift veya {{mod}} ile tıkla: ekle/çıkar · {{mod}}+A: o türün hepsi · sürükle veya Alt+←/→: birlikte kaydır · Sil: hepsini sil"
   }
 }

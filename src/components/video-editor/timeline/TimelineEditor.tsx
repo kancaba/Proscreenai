@@ -21,7 +21,7 @@ import { formatShortcut } from "@/utils/platformUtils";
 import { TutorialHelp } from "../TutorialHelp";
 import TimelineWrapper, { type TimelineSnapScale } from "./TimelineWrapper";
 import { RegionContextMenu } from "./RegionContextMenu";
-import type { RegionCommand, RegionKind, RegionTarget } from "./regionCommands";
+import type { RegionCommand, RegionKind, RegionTarget, TimedRegion } from "./regionCommands";
 import { followPlayhead, rangeForZoomLevel, zoomLevelForRange } from "./timelineView";
 import Row from "./Row";
 import Item from "./Item";
@@ -96,6 +96,8 @@ interface TimelineEditorProps {
   selectedAudioId?: string | null;
   /** Copy, paste, duplicate, split, delete or nudge a timeline item. */
   onRegionCommand?: (command: RegionCommand, target: RegionTarget | null) => void;
+  /** Delete or move several selected items together, as one step. */
+  onRegionGroupCommand?: (command: Extract<RegionCommand, { type: "delete" | "nudge" }>, targets: RegionTarget[]) => void;
   canPasteRegion?: boolean;
   /**
    * Premiere-style editing of the video track: the timeline shows the video as edited, split
@@ -513,6 +515,9 @@ function Timeline({
   keyframes = [],
   snapScaleRef,
   onItemContextMenu,
+  groupIds,
+  onItemPick,
+  onClearGroup,
 }: {
   sourcePath: string; sourceTrims: TrimRegion[];
   clip?: ClipTrackProps;
@@ -535,6 +540,11 @@ function Timeline({
   keyframes?: { id: string; time: number }[];
   snapScaleRef?: MutableRefObject<TimelineSnapScale>;
   onItemContextMenu?: (target: RegionTarget, event: React.MouseEvent) => void;
+  /** Items selected together (Shift or Cmd/Ctrl + click). */
+  groupIds?: Set<string>;
+  /** True when the press was handled as a group pick, so the item is not selected on its own. */
+  onItemPick?: (target: RegionTarget, event?: React.SyntheticEvent) => boolean;
+  onClearGroup?: () => void;
 }) {
 	const { setTimelineRef, style, sidebarWidth, range, pixelsToValue } = useTimelineContext();
 	// Lets drag handlers outside the timeline context convert pixels for snapping.
@@ -565,6 +575,7 @@ function Timeline({
     onSelectAudio?.(null);
     onSelectBlur?.(null);
     clip?.onSelectSegment(null);
+    onClearGroup?.();
 
 			const rect = e.currentTarget.getBoundingClientRect();
 			const clickX = e.clientX - rect.left - sidebarWidth;
@@ -576,7 +587,7 @@ function Timeline({
 			const timeInSeconds = absoluteMs / 1000;
 
     onSeek(timeInSeconds);
-  }, [onSeek, onSelectZoom, onSelectTrim, onSelectAnnotation, onSelectSpeed, onSelectAudio, onSelectBlur, clip, videoDurationMs, sidebarWidth, range.start, pixelsToValue]);
+  }, [onSeek, onSelectZoom, onSelectTrim, onSelectAnnotation, onSelectSpeed, onSelectAudio, onSelectBlur, clip, onClearGroup, videoDurationMs, sidebarWidth, range.start, pixelsToValue]);
 
   const zoomItems = items.filter(item => item.rowId === ZOOM_ROW_ID);
   const trimItems = items.filter(item => item.rowId === TRIM_ROW_ID);
@@ -613,8 +624,8 @@ function Timeline({
 						key={item.id}
 						rowId={item.rowId}
 						span={item.span}
-						isSelected={item.id === selectedZoomId}
-						onSelect={() => onSelectZoom?.(item.id)}
+						isSelected={item.id === selectedZoomId || !!groupIds?.has(item.id)}
+						onSelect={(event) => { if (!onItemPick?.({ kind: 'zoom', id: item.id }, event)) onSelectZoom?.(item.id); }}
 						onContextMenu={(event) => onItemContextMenu?.({ kind: 'zoom', id: item.id }, event)}
 						zoomDepth={item.zoomDepth}
 						variant="zoom"
@@ -631,8 +642,8 @@ function Timeline({
 						key={item.id}
 						rowId={item.rowId}
 						span={item.span}
-						isSelected={item.id === selectedTrimId}
-						onSelect={() => onSelectTrim?.(item.id)}
+						isSelected={item.id === selectedTrimId || !!groupIds?.has(item.id)}
+						onSelect={(event) => { if (!onItemPick?.({ kind: 'trim', id: item.id }, event)) onSelectTrim?.(item.id); }}
 						onContextMenu={(event) => onItemContextMenu?.({ kind: 'trim', id: item.id }, event)}
 						variant="trim"
 					>
@@ -653,8 +664,8 @@ function Timeline({
 						key={item.id}
 						rowId={item.rowId}
 						span={item.span}
-						isSelected={item.id === selectedAnnotationId}
-						onSelect={() => onSelectAnnotation?.(item.id)}
+						isSelected={item.id === selectedAnnotationId || !!groupIds?.has(item.id)}
+						onSelect={(event) => { if (!onItemPick?.({ kind: 'annotation', id: item.id }, event)) onSelectAnnotation?.(item.id); }}
 						onContextMenu={(event) => onItemContextMenu?.({ kind: 'annotation', id: item.id }, event)}
 						variant="annotation" lane={annotationLayout.lanes.get(item.id)}
 					>
@@ -670,8 +681,8 @@ function Timeline({
             key={item.id}
             rowId={item.rowId}
             span={item.span}
-            isSelected={item.id === selectedBlurId}
-            onSelect={() => onSelectBlur?.(item.id)}
+            isSelected={item.id === selectedBlurId || !!groupIds?.has(item.id)}
+            onSelect={(event) => { if (!onItemPick?.({ kind: 'blur', id: item.id }, event)) onSelectBlur?.(item.id); }}
             onContextMenu={(event) => onItemContextMenu?.({ kind: 'blur', id: item.id }, event)}
             variant="blur" lane={blurLayout.lanes.get(item.id)}
           >
@@ -694,8 +705,8 @@ function Timeline({
                 key={item.id}
                 rowId={item.rowId}
                 span={item.span}
-                isSelected={item.id === selectedAudioId}
-                onSelect={() => onSelectAudio?.(item.id)}
+                isSelected={item.id === selectedAudioId || !!groupIds?.has(item.id)}
+                onSelect={(event) => { if (!onItemPick?.({ kind: 'audio', id: item.id }, event)) onSelectAudio?.(item.id); }}
                 onContextMenu={(event) => onItemContextMenu?.({ kind: 'audio', id: item.id }, event)}
                 variant="audio"
                 waveform={item.waveform}
@@ -758,6 +769,7 @@ export default function TimelineEditor({
   aspectRatio,
   onAspectRatioChange,
   onRegionCommand,
+  onRegionGroupCommand,
   canPasteRegion = false,
   clip,
 }: TimelineEditorProps) {
@@ -797,6 +809,48 @@ export default function TimelineEditor({
       ?? pick('speed', selectedSpeedId) ?? pick('audio', selectedAudioId) ?? pick('blur', selectedBlurId);
   }, [selectedZoomId, selectedTrimId, selectedAnnotationId, selectedSpeedId, selectedAudioId, selectedBlurId]);
 
+  // Several items selected together (Shift or Cmd/Ctrl + click): deleted or moved as a group.
+  const [group, setGroup] = useState<RegionTarget[]>([]);
+  const regionsOfKind = useMemo<Record<RegionKind, TimedRegion[]>>(() => ({
+    zoom: zoomRegions, trim: trimRegions, speed: speedRegions, annotation: annotationRegions, audio: audioRegions, blur: blurRegions,
+  }), [zoomRegions, trimRegions, speedRegions, annotationRegions, audioRegions, blurRegions]);
+  // Items deleted elsewhere (undo, the inspector) leave the group.
+  const liveGroup = useMemo(() => group.filter((target) => regionsOfKind[target.kind].some((region) => region.id === target.id)), [group, regionsOfKind]);
+  const groupIds = useMemo(() => new Set(liveGroup.map((target) => target.id)), [liveGroup]);
+  const lastGroupMoveRef = useRef(0);
+  const clearGroup = useCallback(() => setGroup([]), []);
+  const clearSingleSelection = useCallback(() => {
+    onSelectZoom(null);
+    onSelectTrim?.(null);
+    onSelectAnnotation?.(null);
+    onSelectSpeed?.(null);
+    onSelectAudio?.(null);
+    onSelectBlur?.(null);
+  }, [onSelectZoom, onSelectTrim, onSelectAnnotation, onSelectSpeed, onSelectAudio, onSelectBlur]);
+  const pickItem = useCallback((target: RegionTarget, event?: React.SyntheticEvent) => {
+    const native = event?.nativeEvent as MouseEvent | undefined;
+    const toggle = !!native && (native.shiftKey || (isMac ? native.metaKey : native.ctrlKey));
+    if (toggle) {
+      // Handled once, on the press; the click that follows is ignored.
+      if (event?.type !== 'pointerdown') return true;
+      const base = liveGroup.length > 0 ? liveGroup : selectedRegionTarget ? [selectedRegionTarget] : [];
+      const next = base.some((item) => item.id === target.id) ? base.filter((item) => item.id !== target.id) : [...base, target];
+      clearSingleSelection();
+      setGroup(next);
+      return true;
+    }
+    if (groupIds.has(target.id)) {
+      // Pressing a grouped item keeps the group so it can be dragged; a click without dragging picks that item alone.
+      if (event?.type === 'click' && Date.now() - lastGroupMoveRef.current > 400) {
+        setGroup([]);
+        return false;
+      }
+      return true;
+    }
+    if (liveGroup.length > 0) setGroup([]);
+    return false;
+  }, [isMac, liveGroup, groupIds, selectedRegionTarget, clearSingleSelection]);
+
   useEffect(() => {
     if (!onRegionCommand) return;
     const onKey = (event: KeyboardEvent) => {
@@ -809,8 +863,26 @@ export default function TimelineEditor({
       else if (mod && !event.shiftKey && !event.altKey && key === 'v' && canPasteRegion) command = { type: 'paste' };
       else if (mod && event.shiftKey && key === 'd' && selectedRegionTarget) command = { type: 'duplicate' };
       else if (mod && !event.shiftKey && !event.altKey && key === 'b' && selectedRegionTarget) command = { type: 'split' };
+      else if (event.altKey && !mod && (key === 'arrowleft' || key === 'arrowright') && liveGroup.length > 0) {
+        event.preventDefault();
+        lastGroupMoveRef.current = Date.now();
+        onRegionGroupCommand?.({ type: 'nudge', deltaMs: (key === 'arrowleft' ? -1 : 1) * (event.shiftKey ? 1000 : 100) }, liveGroup);
+        return;
+      }
       else if (event.altKey && !mod && (key === 'arrowleft' || key === 'arrowright') && selectedRegionTarget) {
         command = { type: 'nudge', deltaMs: (key === 'arrowleft' ? -1 : 1) * (event.shiftKey ? 1000 : 100) };
+      }
+      else if (mod && !event.shiftKey && !event.altKey && key === 'a' && (liveGroup[0] ?? selectedRegionTarget)) {
+        // Every item of the selected kind (all captions, all blurs …).
+        event.preventDefault();
+        const kind = (liveGroup[0] ?? selectedRegionTarget)?.kind as RegionKind;
+        clearSingleSelection();
+        setGroup(regionsOfKind[kind].map((region) => ({ kind, id: region.id })));
+        return;
+      }
+      else if (key === 'escape' && liveGroup.length > 0) {
+        setGroup([]);
+        return;
       }
       if (!command) return;
       // Captured first so the editor's own arrow/seek keys do not also act.
@@ -819,7 +891,7 @@ export default function TimelineEditor({
     };
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [onRegionCommand, selectedRegionTarget, canPasteRegion, isMac]);
+  }, [onRegionCommand, onRegionGroupCommand, selectedRegionTarget, canPasteRegion, isMac, liveGroup, regionsOfKind, clearSingleSelection]);
 
   useEffect(() => {
     if (aspectRatio === 'native') {
@@ -1330,7 +1402,11 @@ export default function TimelineEditor({
       }
       // Delete key or Ctrl+D / Cmd+D
       if (e.key === 'Delete' || e.key === 'Backspace' || matchesShortcut(e, keyShortcuts.deleteSelected, isMac)) {
-        if (selectedKeyframeId) {
+        if (liveGroup.length > 0 && onRegionGroupCommand) {
+          e.preventDefault();
+          onRegionGroupCommand({ type: 'delete' }, liveGroup);
+          setGroup([]);
+        } else if (selectedKeyframeId) {
           deleteSelectedKeyframe();
         } else if (selectedZoomId) {
           deleteSelectedZoom();
@@ -1352,7 +1428,7 @@ export default function TimelineEditor({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [addKeyframe, handleAddZoom, handleAddTrim, handleAddAnnotation, handleAddSpeed, deleteSelectedKeyframe, deleteSelectedZoom, deleteSelectedTrim, deleteSelectedAnnotation, deleteSelectedSpeed, deleteSelectedAudio, deleteSelectedBlur, selectedKeyframeId, selectedZoomId, selectedTrimId, selectedAnnotationId, selectedSpeedId, selectedAudioId, selectedBlurId, annotationRegions, currentTime, onSelectAnnotation, keyShortcuts, isMac, selectedRegionTarget, onRegionCommand, zoomRegions, trimRegions, speedRegions, audioRegions, blurRegions, currentTimeMs, clip]);
+  }, [addKeyframe, handleAddZoom, handleAddTrim, handleAddAnnotation, handleAddSpeed, deleteSelectedKeyframe, deleteSelectedZoom, deleteSelectedTrim, deleteSelectedAnnotation, deleteSelectedSpeed, deleteSelectedAudio, deleteSelectedBlur, selectedKeyframeId, selectedZoomId, selectedTrimId, selectedAnnotationId, selectedSpeedId, selectedAudioId, selectedBlurId, annotationRegions, currentTime, onSelectAnnotation, keyShortcuts, isMac, selectedRegionTarget, onRegionCommand, zoomRegions, trimRegions, speedRegions, audioRegions, blurRegions, currentTimeMs, clip, liveGroup, onRegionGroupCommand]);
 
   const clampedRange = useMemo<Range>(() => {
     if (totalMs === 0) {
@@ -1449,6 +1525,19 @@ export default function TimelineEditor({
   const cutSnapTimes = useMemo(() => [...(clip?.markers.map((marker) => marker.outMs) ?? []), ...(clip?.segments.map((segment) => segment.outStart) ?? [])], [clip]);
 
   const handleItemSpanChange = useCallback((id: string, span: Span, rowId?: string) => {
+    // Dragging one item of a group moves the whole group; resizing changes only that item.
+    if (liveGroup.length > 1 && groupIds.has(id) && onRegionGroupCommand) {
+      const target = liveGroup.find((item) => item.id === id);
+      const region = target && regionsOfKind[target.kind].find((item) => item.id === id);
+      if (region && Math.abs((span.end - span.start) - (region.endMs - region.startMs)) <= 1) {
+        const deltaMs = Math.round(span.start - region.startMs);
+        if (deltaMs !== 0) {
+          lastGroupMoveRef.current = Date.now();
+          onRegionGroupCommand({ type: 'nudge', deltaMs }, liveGroup);
+        }
+        return;
+      }
+    }
     // Check if it's a zoom, trim, speed, or annotation item
     if (zoomRegions.some(r => r.id === id)) {
       onZoomSpanChange(id, span);
@@ -1463,7 +1552,7 @@ export default function TimelineEditor({
     } else if (blurRegions.some(r => r.id === id)) {
       onBlurSpanChange?.(id, span);
     }
-  }, [zoomRegions, trimRegions, speedRegions, annotationRegions, audioRegions, blurRegions, onZoomSpanChange, onTrimSpanChange, onSpeedSpanChange, onAnnotationSpanChange, onAudioSpanChange, onBlurSpanChange]);
+  }, [zoomRegions, trimRegions, speedRegions, annotationRegions, audioRegions, blurRegions, onZoomSpanChange, onTrimSpanChange, onSpeedSpanChange, onAnnotationSpanChange, onAudioSpanChange, onBlurSpanChange, liveGroup, groupIds, regionsOfKind, onRegionGroupCommand]);
 
   // Follow the playhead while it moves (on by default; remembered per user).
   const [followPlayheadEnabled, setFollowPlayheadEnabled] = useState(() => {
@@ -1699,6 +1788,13 @@ export default function TimelineEditor({
           <TutorialHelp />
         </div>
         <div className="flex-1" />
+        {liveGroup.length > 1 && onRegionGroupCommand && (
+          <div data-testid="timeline-group-bar" className="mr-2 flex items-center gap-1.5 rounded-md bg-[#2563EB]/20 px-2 py-1 text-[11px] text-slate-100" title={tTimeline('group.hint', 'Shift or {{mod}} + click adds or removes an item · {{mod}}+A selects all of a kind · drag or Alt+←/→ moves them together', { mod: isMac ? '⌘' : 'Ctrl' })}>
+            <span>{tTimeline('group.count', '{{count}} items selected', { count: String(liveGroup.length) })}</span>
+            <button type="button" data-testid="timeline-group-delete" onClick={() => { onRegionGroupCommand({ type: 'delete' }, liveGroup); setGroup([]); }} className="rounded bg-white/10 px-1.5 py-0.5 hover:bg-red-500/40">{tTimeline('group.delete', 'Delete')}</button>
+            <button type="button" data-testid="timeline-group-clear" onClick={clearGroup} className="rounded px-1.5 py-0.5 text-slate-300 hover:bg-white/10">{tTimeline('group.clear', 'Clear')}</button>
+          </div>
+        )}
         <div className="flex items-center gap-1 text-[11px] text-slate-400" title={`${scrollLabels.pan} · ${scrollLabels.zoom}`}>
           <button type="button" title="Uzaklaştır (-)" aria-label="Timeline uzaklaştır" onClick={() => zoomTimeline(.7)} className="rounded bg-white/5 px-2 py-1">−</button>
           <button type="button" title="Videoyu sığdır (Shift+F)" onClick={() => setRange({start:0,end:totalMs})} className="rounded bg-white/5 px-2 py-1">Sığdır</button>
@@ -1776,6 +1872,9 @@ export default function TimelineEditor({
             keyframes={keyframes}
             snapScaleRef={snapScaleRef}
             onItemContextMenu={openContextMenu}
+            groupIds={groupIds}
+            onItemPick={onRegionGroupCommand ? pickItem : undefined}
+            onClearGroup={clearGroup}
           />
         </TimelineWrapper>
       </div>

@@ -47,7 +47,8 @@
     "delete": "Eliminar",
     "noSpace": "No hay espacio libre en el cabezal para este elemento.",
     "cannotSplit": "Coloca el cabezal dentro del elemento para dividirlo.",
-    "copied": "Copiado. Pega en el cabezal con Cmd/Ctrl + V."
+    "copied": "Copiado. Pega en el cabezal con Cmd/Ctrl + V.",
+    "noSpaceGroup": "Los elementos seleccionados quedarían encima de otros."
   },
   "view": {
     "zoomSlider": "Zoom de la línea de tiempo",
@@ -89,5 +90,11 @@
   "blur": {
     "label": "Desenfoque {{index}}",
     "addBlur": "Oculta datos sensibles: Desenfocar en la barra de herramientas"
+  },
+  "group": {
+    "count": "{{count}} elementos seleccionados",
+    "delete": "Eliminar",
+    "clear": "Quitar selección",
+    "hint": "Mayús o {{mod}} + clic añade o quita un elemento · {{mod}}+A selecciona todos los de un tipo · arrastra o Alt+←/→ para moverlos juntos · Suprimir los elimina"
   }
 }
