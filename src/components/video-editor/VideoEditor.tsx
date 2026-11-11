@@ -1352,6 +1352,8 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
       setSelectedSpeedId(null);
       setSelectedTrimId(null);
       setSelectedAudioId(null);
+      // A caption left selected kept the panel on its settings, so the zoom looked unselected.
+      setSelectedAnnotationId(null);
     }
   }, []);
 
