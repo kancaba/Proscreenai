@@ -174,6 +174,7 @@
 		"noTools": "未找到受支持的 AI 工具。请安装 Claude Code、Codex、Cursor Agent 或 OpenCode。",
 		"options": "选项",
 		"shareFrames": "共享视频画面（代理可以看到屏幕；会明显增加令牌用量）",
+		"needsFrames": "此任务需要在选项中开启“共享视频画面”。",
 		"model": "模型（可选）",
 		"modelPlaceholder": "工具默认",
 		"data": "发送给所选工具的提供方：项目摘要、点击、语音文本和停顿。不会发送视频文件。",
@@ -184,7 +185,8 @@
 			"cut-pauses": "剪掉静音",
 			"speed-up-waits": "加速等待",
 			"chapters": "章节标题",
-			"short-version": "精简版"
+			"short-version": "精简版",
+			"blur-private": "隐藏隐私信息"
 		},
 		"requestPlaceholder": "或描述你的需求：“剪掉前 5 秒并在开头加标题”",
 		"send": "发送",
@@ -199,6 +201,7 @@
 			"propose_speed": "速度建议",
 			"propose_captions": "字幕建议",
 			"propose_text": "文字建议",
+			"propose_blur": "模糊建议",
 			"review_proposals": "检查建议",
 			"clear_proposals": "清除建议"
 		},
@@ -219,7 +222,8 @@
 			"caption": "字幕",
 			"text": "文字",
 			"trim": "剪切",
-			"speed": "速度"
+			"speed": "速度",
+			"blur": "模糊"
 		},
 		"replaces": "替换现有内容",
 		"selectNone": "全不选",

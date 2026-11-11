@@ -4,7 +4,7 @@
  * Every check returns a plain message so the agent can correct itself and try again.
  */
 
-export type ProposalKind = "zoom" | "trim" | "speed" | "caption" | "text";
+export type ProposalKind = "zoom" | "trim" | "speed" | "caption" | "text" | "blur";
 export type TextPreset = "title" | "subtitle" | "label" | "callout" | "typing";
 
 export const AGENT_SPEEDS = [0.25, 0.5, 0.75, 1.25, 1.5, 1.75, 2] as const;
@@ -40,7 +40,14 @@ export interface TextProposal extends ProposalBase {
   /** Top-left corner in percent of the frame; the preset's default place when absent. */
   position?: { x: number; y: number };
 }
-export type Proposal = ZoomProposal | TrimProposal | SpeedProposal | CaptionProposal | TextProposal;
+/** An area of the recorded frame to blur, e.g. an e-mail address or an ID number on screen. */
+export interface BlurProposal extends ProposalBase {
+  kind: "blur";
+  /** Fractions (0–1) of the recorded frame: top-left corner, width and height. */
+  rect: { x: number; y: number; width: number; height: number };
+  style: "blur" | "pixelate";
+}
+export type Proposal = ZoomProposal | TrimProposal | SpeedProposal | CaptionProposal | TextProposal | BlurProposal;
 
 export interface ProposalSet {
   items: Proposal[];
@@ -70,7 +77,10 @@ const LIMITS = {
   speed: { min: 500, max: Number.POSITIVE_INFINITY },
   caption: { min: 300, max: 15000 },
   text: { min: 500, max: 30000 },
+  blur: { min: 300, max: Number.POSITIVE_INFINITY },
 };
+/** Smallest blur side, as a fraction of the frame. */
+const MIN_BLUR_SIDE = 0.01;
 const MAX_TEXT = 200;
 const MAX_ITEMS_PER_KIND = 500;
 
@@ -143,6 +153,17 @@ function readItem(kind: ProposalKind, raw: unknown, durationMs: number, id: stri
         position = { x: item.x, y: item.y };
       }
       return { ...base, kind, text, preset, ...(position ? { position } : {}) };
+    }
+    case "blur": {
+      const { x, y, width, height } = item;
+      if (!isNumber(x) || !isNumber(y) || !isNumber(width) || !isNumber(height)) return "x, y, width and height must be numbers (fractions 0–1 of the frame)";
+      if (x < 0 || y < 0 || x > 1 || y > 1) return "x and y must be between 0 and 1";
+      if (width < MIN_BLUR_SIDE || height < MIN_BLUR_SIDE) return `width and height must be at least ${MIN_BLUR_SIDE}`;
+      if (x + width > 1.001 || y + height > 1.001) return "the area must stay inside the frame (x + width and y + height at most 1)";
+      const style = item.style ?? "blur";
+      if (style !== "blur" && style !== "pixelate") return "style must be blur or pixelate";
+      const round = (value: number) => Number(value.toFixed(4));
+      return { ...base, kind, rect: { x: round(x), y: round(y), width: round(Math.min(width, 1 - x)), height: round(Math.min(height, 1 - y)) }, style };
     }
   }
 }
@@ -232,7 +253,9 @@ export function summarizeProposals(set: ProposalSet): string {
             ? `${item.speed}x`
             : item.kind === "caption" || item.kind === "text"
               ? JSON.stringify(item.text)
-              : "cut";
+              : item.kind === "blur"
+                ? `${item.style} area x ${item.rect.x}, y ${item.rect.y}, ${item.rect.width} × ${item.rect.height}`
+                : "cut";
       return `${item.kind} ${item.startMs}–${item.endMs} ms: ${detail}${item.reason ? ` — ${item.reason}` : ""}`;
     });
   const flags = [set.replaceZooms ? "replaces current zooms" : "", set.replaceCaptions ? "replaces current speech captions" : ""].filter(Boolean);
@@ -251,6 +274,8 @@ function toRaw(item: Proposal): Record<string, unknown> {
       return { ...base, text: item.text };
     case "text":
       return { ...base, text: item.text, style: item.preset, ...(item.position ? { x: item.position.x, y: item.position.y } : {}) };
+    case "blur":
+      return { ...base, ...item.rect, style: item.style };
     default:
       return base;
   }
@@ -261,7 +286,7 @@ export function sanitizeProposalSet(value: unknown, context: ProposalContext, ne
   const raw = value as Partial<ProposalSet> | null;
   if (!raw || !Array.isArray(raw.items)) return EMPTY_PROPOSALS;
   let set: ProposalSet = EMPTY_PROPOSALS;
-  const kinds: ProposalKind[] = ["zoom", "trim", "speed", "caption", "text"];
+  const kinds: ProposalKind[] = ["zoom", "trim", "speed", "caption", "text", "blur"];
   for (const kind of kinds) {
     const items = raw.items.filter((item): item is Proposal => !!item && (item as Proposal).kind === kind).map(toRaw);
     if (items.length === 0) continue;

@@ -1878,6 +1878,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
       speeds: speedRegions.map(({ startMs, endMs, speed }) => ({ startMs, endMs, speed })),
       captions: annotationRegions.filter((region) => region.type === 'text' && region.generatedBy === 'transcript' && textOf(region)).map((region) => ({ startMs: region.startMs, endMs: region.endMs, text: textOf(region) })),
       texts: annotationRegions.filter((region) => region.type === 'text' && region.generatedBy !== 'transcript' && textOf(region)).map((region) => ({ startMs: region.startMs, endMs: region.endMs, text: textOf(region) })),
+      blurs: blurRegions.map(({ startMs, endMs, rect }) => ({ startMs, endMs, rect })),
     };
   };
   const agent = useAgentRun(agentVideoPath, getAgentSnapshot);
@@ -1886,7 +1887,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
   /** The chosen agent proposals become one undoable edit. */
   const handleAgentApply = () => {
     const next = applyProposals(
-      { zooms: zoomRegions, trims: trimRegions, speeds: speedRegions, annotations: annotationRegions },
+      { zooms: zoomRegions, trims: trimRegions, speeds: speedRegions, annotations: annotationRegions, blurs: blurRegions },
       agent.proposals,
       agent.chosen,
       {
@@ -1894,6 +1895,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
         trim: () => `trim-${nextTrimIdRef.current++}`,
         speed: () => `speed-${nextSpeedIdRef.current++}`,
         annotation: () => `annotation-${nextAnnotationIdRef.current++}`,
+        blur: () => `blur-${nextBlurIdRef.current++}`,
         zIndex: () => nextAnnotationZIndexRef.current++,
       },
     );
@@ -1902,6 +1904,7 @@ export default function VideoEditor({ clipSession }: { clipSession?: ClipSession
     setZoomRegions(next.zooms);
     setTrimRegions(next.trims);
     setSpeedRegions(next.speeds);
+    setBlurRegions(next.blurs);
     // Captions the agent writes get the same look as the others.
     setAnnotationRegions(applyCaptionStyle(next.annotations, captionStyle));
     setSelectedZoomId(null);

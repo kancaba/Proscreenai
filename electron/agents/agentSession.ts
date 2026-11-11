@@ -115,7 +115,7 @@ export function createAgentSession(options: AgentSessionOptions) {
   const tools: McpTool[] = [
     {
       name: 'get_project',
-      description: 'The recording and its current edits: duration, cut ranges (trims), zooms, speed changes, speech captions, other on-screen texts, plus your proposals so far. Start here.',
+      description: 'The recording and its current edits: duration, cut ranges (trims), zooms, speed changes, speech captions, other on-screen texts, blurred areas, plus your proposals so far. Start here.',
       inputSchema: { type: 'object', properties: {}, additionalProperties: false },
       annotations: read,
       handler: traced('get_project', async () => json({
@@ -127,6 +127,7 @@ export function createAgentSession(options: AgentSessionOptions) {
         speeds: snapshot.speeds,
         captions: snapshot.captions,
         texts: snapshot.texts,
+        blurs: snapshot.blurs,
         proposals: summarizeProposals(proposals),
         notes: 'Trims are parts removed from the final video. Zoom depth 1–6 means 1.25x, 1.5x, 1.8x, 2.2x, 3.5x, 5x. Positions are fractions of the frame (0–1) unless noted.',
       })),
@@ -243,6 +244,13 @@ export function createAgentSession(options: AgentSessionOptions) {
       handler: traced('propose_text', propose('text', 'items')),
     },
     {
+      name: 'propose_blur',
+      description: 'Suggest areas of the recorded frame to blur, such as e-mail addresses, names, ID or tax numbers, phone numbers, passwords or tokens shown on screen. x, y, width, height: fractions (0–1) of the frame, measured on get_frame images (the area follows zooms and crops). Cover the text with a small margin, and span the whole time it is visible; when it moves or scrolls, propose one area per position. style: blur (default) or pixelate.',
+      inputSchema: { type: 'object', properties: { areas: listOf({ x: { type: 'number', minimum: 0, maximum: 1 }, y: { type: 'number', minimum: 0, maximum: 1 }, width: { type: 'number', minimum: 0.01, maximum: 1 }, height: { type: 'number', minimum: 0.01, maximum: 1 }, style: { type: 'string', enum: ['blur', 'pixelate'] } }, ['x', 'y', 'width', 'height']) }, required: ['areas'], additionalProperties: false },
+      annotations: stage,
+      handler: traced('propose_blur', propose('blur', 'areas')),
+    },
+    {
       name: 'review_proposals',
       description: 'List your proposals so far.',
       inputSchema: { type: 'object', properties: {}, additionalProperties: false },
@@ -251,8 +259,8 @@ export function createAgentSession(options: AgentSessionOptions) {
     },
     {
       name: 'clear_proposals',
-      description: 'Remove your proposals of one kind (zoom, trim, speed, caption, text), or all of them when kind is omitted.',
-      inputSchema: { type: 'object', properties: { kind: { type: 'string', enum: ['zoom', 'trim', 'speed', 'caption', 'text'] } }, additionalProperties: false },
+      description: 'Remove your proposals of one kind (zoom, trim, speed, caption, text, blur), or all of them when kind is omitted.',
+      inputSchema: { type: 'object', properties: { kind: { type: 'string', enum: ['zoom', 'trim', 'speed', 'caption', 'text', 'blur'] } }, additionalProperties: false },
       annotations: stage,
       handler: traced('clear_proposals', async (args) => {
         proposals = clearProposals(proposals, typeof args.kind === 'string' ? (args.kind as ProposalKind) : undefined)

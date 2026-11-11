@@ -1,11 +1,13 @@
 /** Ready-made editing tasks and the instructions every agent run starts with. */
 
-export type AgentTaskId = "smart-zoom" | "fix-captions" | "cut-pauses" | "speed-up-waits" | "chapters" | "short-version";
+export type AgentTaskId = "smart-zoom" | "fix-captions" | "cut-pauses" | "speed-up-waits" | "chapters" | "short-version" | "blur-private";
 
 export interface AgentTask {
   id: AgentTaskId;
   /** What the agent is asked to do (English; the agent answers in the user's language). */
   prompt: string;
+  /** The task looks at the screen, so it needs video frames. */
+  needsFrames?: boolean;
 }
 
 export const AGENT_TASKS: AgentTask[] = [
@@ -38,6 +40,12 @@ export const AGENT_TASKS: AgentTask[] = [
     id: "short-version",
     prompt:
       "Make a short version of at most 60 seconds. Using get_transcript, get_pauses and get_clicks, keep the introduction and the key actions and remove less important parts with propose_trims (the trims are the parts that are cut). Explain in the summary what is kept.",
+  },
+  {
+    id: "blur-private",
+    needsFrames: true,
+    prompt:
+      "Hide private information on screen. Look at frames with get_frame (start, end, and moments around clicks from get_clicks and screen changes) and find e-mail addresses, personal names, tax or ID numbers, phone numbers, addresses, passwords, tokens and API keys. For each, propose a blur area with propose_blur covering the text with a small margin, for the whole time it is visible; check a frame before and after to find when it appears and disappears, and use separate areas when it moves or the page scrolls. Do not blur ordinary interface labels, menus or company names that are part of the product. If get_frame is not available, do not guess positions: say in the summary that frame access must be allowed for this task.",
   },
 ];
 

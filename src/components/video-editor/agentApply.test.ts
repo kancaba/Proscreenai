@@ -4,7 +4,7 @@ import { applyProposals, type EditorRegions, mergeTrims, type RegionIds } from "
 
 function ids(): RegionIds {
   let n = 100;
-  return { zoom: () => `zoom-${n++}`, trim: () => `trim-${n++}`, speed: () => `speed-${n++}`, annotation: () => `annotation-${n++}`, zIndex: () => n++ };
+  return { zoom: () => `zoom-${n++}`, trim: () => `trim-${n++}`, speed: () => `speed-${n++}`, annotation: () => `annotation-${n++}`, blur: () => `blur-${n++}`, zIndex: () => n++ };
 }
 
 const current: EditorRegions = {
@@ -15,6 +15,7 @@ const current: EditorRegions = {
     { id: "annotation-1", startMs: 0, endMs: 1000, type: "text", content: "old", textContent: "old", position: { x: 10, y: 76 }, size: { width: 80, height: 16 }, style: {} as never, zIndex: 1, generatedBy: "transcript" },
     { id: "annotation-2", startMs: 0, endMs: 1000, type: "text", content: "mine", textContent: "mine", position: { x: 0, y: 0 }, size: { width: 10, height: 10 }, style: {} as never, zIndex: 2 },
   ],
+  blurs: [{ id: "blur-1", startMs: 0, endMs: 500, rect: { x: 0, y: 0, width: 0.1, height: 0.1 }, style: "blur", strength: 0.7 }],
 };
 
 const set: ProposalSet = {
@@ -52,6 +53,14 @@ describe("applying agent proposals", () => {
     expect(keep.annotations).toHaveLength(2);
     const additive = applyProposals(current, { ...set, replaceZooms: false }, new Set(["p1"]), ids());
     expect(additive.zooms).toEqual(current.zooms);
+  });
+
+  it("adds chosen blur areas next to the current ones", () => {
+    const blur = { id: "b1", kind: "blur" as const, startMs: 1000, endMs: 4000, rect: { x: 0.6, y: 0.1, width: 0.3, height: 0.05 }, style: "pixelate" as const };
+    const result = applyProposals(current, { items: [blur], replaceZooms: false, replaceCaptions: false }, new Set(["b1"]), ids());
+    expect(result.blurs).toHaveLength(2);
+    expect(result.blurs[1]).toMatchObject({ startMs: 1000, endMs: 4000, rect: { x: 0.6, y: 0.1, width: 0.3, height: 0.05 }, style: "pixelate", strength: 0.7 });
+    expect(applyProposals(current, { items: [blur], replaceZooms: false, replaceCaptions: false }, new Set(), ids()).blurs).toEqual(current.blurs);
   });
 
   it("merges touching cuts", () => {

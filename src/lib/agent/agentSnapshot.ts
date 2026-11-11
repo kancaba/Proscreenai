@@ -12,6 +12,8 @@ export interface AgentProjectSnapshot {
   captions: Array<{ startMs: number; endMs: number; text: string }>;
   /** Other on-screen texts. */
   texts: Array<{ startMs: number; endMs: number; text: string }>;
+  /** Blurred areas, as fractions (0–1) of the recorded frame. */
+  blurs: Array<{ startMs: number; endMs: number; rect: { x: number; y: number; width: number; height: number } }>;
 }
 
 const MAX_ITEMS = 3000;
@@ -48,5 +50,11 @@ export function parseAgentSnapshot(value: unknown): AgentProjectSnapshot | null 
     speeds: spans(raw.speeds, (item) => (finite(item.speed) ? { speed: item.speed } : null)),
     captions: spans(raw.captions, text),
     texts: spans(raw.texts, text),
+    blurs: spans(raw.blurs, (item) => {
+      const rect = item.rect as Record<string, unknown> | undefined;
+      return rect && finite(rect.x) && finite(rect.y) && finite(rect.width) && finite(rect.height)
+        ? { rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height } }
+        : null;
+    }),
   };
 }

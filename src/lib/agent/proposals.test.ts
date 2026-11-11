@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addProposals, clearProposals, EMPTY_PROPOSALS, type ProposalContext, summarizeProposals } from "./proposals";
+import { addProposals, clearProposals, EMPTY_PROPOSALS, type ProposalContext, sanitizeProposalSet, summarizeProposals } from "./proposals";
 
 const context: ProposalContext = { durationMs: 20000, zooms: [{ startMs: 1000, endMs: 3000 }], speeds: [] };
 let counter = 0;
@@ -47,6 +47,35 @@ describe("agent proposals", () => {
     expect(text.set.items[0]).toMatchObject({ text: "Giriş", preset: "title", position: { x: 10, y: 10 } });
     expect(addProposals(EMPTY_PROPOSALS, "caption", [{ startMs: 0, endMs: 1000, text: "" }], context, {}, nextId).errors[0]).toMatch(/text must be/);
     expect(addProposals(EMPTY_PROPOSALS, "caption", "nope", context, {}, nextId).errors[0]).toMatch(/non-empty array/);
+  });
+
+  it("accepts blur areas on the frame and explains bad ones", () => {
+    const result = addProposals(
+      EMPTY_PROPOSALS,
+      "blur",
+      [
+        { startMs: 2000, endMs: 9000, x: 0.62, y: 0.1, width: 0.25, height: 0.04, reason: "e-mail" },
+        { startMs: 2000, endMs: 9000, x: 0.1, y: 0.5, width: 0.2, height: 0.05, style: "pixelate" },
+        { startMs: 0, endMs: 1000, x: 0.9, y: 0.1, width: 0.3, height: 0.05 },
+        { startMs: 0, endMs: 1000, x: 0.1, y: 0.1, width: 0.001, height: 0.05 },
+        { startMs: 0, endMs: 1000, x: "left", y: 0.1, width: 0.2, height: 0.05 },
+        { startMs: 0, endMs: 1000, x: 0.1, y: 0.1, width: 0.2, height: 0.05, style: "black" },
+      ],
+      context,
+      {},
+      nextId,
+    );
+    // Blur areas may overlap in time: one screen can show several private details.
+    expect(result.accepted).toBe(2);
+    expect(result.set.items[0]).toMatchObject({ kind: "blur", rect: { x: 0.62, y: 0.1, width: 0.25, height: 0.04 }, style: "blur", reason: "e-mail" });
+    expect(result.set.items[1]).toMatchObject({ style: "pixelate" });
+    expect(result.errors.join("\n")).toMatch(/inside the frame/);
+    expect(result.errors.join("\n")).toMatch(/at least 0.01/);
+    expect(result.errors.join("\n")).toMatch(/must be numbers/);
+    expect(result.errors.join("\n")).toMatch(/blur or pixelate/);
+    expect(summarizeProposals(result.set)).toMatch(/blur 2000–9000 ms: blur area x 0.62, y 0.1, 0.25 × 0.04 — e-mail/);
+    // A set coming back from the editor keeps its blur areas.
+    expect(sanitizeProposalSet(result.set, context, nextId).items.map((item) => item.kind)).toEqual(["blur", "blur"]);
   });
 
   it("summarises and clears", () => {

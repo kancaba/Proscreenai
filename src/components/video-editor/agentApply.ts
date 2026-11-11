@@ -1,5 +1,6 @@
 import type { Proposal, ProposalSet, TextPreset } from "@/lib/agent/proposals";
 import { SUBTITLE_PLACEMENT, TEXT_STYLE_PRESETS } from "./annotationEffects";
+import { type BlurRegion, clampBlurRect, DEFAULT_BLUR_STRENGTH } from "./blurRegions";
 import {
   type AnnotationRegion,
   DEFAULT_ANNOTATION_STYLE,
@@ -13,6 +14,7 @@ export interface EditorRegions {
   trims: TrimRegion[];
   speeds: SpeedRegion[];
   annotations: AnnotationRegion[];
+  blurs: BlurRegion[];
 }
 
 export interface RegionIds {
@@ -20,6 +22,7 @@ export interface RegionIds {
   trim: () => string;
   speed: () => string;
   annotation: () => string;
+  blur: () => string;
   zIndex: () => number;
 }
 
@@ -97,5 +100,10 @@ export function applyProposals(current: EditorRegions, set: ProposalSet, chosen:
     ...of("text").map((item) => textRegion(item.text, item.startMs, item.endMs, item.preset, ids, item.position)),
   ];
 
-  return { zooms, trims, speeds: speeds.sort((a, b) => a.startMs - b.startMs), annotations };
+  const blurs = [
+    ...current.blurs,
+    ...of("blur").map((item): BlurRegion => ({ id: ids.blur(), startMs: item.startMs, endMs: item.endMs, rect: clampBlurRect(item.rect), style: item.style, strength: DEFAULT_BLUR_STRENGTH })),
+  ];
+
+  return { zooms, trims, speeds: speeds.sort((a, b) => a.startMs - b.startMs), annotations, blurs };
 }

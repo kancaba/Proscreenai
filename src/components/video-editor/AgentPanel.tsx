@@ -12,7 +12,7 @@ const SIGN_IN_COMMANDS: Record<AgentToolId, string> = {
   cursor: "agent login",
   opencode: "opencode auth login",
 };
-const KIND_ORDER: ProposalKind[] = ["zoom", "caption", "text", "trim", "speed"];
+const KIND_ORDER: ProposalKind[] = ["zoom", "caption", "text", "blur", "trim", "speed"];
 
 const clock = (ms: number) => {
   const seconds = ms / 1000;
@@ -86,6 +86,7 @@ function describeProposal(item: Proposal) {
   if (item.kind === "zoom") return `${item.depth} · ${item.reason ?? ""}`;
   if (item.kind === "speed") return `${item.speed}× · ${item.reason ?? ""}`;
   if (item.kind === "caption" || item.kind === "text") return item.text;
+  if (item.kind === "blur") return item.reason ?? `${Math.round(item.rect.width * 100)}% × ${Math.round(item.rect.height * 100)}%`;
   return item.reason ?? "";
 }
 
@@ -189,7 +190,9 @@ export function AgentPanel({ state, available, onApply, onSeek, variant = "compa
                 key={task.id}
                 type="button"
                 data-testid={`agent-task-${task.id}`}
-                disabled={!usable}
+                // Finding what to blur means looking at the screen.
+                disabled={!usable || (task.needsFrames === true && !state.framesAllowed)}
+                title={task.needsFrames && !state.framesAllowed ? t("agent.needsFrames") : undefined}
                 onClick={() => void state.start(task.prompt)}
                 className="rounded-md bg-white/5 px-2 py-1.5 text-left text-[11px] text-slate-200 hover:bg-white/10 disabled:opacity-40"
               >

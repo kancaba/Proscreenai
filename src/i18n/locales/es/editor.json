@@ -174,6 +174,7 @@
 		"noTools": "No se encontró ninguna herramienta de IA compatible. Instala Claude Code, Codex, Cursor Agent u OpenCode.",
 		"options": "Opciones",
 		"shareFrames": "Compartir fotogramas (el agente puede ver la pantalla; usa bastantes más tokens)",
+		"needsFrames": "Esta tarea necesita activar “Compartir fotogramas” en Opciones.",
 		"model": "Modelo (opcional)",
 		"modelPlaceholder": "Predeterminado de la herramienta",
 		"data": "Se envía al proveedor de la herramienta: resumen del proyecto, clics, texto hablado y pausas. El archivo de vídeo no se envía.",
@@ -184,7 +185,8 @@
 			"cut-pauses": "Cortar silencios",
 			"speed-up-waits": "Acelerar esperas",
 			"chapters": "Títulos de capítulo",
-			"short-version": "Versión corta"
+			"short-version": "Versión corta",
+			"blur-private": "Ocultar datos privados"
 		},
 		"requestPlaceholder": "O describe lo que quieres: «Corta los primeros 5 segundos y añade un título»",
 		"send": "Enviar",
@@ -199,6 +201,7 @@
 			"propose_speed": "Propuesta de velocidad",
 			"propose_captions": "Propuesta de subtítulos",
 			"propose_text": "Propuesta de texto",
+			"propose_blur": "Propuesta de desenfoque",
 			"review_proposals": "Revisando propuestas",
 			"clear_proposals": "Borrando propuestas"
 		},
@@ -219,7 +222,8 @@
 			"caption": "Subtítulos",
 			"text": "Texto",
 			"trim": "Cortes",
-			"speed": "Velocidad"
+			"speed": "Velocidad",
+			"blur": "Desenfoque"
 		},
 		"replaces": "sustituye lo actual",
 		"selectNone": "Ninguno",
