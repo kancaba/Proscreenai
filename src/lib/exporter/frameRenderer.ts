@@ -1,4 +1,5 @@
 import { Application, Container, Sprite, Graphics, BlurFilter, Texture } from 'pixi.js';
+import '@/lib/pixiMaskFix';
 import { MotionBlurFilter } from 'pixi-filters/motion-blur';
 import { ZoomBlurFilter } from 'pixi-filters/zoom-blur';
 import type { ZoomRegion, CropRegion, AnnotationRegion, SpeedRegion, CursorTelemetryPoint } from '@/components/video-editor/types';

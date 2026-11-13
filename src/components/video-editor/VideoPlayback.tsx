@@ -2,6 +2,7 @@ import type React from "react";
 import { useEffect, useRef, useImperativeHandle, forwardRef, useState, useMemo, useCallback } from "react";
 import { CUT_CROSSFADE_MS } from '@/lib/cutTransitions';
 import { getAssetPath, getRenderableAssetUrl } from "@/lib/assetPath";
+import "@/lib/pixiMaskFix";
 import { DEFAULT_WALLPAPER_PATH, DEFAULT_WALLPAPER_RELATIVE_PATH } from "@/lib/wallpapers";
 import { Application, Container, Sprite, Graphics, BlurFilter, Point, Texture, VideoSource } from 'pixi.js';
 import { MotionBlurFilter } from 'pixi-filters/motion-blur';
